@@ -1,0 +1,17 @@
+[package]
+name = "exonum-neo4j"
+version = "0.1.0"
+authors = ["Indrek Klangberg","Silver Vapper","Sjoerd Wels"]
+repository = "https://github.com/sjoerdwels/Exonum-Neo4j"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+keywords = ["exonum", "neo4j"]
+categories = ["graphdatabase", "blockchain","consensus"]
+description = "Neo4j services for exonum."
+
+[dependencies]
+exonum = "0.9.4"
+
+[dev-dependencies]
+exonum-testkit = "0.9.2"
+pretty_assertions = "=0.5.1"
