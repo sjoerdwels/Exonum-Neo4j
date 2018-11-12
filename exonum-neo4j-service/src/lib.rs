@@ -24,9 +24,12 @@ extern crate serde_derive;
 
 pub use schema::Schema;
 
+///Our API.
 pub mod api;
 pub mod schema;
+///Our possible transactions
 pub mod transactions;
+///Our test value struct.
 pub mod testValue;
 
 use transactions::TestTransactions;

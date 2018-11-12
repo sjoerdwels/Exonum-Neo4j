@@ -47,10 +47,12 @@ where
         ProofMapIndex::new("test.values", &self.view)
     }
 
+    ///Get a single variable, by giving variable name as key.
     pub fn value(&self, name: &str) -> Option<TestValue> {
         self.values().get(&hash(name.as_bytes()))
     }
 
+    ///Get state hash
     pub fn state_hash(&self) -> Vec<Hash> {
         vec![self.values().merkle_root()]
     }
@@ -58,11 +60,12 @@ where
 
 /// Implementation of mutable methods.
 impl<'a> Schema<&'a mut Fork> {
+    ///Get all variables from database.
     pub fn values_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, TestValue> {
         ProofMapIndex::new("test.values", &mut self.view)
     }
 
-
+    ///Change the value of existing variable.
     pub fn set_value(&mut self, name: &str, newValue: u64, transaction: &Hash) {
         let value = self.value(name);
         match value {
@@ -76,6 +79,7 @@ impl<'a> Schema<&'a mut Fork> {
 
     }
 
+    ///Add a new variable to the table.
     pub fn create_value(&mut self, name: &str, transaction: &Hash) {
         let value = TestValue::new(name, INITIAL_VALUE);
         self.values_mut().put(&hash(name.as_bytes()), value);
