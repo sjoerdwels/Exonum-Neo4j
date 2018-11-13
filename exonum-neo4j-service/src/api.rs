@@ -1,10 +1,14 @@
 
 use exonum::{
     api::{self, ServiceApiBuilder, ServiceApiState},
-    crypto::{Hash}
+    crypto::{Hash},
+    blockchain::Transaction,
+    node::TransactionSend,
 };
 use test_value::TestValue;
 use schema::Schema;
+
+use transactions::TestTransactions;
 
 /// Describes the query parameters for the `get_wallet` endpoint.
 encoding_struct! {
@@ -36,6 +40,18 @@ impl TestApi {
         let values = idx.values().collect();
         Ok(values)
     }
+    
+    /// Common processing for transaction-accepting endpoints.
+    pub fn post_transaction(
+        state: &ServiceApiState,
+        query: TestTransactions,
+    ) -> api::Result<TransactionResponse> {
+        let transaction: Box<dyn Transaction> = query.into();
+        let tx_hash = transaction.hash();
+
+        state.sender().send(transaction)?;
+        Ok(TransactionResponse { tx_hash })
+    }
 
     /// 'ServiceApiBuilder' facilitates conversion between transactions/read requests and REST
     /// endpoints; for example, it parses `POST`ed JSON into the binary transaction
@@ -44,7 +60,7 @@ impl TestApi {
         // Binds handlers to specific routes.
         builder
             .public_scope()
-            .endpoint("v1/values", Self::get_values);
-            //.endpoint_mut("v1/values", Self::post_transaction);
+            .endpoint("v1/values", Self::get_values)
+            .endpoint_mut("v1/values", Self::post_transaction);
     }
 }
