@@ -15,10 +15,10 @@
 //! Cryptocurrency database schema.
 
 use exonum::{
-    crypto::{hash, Hash}, storage::{StorageKey, Fork, ProofMapIndex, Snapshot, proof_map_index::{ProofMapKey},},
+    crypto::{hash, Hash}, storage::{Fork, ProofMapIndex, Snapshot,},
 };
 
-use testValue::TestValue;
+use test_value::TestValue;
 use INITIAL_VALUE;
 
 /// Database schema for the cryptocurrency.
@@ -66,11 +66,11 @@ impl<'a> Schema<&'a mut Fork> {
     }
 
     ///Change the value of existing variable.
-    pub fn set_value(&mut self, name: &str, newValue: u64, transaction: &Hash) {
+    pub fn set_value(&mut self, name: &str, new_value: u64, _transaction: &Hash) {
         let value = self.value(name);
         match value {
             Some(value) => {
-                let value = value.set_value(newValue);
+                let value = value.set_value(new_value);
                 self.values_mut().put(&hash(value.name().as_bytes()), value);
             },
             None => ()
@@ -80,7 +80,7 @@ impl<'a> Schema<&'a mut Fork> {
     }
 
     ///Add a new variable to the table.
-    pub fn create_value(&mut self, name: &str, transaction: &Hash) {
+    pub fn create_value(&mut self, name: &str, _transaction: &Hash) {
         let value = TestValue::new(name, INITIAL_VALUE);
         self.values_mut().put(&hash(name.as_bytes()), value);
     }

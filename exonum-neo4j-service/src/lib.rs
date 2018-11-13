@@ -14,7 +14,7 @@
 
 //! Cryptocurrency implementation example using [exonum](http://exonum.com/).
 
-#![deny(missing_debug_implementations, missing_docs, unsafe_code, bare_trait_objects)]
+#![deny(missing_debug_implementations, unsafe_code, bare_trait_objects)]
 
 #[macro_use]
 extern crate exonum;
@@ -30,18 +30,19 @@ pub mod schema;
 ///Our possible transactions
 pub mod transactions;
 ///Our test value struct.
-pub mod testValue;
+pub mod test_value;
 
 use transactions::TestTransactions;
 
 use exonum::{
+    api::ServiceApiBuilder,
     blockchain::{self, Transaction, TransactionSet}, crypto::Hash,
     encoding::Error as EncodingError, helpers::fabric::{self, Context}, messages::RawTransaction,
     storage::Snapshot,
 };
 
 /// Unique service ID.
-const TEST_SERVICE_ID: u16 = 12317289;
+const TEST_SERVICE_ID: u16 = 465;
 /// Name of the service.
 const SERVICE_NAME: &str = "testService";
 /// Initial balance of the wallet.
@@ -69,9 +70,9 @@ impl blockchain::Service for Service {
         TestTransactions::tx_from_raw(raw).map(Into::into)
     }
 
-    /*fn wire_api(&self, builder: &mut ServiceApiBuilder) {
-        api::PublicApi::wire(builder);
-    }*/
+    fn wire_api(&self, builder: &mut ServiceApiBuilder) {
+        api::TestApi::wire(builder);
+    }
 }
 
 /// A configuration service creator for the `NodeBuilder`.

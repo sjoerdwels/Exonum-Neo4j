@@ -2,12 +2,13 @@
 
 use exonum::{
     blockchain::{ExecutionResult, Transaction},
-    messages::{Message}, storage::{Fork},
+    storage::{Fork},
     crypto::{CryptoHash}
 };
 
 use schema::Schema;
 use TEST_SERVICE_ID;
+//use std::io::{self, Write};
 
 
 
@@ -40,6 +41,8 @@ impl Transaction for ChangeValue {
         let amount = self.amount();
         let name = self.name();
 
+        format!("Changing {} to {}", name, amount);
+
         schema.set_value(name, amount, &hash);
 
         Ok(())
@@ -56,6 +59,8 @@ impl Transaction for NewValue {
 
         let mut schema = Schema::new(fork);
         let name = self.name();
+
+        format!("Creating new value named {}", name);
 
         schema.create_value(name, &hash);
 
