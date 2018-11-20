@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package protobuf;
+
+service TransactionManager {
+    rpc VerifyTransaction (VerifyQueryRequest) returns (VerifyQueryResponse) {}
+    rpc ExecuteTransaction (ExecuteQueryRequest) returns (ExecuteQueryResponse) {}
+}
+
+message VerifyQueryRequest {
+  repeated string queries = 1;
+}
+
+message VerifyQueryResponse {
+  required bool result = 1;
+  repeated Node nodes = 2;
+  repeated Relationship relationships = 3;
+}
+
+message ExecuteQueryRequest {
+  repeated string queries = 1;
+}
+
+message ExecuteQueryResponse {
+  required bool result = 1;
+}
+
+message Node {
+  required int32 id = 1;
+  required string lable = 2;
+}
+
+message Relationship {
+  required int32 id = 1;
+  required int32 start_node_id = 2;
+  required int32 end_node_id = 3;
+}
