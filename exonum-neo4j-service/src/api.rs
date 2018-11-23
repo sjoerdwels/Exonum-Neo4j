@@ -5,22 +5,22 @@ use exonum::{
     blockchain::Transaction,
     node::TransactionSend,
 };
-use test_value::TestValue;
+use structures::Queries;
 use schema::Schema;
 
-use transactions::TestTransactions;
+use transactions::Neo4JTransactions;
 
 /// Describes the query parameters for the `get_wallet` endpoint.
 encoding_struct! {
-    struct NewValueQuery {
+    struct commitQueriesQuery {
         /// Public key of the queried wallet.
-        name: &str,
+        queries: &str,
     }
 }
 
-/// Response to an incoming transaction returned by the REST API.
+/// Response to an incoming commit request returned by the REST API.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TransactionResponse {
+pub struct CommitResponse {
     /// Hash of the transaction.
     pub tx_hash: Hash,
 }
@@ -33,10 +33,10 @@ pub struct TestApi;
 impl TestApi {
 
     /// Endpoint for dumping all wallets from the storage.
-    pub fn get_values(state: &ServiceApiState, _query: ()) -> api::Result<Vec<TestValue>> {
+    pub fn get_queries(state: &ServiceApiState, _query: ()) -> api::Result<Vec<Queries>> {
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
-        let idx = schema.values();
+        let idx = schema.queries();
         let values = idx.values().collect();
         Ok(values)
     }
@@ -44,13 +44,13 @@ impl TestApi {
     /// Common processing for transaction-accepting endpoints.
     pub fn post_transaction(
         state: &ServiceApiState,
-        query: TestTransactions,
-    ) -> api::Result<TransactionResponse> {
+        query: Neo4JTransactions,
+    ) -> api::Result<CommitResponse> {
         let transaction: Box<dyn Transaction> = query.into();
         let tx_hash = transaction.hash();
 
         state.sender().send(transaction)?;
-        Ok(TransactionResponse { tx_hash })
+        Ok(CommitResponse { tx_hash })
     }
 
     /// 'ServiceApiBuilder' facilitates conversion between transactions/read requests and REST
@@ -60,7 +60,7 @@ impl TestApi {
         // Binds handlers to specific routes.
         builder
             .public_scope()
-            .endpoint("v1/values", Self::get_values)
+            .endpoint("v1/values", Self::get_queries)
             .endpoint_mut("v1/values", Self::post_transaction);
     }
 }

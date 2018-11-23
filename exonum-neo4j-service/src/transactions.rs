@@ -7,30 +7,27 @@ use exonum::{
 };
 
 use schema::Schema;
-use TEST_SERVICE_ID;
+use structures::getProtoBufList;
+use structures::Queries;
+use NEO4J_SERVICE_ID;
 //use std::io::{self, Write};
 
 
 
 transactions! {
     /// Transaction group.
-    pub TestTransactions {
-        const SERVICE_ID = TEST_SERVICE_ID; // Remove this when updating.
+    pub Neo4JTransactions {
+        const SERVICE_ID = NEO4J_SERVICE_ID; // Remove this when updating.
         // Transfer `amount` of the currency from one wallet to another.
-        struct ChangeValue {
-            name: &str,
-            amount:  u64,
-        }
-
-        struct NewValue {
-            name: &str
+        struct CommitQueries {
+            queries: &str,
         }
     }
 }
 
-
-impl Transaction for ChangeValue {
+impl Transaction for CommitQueries {
     fn verify(&self) -> bool {
+        let protoFields = getProtoBufList(self.queries());
         true
     }
 
@@ -38,31 +35,11 @@ impl Transaction for ChangeValue {
         let hash = self.hash();
 
         let mut schema = Schema::new(fork);
-        let amount = self.amount();
-        let name = self.name();
+        let queries = self.queries();
+        let q = Queries::new(queries);
+        q.execute();
 
-        format!("Changing {} to {}", name, amount);
-
-        schema.set_value(name, amount, &hash);
-
-        Ok(())
-    }
-}
-
-impl Transaction for NewValue {
-
-    fn verify(&self) -> bool {
-        true
-    }
-    fn execute(&self, fork: &mut Fork) -> ExecutionResult {
-        let hash = self.hash();
-
-        let mut schema = Schema::new(fork);
-        let name = self.name();
-
-        format!("Creating new value named {}", name);
-
-        schema.create_value(name, &hash);
+        schema.add_query(q, &hash);
 
         Ok(())
     }

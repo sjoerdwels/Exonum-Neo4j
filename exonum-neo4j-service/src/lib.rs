@@ -31,8 +31,9 @@ pub mod schema;
 pub mod transactions;
 ///Our test value struct.
 pub mod test_value;
+pub mod structures;
 
-use transactions::TestTransactions;
+use transactions::Neo4JTransactions;
 
 use exonum::{
     api::ServiceApiBuilder,
@@ -42,9 +43,9 @@ use exonum::{
 };
 
 /// Unique service ID.
-const TEST_SERVICE_ID: u16 = 465;
+const NEO4J_SERVICE_ID: u16 = 144;
 /// Name of the service.
-const SERVICE_NAME: &str = "testService";
+const SERVICE_NAME: &str = "neo4J_blockchain";
 /// Initial balance of the wallet.
 const INITIAL_VALUE: u64 = 50;
 
@@ -54,7 +55,7 @@ pub struct Service;
 
 impl blockchain::Service for Service {
     fn service_id(&self) -> u16 {
-        TEST_SERVICE_ID
+        NEO4J_SERVICE_ID
     }
 
     fn service_name(&self) -> &str {
@@ -67,7 +68,7 @@ impl blockchain::Service for Service {
     }
 
     fn tx_from_raw(&self, raw: RawTransaction) -> Result<Box<dyn Transaction>, EncodingError> {
-        TestTransactions::tx_from_raw(raw).map(Into::into)
+        Neo4JTransactions::tx_from_raw(raw).map(Into::into)
     }
 
     fn wire_api(&self, builder: &mut ServiceApiBuilder) {

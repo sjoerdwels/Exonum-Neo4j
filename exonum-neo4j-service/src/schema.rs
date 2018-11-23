@@ -19,6 +19,7 @@ use exonum::{
 };
 
 use test_value::TestValue;
+use structures::Queries;
 use INITIAL_VALUE;
 
 /// Database schema for the cryptocurrency.
@@ -43,45 +44,30 @@ where
     }
 
     /// Returns `ProofMapIndex` with wallets.
-    pub fn values(&self) -> ProofMapIndex<&T, Hash, TestValue> {
-        ProofMapIndex::new("test.values", &self.view)
+    pub fn queries(&self) -> ProofMapIndex<&T, Hash, Queries> {
+        ProofMapIndex::new("neo4j.queries", &self.view)
     }
 
     ///Get a single variable, by giving variable name as key.
-    pub fn value(&self, name: &str) -> Option<TestValue> {
-        self.values().get(&hash(name.as_bytes()))
+    pub fn value(&self, query: &str) -> Option<Queries> {
+        self.queries().get(&hash(query.as_bytes()))
     }
 
     ///Get state hash
     pub fn state_hash(&self) -> Vec<Hash> {
-        vec![self.values().merkle_root()]
+        vec![self.queries().merkle_root()]
     }
 }
 
 /// Implementation of mutable methods.
 impl<'a> Schema<&'a mut Fork> {
     ///Get all variables from database.
-    pub fn values_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, TestValue> {
-        ProofMapIndex::new("test.values", &mut self.view)
-    }
-
-    ///Change the value of existing variable.
-    pub fn set_value(&mut self, name: &str, new_value: u64, _transaction: &Hash) {
-        let value = self.value(name);
-        match value {
-            Some(value) => {
-                let value = value.set_value(new_value);
-                self.values_mut().put(&hash(value.name().as_bytes()), value);
-            },
-            None => ()
-
-        }
-
+    pub fn queries_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, Queries> {
+        ProofMapIndex::new("neo4j.queries", &mut self.view)
     }
 
     ///Add a new variable to the table.
-    pub fn create_value(&mut self, name: &str, _transaction: &Hash) {
-        let value = TestValue::new(name, INITIAL_VALUE);
-        self.values_mut().put(&hash(name.as_bytes()), value);
+    pub fn add_query(&mut self, q: Queries, _transaction: &Hash) {
+        self.queries_mut().put(&hash(q.queries().as_bytes()), q);
     }
 }
