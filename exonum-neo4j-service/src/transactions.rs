@@ -7,7 +7,10 @@ use exonum::{
 };
 
 use schema::Schema;
-use TEST_SERVICE_ID;
+
+use structures::getProtoBufList;
+use structures::{NodeChange, Queries};
+use NEO4J_SERVICE_ID;
 //use std::io::{self, Write};
 
 
@@ -38,32 +41,15 @@ impl Transaction for ChangeValue {
         let hash = self.hash();
 
         let mut schema = Schema::new(fork);
-        let amount = self.amount();
-        let name = self.name();
 
-        format!("Changing {} to {}", name, amount);
+        let queries = self.queries();
+        let q = Queries::new(queries, &hash);
+        let node_changes : Vec<NodeChange> = q.execute();
 
-        schema.set_value(name, amount, &hash);
-
-        Ok(())
-    }
-}
-
-impl Transaction for NewValue {
-
-    fn verify(&self) -> bool {
-        true
-    }
-    fn execute(&self, fork: &mut Fork) -> ExecutionResult {
-        let hash = self.hash();
-
-        let mut schema = Schema::new(fork);
-        let name = self.name();
-
-        format!("Creating new value named {}", name);
-
-        schema.create_value(name, &hash);
-
+        schema.add_query(q);
+        for nc in node_changes{
+            schema.add_node_history(nc)
+        }
         Ok(())
     }
 }

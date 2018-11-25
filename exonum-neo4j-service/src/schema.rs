@@ -15,11 +15,10 @@
 //! Cryptocurrency database schema.
 
 use exonum::{
-    crypto::{hash, Hash}, storage::{Fork, ProofMapIndex, Snapshot,},
+    crypto::{hash, Hash}, storage::{Fork, ProofListIndex, ProofMapIndex, Snapshot,},
 };
 
-use test_value::TestValue;
-use INITIAL_VALUE;
+use structures::{Queries, NodeChange};
 
 /// Database schema for the cryptocurrency.
 #[derive(Debug)]
@@ -48,8 +47,12 @@ where
     }
 
     ///Get a single variable, by giving variable name as key.
-    pub fn value(&self, name: &str) -> Option<TestValue> {
-        self.values().get(&hash(name.as_bytes()))
+    pub fn query(&self, query: &str) -> Option<Queries> {
+        self.queries().get(&hash(query.as_bytes()))
+    }
+
+    pub fn node_history(&self, node_name: &str) -> ProofListIndex<&T, NodeChange> {
+        ProofListIndex::new(format!("neo4j.node_changes_{}", node_name), &self.view)
     }
 
     ///Get state hash
@@ -80,8 +83,20 @@ impl<'a> Schema<&'a mut Fork> {
     }
 
     ///Add a new variable to the table.
-    pub fn create_value(&mut self, name: &str, _transaction: &Hash) {
-        let value = TestValue::new(name, INITIAL_VALUE);
-        self.values_mut().put(&hash(name.as_bytes()), value);
+    pub fn add_query(&mut self, q: Queries) {
+        let hash = q.transaction_hash().clone();
+        self.queries_mut().put(&hash, q);
     }
+
+    pub fn node_history_mut(&mut self, node_name: &str) -> ProofListIndex<&mut Fork, NodeChange> {
+        ProofListIndex::new(format!("neo4j.node_changes_{}", node_name), &mut self.view)
+    }
+
+    pub fn add_node_history(&mut self, node_change: NodeChange){
+        let name = node_change.node_name().clone();
+        self.node_history_mut(name).push(node_change)
+    }
+
+
+
 }

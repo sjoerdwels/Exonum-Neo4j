@@ -46,7 +46,6 @@ const TEST_SERVICE_ID: u16 = 465;
 /// Name of the service.
 const SERVICE_NAME: &str = "testService";
 /// Initial balance of the wallet.
-const INITIAL_VALUE: u64 = 50;
 
 /// Exonum `Service` implementation.
 #[derive(Default, Debug)]
