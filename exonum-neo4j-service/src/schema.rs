@@ -20,6 +20,7 @@ use exonum::{
 
 use structures::{Queries, NodeChange};
 
+
 /// Database schema for the cryptocurrency.
 #[derive(Debug)]
 pub struct Schema<T> {
@@ -42,8 +43,8 @@ where
     }
 
     /// Returns `ProofMapIndex` with wallets.
-    pub fn values(&self) -> ProofMapIndex<&T, Hash, TestValue> {
-        ProofMapIndex::new("test.values", &self.view)
+    pub fn queries(&self) -> ProofMapIndex<&T, Hash, Queries> {
+        ProofMapIndex::new("neo4j.queries", &self.view)
     }
 
     ///Get a single variable, by giving variable name as key.
@@ -53,39 +54,27 @@ where
 
     pub fn node_history(&self, node_name: &str) -> ProofListIndex<&T, NodeChange> {
         ProofListIndex::new(format!("neo4j.node_changes_{}", node_name), &self.view)
+
     }
 
     ///Get state hash
     pub fn state_hash(&self) -> Vec<Hash> {
-        vec![self.values().merkle_root()]
+        vec![self.queries().merkle_root()]
     }
 }
 
 /// Implementation of mutable methods.
 impl<'a> Schema<&'a mut Fork> {
     ///Get all variables from database.
-    pub fn values_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, TestValue> {
-        ProofMapIndex::new("test.values", &mut self.view)
-    }
-
-    ///Change the value of existing variable.
-    pub fn set_value(&mut self, name: &str, new_value: u64, _transaction: &Hash) {
-        let value = self.value(name);
-        match value {
-            Some(value) => {
-                let value = value.set_value(new_value);
-                self.values_mut().put(&hash(value.name().as_bytes()), value);
-            },
-            None => ()
-
-        }
-
+    pub fn queries_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, Queries> {
+        ProofMapIndex::new("neo4j.queries", &mut self.view)
     }
 
     ///Add a new variable to the table.
     pub fn add_query(&mut self, q: Queries) {
         let hash = q.transaction_hash().clone();
         self.queries_mut().put(&hash, q);
+
     }
 
     pub fn node_history_mut(&mut self, node_name: &str) -> ProofListIndex<&mut Fork, NodeChange> {

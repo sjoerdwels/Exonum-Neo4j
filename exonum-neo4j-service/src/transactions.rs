@@ -17,23 +17,18 @@ use NEO4J_SERVICE_ID;
 
 transactions! {
     /// Transaction group.
-    pub TestTransactions {
-        const SERVICE_ID = TEST_SERVICE_ID; // Remove this when updating.
+    pub Neo4JTransactions {
+        const SERVICE_ID = NEO4J_SERVICE_ID; // Remove this when updating.
         // Transfer `amount` of the currency from one wallet to another.
-        struct ChangeValue {
-            name: &str,
-            amount:  u64,
-        }
-
-        struct NewValue {
-            name: &str
+        struct CommitQueries {
+            queries: &str,
         }
     }
 }
 
-
-impl Transaction for ChangeValue {
+impl Transaction for CommitQueries {
     fn verify(&self) -> bool {
+        let protoFields = getProtoBufList(self.queries());
         true
     }
 
@@ -45,6 +40,7 @@ impl Transaction for ChangeValue {
         let queries = self.queries();
         let q = Queries::new(queries, &hash);
         let node_changes : Vec<NodeChange> = q.execute();
+
 
         schema.add_query(q);
         for nc in node_changes{
