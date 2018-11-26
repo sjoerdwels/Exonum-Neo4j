@@ -82,8 +82,8 @@ impl<'a> Schema<&'a mut Fork> {
     }
 
     pub fn add_node_history(&mut self, node_change: NodeChange){
-        let name: &str = node_change.node_name().clone();
-        self.node_history_mut(name).push(node_change)
+        let name: &str = node_change.node_name();
+        self.node_history_mut(name).push(node_change.clone())
     }
 
 
