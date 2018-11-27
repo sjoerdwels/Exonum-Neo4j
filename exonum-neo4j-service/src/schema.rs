@@ -85,7 +85,4 @@ impl<'a> Schema<&'a mut Fork> {
         let name: &str = node_change.node_name();
         self.node_history_mut(name).push(node_change.clone())
     }
-
-
-
 }

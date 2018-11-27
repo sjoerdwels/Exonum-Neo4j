@@ -27,13 +27,14 @@ pub struct CommitResponse {
 
 /// Public service API description.
 #[derive(Debug, Clone)]
-pub struct TestApi;
+pub struct Neo4JApi;
 
 
-impl TestApi {
+impl Neo4JApi {
 
     /// Endpoint for dumping all wallets from the storage.
     pub fn get_queries(state: &ServiceApiState, _query: ()) -> api::Result<Vec<Queries>> {
+        print!("Collecting queries");
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
         let idx = schema.queries();
@@ -60,7 +61,7 @@ impl TestApi {
         // Binds handlers to specific routes.
         builder
             .public_scope()
-            .endpoint("v1/values", Self::get_queries)
-            .endpoint_mut("v1/values", Self::post_transaction);
+            .endpoint("v1/queries", Self::get_queries)
+            .endpoint_mut("v1/queries", Self::post_transaction);
     }
 }
