@@ -65,7 +65,7 @@ where
 
 /// Implementation of mutable methods.
 impl<'a> Schema<&'a mut Fork> {
-    ///Get all variables from database.
+    ///Get all queries from database.
     pub fn queries_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, Queries> {
         ProofMapIndex::new("neo4j.queries", &mut self.view)
     }

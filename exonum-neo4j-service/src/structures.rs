@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 extern crate protobuf;
 
 use exonum::crypto::Hash;

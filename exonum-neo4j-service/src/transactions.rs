@@ -1,4 +1,5 @@
 #![allow(bare_trait_objects)]
+#![allow(warnings)]
 
 use exonum::{
     blockchain::{ExecutionResult, Transaction},
