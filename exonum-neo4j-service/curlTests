@@ -13,3 +13,5 @@ curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services
 
 curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4J_blockchain/v1/queries
 
+curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4J_blockchain/v1/node_history?node_name=u1
+
