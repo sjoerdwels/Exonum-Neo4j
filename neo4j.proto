@@ -24,12 +24,12 @@ message ExecuteTransactionResponse {
 message Node {
   int32 id = 1;
   string name = 2;
-  string value = 3;
+  string lable = 3;
 }
 
 message Relationship {
   int32 id = 1;
-  string name = 2;
+  string type = 2;
   int32 start_node_id = 3;
   int32 end_node_id = 4;
 }
