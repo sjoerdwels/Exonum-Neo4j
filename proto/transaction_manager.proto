@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package protobuf;
+
+option java_multiple_files = true;
+option java_package = "com.bitfury.neo4j.transaction_manager";
+option java_outer_classname = "TransactionManagerProto";
+
+service TransactionManager {
+  rpc VerifyTransaction (TransactionRequest) returns (TransactionResponse) {}
+  rpc ExecuteTransaction (TransactionRequest) returns (TransactionResponse) {}
+}
+
+message TransactionRequest {
+  repeated string queries = 1;
+}
+
+message TransactionResponse {
+  Status result = 1;
+  repeated Node nodes = 2;
+  repeated Relationship relationships = 3;
+}
+
+message Node {
+  int32 id = 1;
+  string name = 2;
+  string value = 3;
+}
+
+message Relationship {
+  int32 id = 1;
+  string name = 2;
+  int32 start_node_id = 3;
+  int32 end_node_id = 4;
+}
+
+enum Status {
+  FAILURE = 0;
+  SUCCESS = 1;
+}
