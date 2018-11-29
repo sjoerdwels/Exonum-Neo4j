@@ -5,7 +5,7 @@ use exonum::{
     blockchain::Transaction,
     node::TransactionSend,
 };
-use structures::Queries;
+use structures::{Queries, NodeChange};
 use schema::Schema;
 
 use transactions::Neo4JTransactions;
@@ -24,22 +24,40 @@ pub struct CommitResponse {
     /// Hash of the transaction.
     pub tx_hash: Hash,
 }
+encoding_struct! {
+    struct NodeHistoryQuery {
+        node_name: &str,
+    }
+}
 
 /// Public service API description.
 #[derive(Debug, Clone)]
-pub struct TestApi;
+pub struct Neo4JApi;
 
 
-impl TestApi {
+impl Neo4JApi {
 
     /// Endpoint for dumping all wallets from the storage.
     pub fn get_queries(state: &ServiceApiState, _query: ()) -> api::Result<Vec<Queries>> {
+        print!("Collecting queries");
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
         let idx = schema.queries();
         let values = idx.values().collect();
         Ok(values)
     }
+
+    pub fn get_node_history(state: &ServiceApiState, query: NodeHistoryQuery) -> api::Result<Vec<NodeChange>> {
+        let snapshot = state.snapshot();
+        let schema = Schema::new(snapshot);
+        let idx = schema.node_history(query.node_name());
+        let mut values = Vec::new();
+        values.extend(idx.iter());
+        Ok(values)
+
+    }
+
+
     
     /// Common processing for transaction-accepting endpoints.
     pub fn post_transaction(
@@ -60,7 +78,8 @@ impl TestApi {
         // Binds handlers to specific routes.
         builder
             .public_scope()
-            .endpoint("v1/values", Self::get_queries)
-            .endpoint_mut("v1/values", Self::post_transaction);
+            .endpoint("v1/queries", Self::get_queries)
+            .endpoint("v1/node_history", Self::get_node_history)
+            .endpoint_mut("v1/queries", Self::post_transaction);
     }
 }

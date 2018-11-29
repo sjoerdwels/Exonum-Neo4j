@@ -65,7 +65,7 @@ where
 
 /// Implementation of mutable methods.
 impl<'a> Schema<&'a mut Fork> {
-    ///Get all variables from database.
+    ///Get all queries from database.
     pub fn queries_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, Queries> {
         ProofMapIndex::new("neo4j.queries", &mut self.view)
     }
@@ -82,10 +82,7 @@ impl<'a> Schema<&'a mut Fork> {
     }
 
     pub fn add_node_history(&mut self, node_change: NodeChange){
-        let name = node_change.node_name().clone();
-        self.node_history_mut(name).push(node_change)
+        let name: &str = node_change.node_name();
+        self.node_history_mut(name).push(node_change.clone())
     }
-
-
-
 }

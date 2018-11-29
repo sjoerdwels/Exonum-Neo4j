@@ -71,7 +71,7 @@ impl blockchain::Service for Service {
     }
 
     fn wire_api(&self, builder: &mut ServiceApiBuilder) {
-        api::TestApi::wire(builder);
+        api::Neo4JApi::wire(builder);
     }
 }
 
