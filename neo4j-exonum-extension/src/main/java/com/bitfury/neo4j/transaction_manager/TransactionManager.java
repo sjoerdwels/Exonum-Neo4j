@@ -30,6 +30,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
     private static final Object lock = new Object();
     private static TransactionData transactionData = null;
+    private static boolean transactionDataAvailable = false;
 
     private enum TransactionType {
         VERIFY,
@@ -44,7 +45,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         log = logService.getUserLog(getClass());
 
         // Start gRPC server
-        gRPCserver = ServerBuilder.forPort(9999).addService(this).build();
+        gRPCserver = ServerBuilder.forPort(9994).addService(this).build();
 
         // Register EventHandler
         eventHandler = new TransactionManagerEventHandler(db, this);
@@ -69,7 +70,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
     public void handleTransactionData(TransactionData data) {
         transactionData = data;
-        lock.notify();
+        lock.notifyAll();
     }
 
     @Override
@@ -84,8 +85,10 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
 
     private void handleTransaction(TransactionType type, TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
-        try {
 
+        log.info("Handle new transaction of type " + type.name()  + " (thread " +Thread.currentThread().getId() +")" );
+
+        try {
             // Verify transaction
             if (request.getQueriesCount() == 0) {
                 throw new Exception("Transaction has no insert queries.");
@@ -110,6 +113,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                     // Rollback / commit transaction
                     switch (type) {
                         case VERIFY:
+                            //tx.failure();
                             break;
                         case EXECUTE:
                             tx.success();
@@ -117,7 +121,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                     }
 
                     // Wait for TransactionEventHandler to notify that the changes are available.
-                    lock.wait();
+                    //lock.wait();
 
                     // Set success status
                     responseBuilder.setResult(Status.SUCCESS);
@@ -138,16 +142,17 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                 // Close observer
                 responseObserver.onCompleted();
 
-                log.info("Transaction with " + request.getQueriesCount() + " queries successful " + type.name().toLowerCase() + ".");
+              //  log.info("Transaction with " + request.getQueriesCount() + " queries successful " + type.name().toLowerCase() + ".");
             }
         } catch (Exception ex) {
             log.error("Error handling transaction: " + ex.getMessage());
             responseObserver.onError(ex);
         }
+
     }
 
     private void addTransactionData(TransactionResponse.Builder responseBuilder) {
-        // todo add all transcation data in the new protocol format.
+        // todo add all transaction data in the new protocol format.
     }
 
     private boolean validInsertQuery(String query) throws Exception {

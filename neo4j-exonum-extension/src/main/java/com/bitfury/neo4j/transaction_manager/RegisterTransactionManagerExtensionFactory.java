@@ -9,7 +9,7 @@ import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.kernel.configuration.Config;
 
 
-public class RegisterTransactionManagerExtensionFactory extends KernelExtensionFactory<RegisterTransactionManagerExtensionFactory.Dependencies>{
+public class RegisterTransactionManagerExtensionFactory extends KernelExtensionFactory<RegisterTransactionManagerExtensionFactory.Dependencies> {
 
     @Override
     public Lifecycle newInstance(KernelContext kernelContext, final Dependencies dependencies) {
@@ -18,18 +18,17 @@ public class RegisterTransactionManagerExtensionFactory extends KernelExtensionF
             private TransactionManager manager;
 
             // TODO: Default server settings
-            // TODO: Use Neo4j Logging.
             @Override
             public void start() {
 
-                // Create a TransactionManager
-                TransactionManager manager = new TransactionManager(
+                // Create TransactionManager
+                manager = new TransactionManager(
                         dependencies.getGraphDatabaseService(),
                         dependencies.getConfig(),
                         dependencies.log()
-                        );
+                );
 
-               manager.start();
+                manager.start();
             }
 
             @Override
@@ -41,11 +40,13 @@ public class RegisterTransactionManagerExtensionFactory extends KernelExtensionF
 
     interface Dependencies {
         GraphDatabaseService getGraphDatabaseService();
+
         LogService log();
+
         Config getConfig();
     }
 
     public RegisterTransactionManagerExtensionFactory() {
-        super("registerExonumTransactionManagerExtensionFactory");
+        super("registerTransactionManagerExtensionFactory");
     }
 }
