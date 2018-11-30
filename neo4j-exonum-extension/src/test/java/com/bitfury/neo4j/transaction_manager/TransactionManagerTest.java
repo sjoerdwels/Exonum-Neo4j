@@ -5,8 +5,9 @@ import io.grpc.ManagedChannelBuilder;
 import org.junit.*;
 import org.neo4j.harness.junit.Neo4jRule;
 
-public class TransactionManagerTest {
+import java.util.Random;
 
+public class TransactionManagerTest {
 
     @Rule
     public final Neo4jRule neo4j = new Neo4jRule();
@@ -25,10 +26,9 @@ public class TransactionManagerTest {
     public void testEmptyTransaction() {
 
         TransactionRequest request = TransactionRequest.newBuilder().build();
-        TransactionResponse response;
 
         try {
-            response = blockingStub.verifyTransaction(request);
+            blockingStub.verifyTransaction(request);
             assert (false);
         } catch (Exception ex) {
         }
@@ -40,7 +40,7 @@ public class TransactionManagerTest {
         TransactionRequest request = TransactionRequest.newBuilder().addQueries(" CREATE (n)").build();
         TransactionResponse response = blockingStub.executeTransaction(request);
 
-        assert(response.getResult() ==  Status.SUCCESS);
+        assert (response.getResult() == Status.SUCCESS);
     }
 
     @Test
@@ -49,7 +49,40 @@ public class TransactionManagerTest {
         TransactionRequest request = TransactionRequest.newBuilder().addQueries("FakeQuery").build();
         TransactionResponse response = blockingStub.executeTransaction(request);
 
-        assert(response.getResult() ==  Status.FAILURE);
+        assert (response.getResult() == Status.FAILURE);
+    }
+
+    @Test
+    public void testMultipleThreadsTransaction() {
+
+        int number = 100;
+
+        Thread transactionThreads[] = new Thread[number];
+
+        for (int j = 0; j < number; j++) {
+            transactionThreads[j] = new Thread(() -> {
+
+                Random random = new Random();
+                try {
+                    Thread.sleep(random.nextInt(500));
+                } catch (Exception ex) {
+                }
+
+                TransactionRequest request = TransactionRequest.newBuilder().addQueries(" CREATE (n)").build();
+                TransactionResponse response = blockingStub.verifyTransaction(request);
+
+                assert (response.getResult() == Status.SUCCESS);
+
+            });
+            transactionThreads[j].start();
+        }
+        try {
+            for (int j = 0; j < number; j++) {
+                transactionThreads[j].join();
+            }
+        } catch (Exception e) {
+            System.out.println("Exception during thread joining occurred.");
+        }
     }
 
 }
