@@ -11,30 +11,87 @@ service TransactionManager {
   rpc ExecuteTransaction (TransactionRequest) returns (TransactionResponse) {}
 }
 
-message TransactionRequest {
-  repeated string queries = 1;
-}
-
-message TransactionResponse {
-  Status result = 1;
-  repeated Node nodes = 2;
-  repeated Relationship relationships = 3;
-}
-
-message Node {
-  int32 id = 1;
-  string name = 2;
-  string value = 3;
-}
-
-message Relationship {
-  int32 id = 1;
-  string name = 2;
-  int32 start_node_id = 3;
-  int32 end_node_id = 4;
-}
-
 enum Status {
   FAILURE = 0;
   SUCCESS = 1;
 }
+
+message TransactionRequest {
+  string UUID_prefix = 1;
+  repeated string queries = 2;
+}
+
+message TransactionResponse {
+  Status result = 1;
+  DatabaseModifications modifications =  2;
+}
+
+message DatabaseModifications {
+
+  repeated CreatedNode created_nodes= 1;
+  repeated CreatedRelationShip created_relationships = 2;
+  repeated AssignedLabel assigned_labels = 3;
+  repeated AssignedNodeProperty assigned_node_properties = 4;
+  repeated RemovedRelationProperty removed_relation_properties = 5;
+  repeated RemovedNodeProperty removed_node_properties = 6;
+  repeated RemovedLabel removed_labels = 7;
+  repeated DeletedRelationShip deleted_relationships = 8;
+  repeated DeletedNode deleted_nodes = 9;
+
+  message CreatedNode {
+    string nodeUUID = 1;
+  }
+
+  message CreatedRelationShip {
+    string type = 1;
+    string start_node_UUID =  2;
+    string end_node_UUID = 3;
+  }
+
+  message AssignedLabel {
+    string node_UUID = 1;
+    string name = 2;
+  }
+
+  message AssignedNodeProperty {
+    string node_UUID = 1;
+    string key = 2;
+    string previous_value = 3;
+    string value = 4;
+  }
+
+  message AssignedRelationProperty {
+    string relationship_UUID = 1;
+    string key = 2;
+    string previous_value = 3;
+    string value = 4;
+  }
+
+  message RemovedRelationProperty {
+    string relationship_UUID = 1;
+    string key = 2;
+  }
+
+  message RemovedNodeProperty {
+    string node_UUID = 1;
+    string key  = 2;
+  }
+
+  message RemovedLabel {
+    string node_UUID = 1;
+    string name = 2;
+  }
+
+  message DeletedRelationShip {
+    string type = 1;
+    string start_node_UUID = 2;
+    string end_node_UUID = 3;
+  }
+
+  message DeletedNode {
+    string node_UUID = 1;
+  }
+}
+
+
+
