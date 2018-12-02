@@ -19,6 +19,9 @@ public class TransactionManagerEventHandler implements TransactionEventHandler {
     @Override
     public Object beforeCommit(TransactionData transactionData) {
         log.debug("method=beforeCommit threadID=" +Thread.currentThread().getId() );
+
+        // todo Verify if no UUID was changed.
+
         return null;
     }
 

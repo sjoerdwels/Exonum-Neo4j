@@ -77,10 +77,13 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     }
 
     /**
+     * Handle a new transaction by executing the provided queries and return the observer whether the transaction was successful.
+     * Uses a thread local TmData object to store all related data to the gRPC request,
+     * as the TransactionEventHandler has no reference to the gRPC executor instance.
      *
-     * @param type              The gRPC method type
-     * @param request           The request message
-     * @param responseObserver  The responseObserver
+     * @param type             The gRPC method type
+     * @param request          The request message
+     * @param responseObserver The responseObserver
      */
     private void handleTransaction(TransactionManagerData.TransactionType type, TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
 
@@ -136,7 +139,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     }
 
     /**
-     * Called after transaction has successfully been committed.
+     * Called by TransactionEventHandler after transaction has successfully been committed.
      *
      * @param transactionData The changes that were committed in this transaction.
      */
@@ -157,13 +160,19 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     }
 
 
+    /**
+     * Process the transaction data to an internal data structure and add UUIDs to new created nods
+     * and relationships.
+     *
+     * @param transactionData The changes that were committed in this transaction.
+     */
     private void processTransactionData(TransactionData transactionData) {
 
         int uuid_id = 0;
 
         // todo process all Transcation data, create Exonum nodes/labels/properties and store it in TmData.
 
-        for( Node node : transactionData.createdNodes()) {
+        for (Node node : transactionData.createdNodes()) {
 
         }
 
