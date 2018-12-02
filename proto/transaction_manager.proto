@@ -32,20 +32,22 @@ message DatabaseModifications {
   repeated CreatedRelationShip created_relationships = 2;
   repeated AssignedLabel assigned_labels = 3;
   repeated AssignedNodeProperty assigned_node_properties = 4;
-  repeated RemovedRelationProperty removed_relation_properties = 5;
-  repeated RemovedNodeProperty removed_node_properties = 6;
-  repeated RemovedLabel removed_labels = 7;
-  repeated DeletedRelationShip deleted_relationships = 8;
-  repeated DeletedNode deleted_nodes = 9;
+  repeated AssignedRelationshipProperty assigned_relationship_properties = 5;
+  repeated RemovedRelationshipProperty removed_relation_properties = 6;
+  repeated RemovedNodeProperty removed_node_properties = 7;
+  repeated RemovedLabel removed_labels = 8;
+  repeated DeletedRelationship deleted_relationships = 9;
+  repeated DeletedNode deleted_nodes = 10;
 
   message CreatedNode {
-    string nodeUUID = 1;
+    string node_UUID = 1;
   }
 
   message CreatedRelationShip {
-    string type = 1;
-    string start_node_UUID =  2;
-    string end_node_UUID = 3;
+    string relationship_UUID = 1;
+    string type = 2;
+    string start_node_UUID =  3;
+    string end_node_UUID = 4;
   }
 
   message AssignedLabel {
@@ -60,16 +62,15 @@ message DatabaseModifications {
     string value = 4;
   }
 
-  message AssignedRelationProperty {
+  message AssignedRelationshipProperty {
     string relationship_UUID = 1;
     string key = 2;
     string previous_value = 3;
     string value = 4;
   }
 
-  message RemovedRelationProperty {
+  message RemovedRelationshipProperty {
     string relationship_UUID = 1;
-    string key = 2;
   }
 
   message RemovedNodeProperty {
@@ -82,10 +83,8 @@ message DatabaseModifications {
     string name = 2;
   }
 
-  message DeletedRelationShip {
-    string type = 1;
-    string start_node_UUID = 2;
-    string end_node_UUID = 3;
+  message DeletedRelationship {
+    string relationship_UUID = 1;
   }
 
   message DeletedNode {
