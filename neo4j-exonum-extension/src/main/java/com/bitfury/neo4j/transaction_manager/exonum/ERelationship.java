@@ -1,6 +1,6 @@
-package com.bitfury.neo4j.transaction_manager.graphdb;
+package com.bitfury.neo4j.transaction_manager.exonum;
 
-public class Relationship {
+public class ERelationship {
 
     private String UUID;
     private String type;
@@ -8,7 +8,7 @@ public class Relationship {
     private String endNodeUUID;
 
 
-    public Relationship(String UUID, String type, String startNodeUUID, String endNodeUUID) {
+    public ERelationship(String UUID, String type, String startNodeUUID, String endNodeUUID) {
         this.UUID = UUID;
         this.type = type;
         this.startNodeUUID = startNodeUUID;

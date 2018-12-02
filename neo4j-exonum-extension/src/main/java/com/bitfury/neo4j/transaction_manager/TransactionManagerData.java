@@ -3,9 +3,7 @@ package com.bitfury.neo4j.transaction_manager;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.bitfury.neo4j.transaction_manager.graphdb.*;
-
-import javax.xml.crypto.Data;
+import com.bitfury.neo4j.transaction_manager.exonum.*;
 
 public class TransactionManagerData {
 
@@ -15,29 +13,32 @@ public class TransactionManagerData {
     }
 
     private TransactionType transactionType;
+    private String uuid_prefix;
+
     private boolean isCommitted = false;
     private boolean isRolledback = false;
     private boolean failure = false;
 
     // Database modifications
-    private List<Node> createdNodes = new ArrayList<>();
-    private List<Node> deletedNodes = new ArrayList<>();
+    private List<ENode> createdENodes = new ArrayList<>();
+    private List<ENode> deletedENodes = new ArrayList<>();
 
-    private List<Relationship> createdRelationships = new ArrayList<>();
-    private List<Relationship> deletedRelationships = new ArrayList<>();
+    private List<ERelationship> createdERelationships = new ArrayList<>();
+    private List<ERelationship> deletedERelationships = new ArrayList<>();
 
-    private List<Label> assignedLabels = new ArrayList<>();
-    private List<Label> removedLabels = new ArrayList<>();
+    private List<ELabel> assignedELabels = new ArrayList<>();
+    private List<ELabel> removedELabels = new ArrayList<>();
 
-    private List<Property> assignedNodeProperties = new ArrayList<>();
-    private List<Property> removedNodeProperties = new ArrayList<>();
+    private List<EProperty> assignedNodeProperties = new ArrayList<>();
+    private List<EProperty> removedNodeProperties = new ArrayList<>();
 
-    private List<Property> assignedRelationshipProperties = new ArrayList<>();
-    private List<Property> removedRelationshipProperties = new ArrayList<>();
+    private List<EProperty> assignedRelationshipProperties = new ArrayList<>();
+    private List<EProperty> removedRelationshipProperties = new ArrayList<>();
 
 
-    public TransactionManagerData(TransactionType type) {
-        transactionType = type;
+    public TransactionManagerData(TransactionType transactionType, String uuid_prefix) {
+        this.transactionType = transactionType;
+        this.uuid_prefix = uuid_prefix;
     }
 
     public void isCommitted() {
@@ -52,6 +53,46 @@ public class TransactionManagerData {
         failure = true;
     }
 
+    public void addCreatedNode(ENode ENode) {
+        this.createdENodes.add(ENode);
+    }
+
+    public void addDeletedNode(ENode ENode) {
+        this.deletedENodes.add(ENode);
+    }
+
+    public void addCreatedRelationship( ERelationship ERelationship) {
+        this.createdERelationships.add(ERelationship);
+    }
+
+    public void addDeletedRelationship( ERelationship ERelationship) {
+        this.deletedERelationships.add(ERelationship);
+    }
+
+    public void addAsignedLabel( ELabel ELabel){
+        this.assignedELabels.add(ELabel);
+    }
+
+    public void addRemovedLabel( ELabel ELabel){
+        this.removedELabels.add(ELabel);
+    }
+
+    public void addaAsignedNodeProperty(EProperty EProperty) {
+        this.assignedNodeProperties.add(EProperty);
+    }
+
+    public void addRemovedNodeProperty(EProperty EProperty) {
+        this.removedNodeProperties.add(EProperty);
+    }
+
+    public void addaAssignedRelationshipProperty(EProperty EProperty) {
+        this.assignedRelationshipProperties.add(EProperty);
+    }
+
+    public void addRemovedRelationshipProperty(EProperty EProperty) {
+        this.removedRelationshipProperties.add(EProperty);
+    }
+
     public TransactionResponse getTransactionResponse() {
 
         TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder().setResult(getStatus());
@@ -61,119 +102,119 @@ public class TransactionManagerData {
             DatabaseModifications.Builder modificationBuilder = DatabaseModifications.newBuilder();
 
             // Created nodes
-            for (Node node : createdNodes) {
+            for (ENode ENode : createdENodes) {
                 modificationBuilder.addCreatedNodes(
                         DatabaseModifications.CreatedNode
                                 .newBuilder()
-                                .setNodeUUID(node.getUUID()).build()
+                                .setNodeUUID(ENode.getUUID()).build()
                 );
             }
 
             // Deleted nodes
-            for (Node node : deletedNodes) {
+            for (ENode ENode : deletedENodes) {
                 modificationBuilder.addDeletedNodes(
                         DatabaseModifications.DeletedNode
                                 .newBuilder()
-                                .setNodeUUID(node.getUUID())
+                                .setNodeUUID(ENode.getUUID())
                 );
             }
 
             // Created relationships
-            for (Relationship relationship : createdRelationships) {
+            for (ERelationship ERelationship : createdERelationships) {
                 modificationBuilder.addCreatedRelationships(
                         DatabaseModifications.CreatedRelationShip
                                 .newBuilder()
-                                .setRelationshipUUID(relationship.getUUID())
-                                .setRelationshipUUID(relationship.getUUID())
-                                .setType(relationship.getType())
-                                .setStartNodeUUID(relationship.getStartNodeUUID())
-                                .setEndNodeUUID(relationship.getEndNodeUUID())
+                                .setRelationshipUUID(ERelationship.getUUID())
+                                .setRelationshipUUID(ERelationship.getUUID())
+                                .setType(ERelationship.getType())
+                                .setStartNodeUUID(ERelationship.getStartNodeUUID())
+                                .setEndNodeUUID(ERelationship.getEndNodeUUID())
                 );
             }
 
             // Deleted relationships
-            for (Relationship relationship : deletedRelationships) {
+            for (ERelationship ERelationship : deletedERelationships) {
                 modificationBuilder.addDeletedRelationships(
                         DatabaseModifications.DeletedRelationship
                                 .newBuilder()
-                               .setRelationshipUUID(relationship.getUUID())
+                               .setRelationshipUUID(ERelationship.getUUID())
                 );
             }
 
             // Assigned labels
-            for (Label label : assignedLabels) {
+            for (ELabel ELabel : assignedELabels) {
                 modificationBuilder.addAssignedLabels(
                         DatabaseModifications.AssignedLabel
                                 .newBuilder()
-                                .setNodeUUID(label.getNodeUUID())
-                                .setName(label.getName())
+                                .setNodeUUID(ELabel.getNodeUUID())
+                                .setName(ELabel.getName())
                 );
             }
 
             // Removed labels
-            for (Label label : removedLabels) {
+            for (ELabel ELabel : removedELabels) {
                 modificationBuilder.addRemovedLabels(
                         DatabaseModifications.RemovedLabel
                                 .newBuilder()
-                                .setNodeUUID(label.getNodeUUID())
-                                .setName(label.getName())
+                                .setNodeUUID(ELabel.getNodeUUID())
+                                .setName(ELabel.getName())
                 );
             }
 
             // Assigned node properties
-            for (Property property : assignedNodeProperties) {
+            for (EProperty EProperty : assignedNodeProperties) {
 
                 DatabaseModifications.AssignedNodeProperty.Builder propertyBuilder =
                         DatabaseModifications.AssignedNodeProperty.newBuilder();
 
                 propertyBuilder
-                        .setNodeUUID(property.getUUID())
-                        .setKey(property.getKey())
-                        .setValue(property.getValue());
+                        .setNodeUUID(EProperty.getUUID())
+                        .setKey(EProperty.getKey())
+                        .setValue(EProperty.getValue());
 
-                if( property.getPreviousValue() != null) {
-                    propertyBuilder.setPreviousValue(property.getPreviousValue());
+                if( EProperty.getPreviousValue() != null) {
+                    propertyBuilder.setPreviousValue(EProperty.getPreviousValue());
                 }
 
                 modificationBuilder.addAssignedNodeProperties(propertyBuilder);
             }
 
             // Removed node properties
-            for (Property property : removedNodeProperties) {
+            for (EProperty EProperty : removedNodeProperties) {
 
                 modificationBuilder.addRemovedNodeProperties(
                         DatabaseModifications.RemovedNodeProperty.newBuilder()
-                                .setNodeUUID(property.getUUID())
-                                .setKey(property.getKey())
+                                .setNodeUUID(EProperty.getUUID())
+                                .setKey(EProperty.getKey())
 
                 );
             }
 
 
             // Assigned relationship properties
-            for (Property property : assignedRelationshipProperties) {
+            for (EProperty EProperty : assignedRelationshipProperties) {
 
                 DatabaseModifications.AssignedRelationshipProperty.Builder propertyBuilder =
                         DatabaseModifications.AssignedRelationshipProperty.newBuilder();
 
                 propertyBuilder
-                        .setRelationshipUUID(property.getUUID())
-                        .setKey(property.getKey())
-                        .setValue(property.getValue());
+                        .setRelationshipUUID(EProperty.getUUID())
+                        .setKey(EProperty.getKey())
+                        .setValue(EProperty.getValue());
 
-                if( property.getPreviousValue() != null) {
-                    propertyBuilder.setPreviousValue(property.getPreviousValue());
+                if( EProperty.getPreviousValue() != null) {
+                    propertyBuilder.setPreviousValue(EProperty.getPreviousValue());
                 }
 
                 modificationBuilder.addAssignedRelationshipProperties(propertyBuilder);
             }
 
             // Removed relationship properties
-            for (Property property : removedRelationshipProperties) {
+            for (EProperty EProperty : removedRelationshipProperties) {
 
                 modificationBuilder.addRemovedRelationProperties(
                         DatabaseModifications.RemovedRelationshipProperty.newBuilder()
-                                .setRelationshipUUID(property.getUUID())
+                                .setRelationshipUUID(EProperty.getUUID())
 
                 );
             }

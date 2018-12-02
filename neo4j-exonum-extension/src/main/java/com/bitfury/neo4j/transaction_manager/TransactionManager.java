@@ -2,12 +2,14 @@ package com.bitfury.neo4j.transaction_manager;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.event.TransactionData;
 
 import org.neo4j.graphdb.Transaction;
@@ -15,6 +17,7 @@ import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.logging.Log;
 
+import com.bitfury.neo4j.transaction_manager.exonum.*;
 
 public class TransactionManager extends TransactionManagerGrpc.TransactionManagerImplBase {
 
@@ -84,9 +87,11 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         log.debug("method=handleTransaction type=" + type.name() + "totalQueries=" + request.getQueriesCount()
                 + " threadID=" + Thread.currentThread().getId());
 
-        TmData.set(new TransactionManagerData(type));
-
         try {
+
+            // TODO check if UUID is set
+
+            TmData.set(new TransactionManagerData(type, request.getUUIDPrefix()));
 
             if (request.getQueriesCount() == 0) {
                 throw new Exception("Transaction has no insert queries.");
@@ -138,7 +143,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     public void afterCommit(TransactionData transactionData) {
         TmData.get().isCommitted();
 
-        // todo add TransactionData
+        this.processTransactionData(transactionData);
     }
 
     /**
@@ -149,5 +154,18 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      */
     public void afterRollback(TransactionData transactionData) {
         TmData.get().isRolledback();
+    }
+
+
+    private void processTransactionData(TransactionData transactionData) {
+
+        int uuid_id = 0;
+
+        // todo process all Transcation data, create Exonum nodes/labels/properties and store it in TmData.
+
+        for( Node node : transactionData.createdNodes()) {
+
+        }
+
     }
 }

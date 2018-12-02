@@ -1,10 +1,10 @@
-package com.bitfury.neo4j.transaction_manager.graphdb;
+package com.bitfury.neo4j.transaction_manager.exonum;
 
-public class Node {
+public class ENode {
 
     private String UUID;
 
-    public Node (String UUID) {
+    public ENode(String UUID) {
         this.UUID = UUID;
     }
 
