@@ -5,19 +5,28 @@ import java.util.List;
 
 import com.bitfury.neo4j.transaction_manager.exonum.*;
 
-public class TransactionManagerData {
+public class TransactionStateMachine {
 
     public enum TransactionType {
         VERIFY,
         EXECUTE
     }
 
+    public enum TransactionStatus {
+        INITIAL,
+        READY_TO_COMMIT,
+        COMMITTED,
+        FAILED,
+        ASSIGNED_UUIDS,
+        STORED_MODIFICATIONS,
+        FINISHED
+    }
+
+    private TransactionStatus status;
     private TransactionType transactionType;
-    private String uuid_prefix;
+    private String uuidPrefix;
 
     private boolean isCommitted = false;
-    private boolean isRolledback = false;
-    private boolean failure = false;
 
     // Database modifications
     private List<ENode> createdENodes = new ArrayList<>();
@@ -36,22 +45,28 @@ public class TransactionManagerData {
     private List<EProperty> removedRelationshipProperties = new ArrayList<>();
 
 
-    public TransactionManagerData(TransactionType transactionType, String uuid_prefix) {
+    public TransactionStateMachine(TransactionType transactionType, String uuid_prefix) {
+        this.status = TransactionStatus.INITIAL;
         this.transactionType = transactionType;
-        this.uuid_prefix = uuid_prefix;
+        this.uuidPrefix = uuid_prefix;
     }
 
-    public void isCommitted() {
-        isCommitted = true;
-    }
 
-    public void isRolledback() {
-        isRolledback = true;
-    }
+    public void readyToCommit() { this.status = TransactionStatus.READY_TO_COMMIT; }
 
-    public void failure() {
-        failure = true;
-    }
+    public void committed() { this.status = TransactionStatus.COMMITTED; this.isCommitted = true;}
+
+    public void rolledback() { this.status = TransactionStatus.FAILED; }
+
+    public void failure() { this.status = TransactionStatus.FAILED; }
+
+    public void assignedUUIDs() { this.status = TransactionStatus.ASSIGNED_UUIDS; }
+
+    public void storedModifications() { this.status = TransactionStatus.STORED_MODIFICATIONS; }
+
+    public void finished() { this.status = TransactionStatus.FINISHED; }
+
+    public TransactionStatus getStatus() { return this.status; }
 
     public void addCreatedNode(ENode ENode) {
         this.createdENodes.add(ENode);
@@ -61,19 +76,19 @@ public class TransactionManagerData {
         this.deletedENodes.add(ENode);
     }
 
-    public void addCreatedRelationship( ERelationship ERelationship) {
+    public void addCreatedRelationship(ERelationship ERelationship) {
         this.createdERelationships.add(ERelationship);
     }
 
-    public void addDeletedRelationship( ERelationship ERelationship) {
+    public void addDeletedRelationship(ERelationship ERelationship) {
         this.deletedERelationships.add(ERelationship);
     }
 
-    public void addAsignedLabel( ELabel ELabel){
+    public void addAsignedLabel(ELabel ELabel) {
         this.assignedELabels.add(ELabel);
     }
 
-    public void addRemovedLabel( ELabel ELabel){
+    public void addRemovedLabel(ELabel ELabel) {
         this.removedELabels.add(ELabel);
     }
 
@@ -95,7 +110,7 @@ public class TransactionManagerData {
 
     public TransactionResponse getTransactionResponse() {
 
-        TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder().setResult(getStatus());
+        TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder().setResult(getTranscationResponseStatus());
 
         if (isCommitted) {
 
@@ -137,7 +152,7 @@ public class TransactionManagerData {
                 modificationBuilder.addDeletedRelationships(
                         DatabaseModifications.DeletedRelationship
                                 .newBuilder()
-                               .setRelationshipUUID(ERelationship.getUUID())
+                                .setRelationshipUUID(ERelationship.getUUID())
                 );
             }
 
@@ -172,7 +187,7 @@ public class TransactionManagerData {
                         .setKey(EProperty.getKey())
                         .setValue(EProperty.getValue());
 
-                if( EProperty.getPreviousValue() != null) {
+                if (EProperty.getPreviousValue() != null) {
                     propertyBuilder.setPreviousValue(EProperty.getPreviousValue());
                 }
 
@@ -202,7 +217,7 @@ public class TransactionManagerData {
                         .setKey(EProperty.getKey())
                         .setValue(EProperty.getValue());
 
-                if( EProperty.getPreviousValue() != null) {
+                if (EProperty.getPreviousValue() != null) {
                     propertyBuilder.setPreviousValue(EProperty.getPreviousValue());
                 }
 
@@ -215,7 +230,6 @@ public class TransactionManagerData {
                 modificationBuilder.addRemovedRelationProperties(
                         DatabaseModifications.RemovedRelationshipProperty.newBuilder()
                                 .setRelationshipUUID(EProperty.getUUID())
-
                 );
             }
 
@@ -225,16 +239,16 @@ public class TransactionManagerData {
         return responseBuilder.build();
     }
 
-    private Status getStatus() {
+    private Status getTranscationResponseStatus() {
 
         boolean success = false;
 
         switch (this.transactionType) {
             case VERIFY:
-                success = !failure;
+                success = this.status == TransactionStatus.READY_TO_COMMIT;
                 break;
             case EXECUTE:
-                success = isCommitted && !isRolledback;
+                success = this.status == TransactionStatus.FINISHED;
                 break;
         }
 
