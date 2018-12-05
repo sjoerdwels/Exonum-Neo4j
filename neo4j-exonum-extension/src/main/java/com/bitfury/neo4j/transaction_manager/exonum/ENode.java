@@ -4,9 +4,9 @@ public class ENode {
 
     private String UUID;
 
-    public ENode() {}
-
-    public void setUUID() { this.UUID = UUID; }
+    public ENode(String UUID) {
+        this.UUID = UUID;
+    }
 
     public String getUUID() {
         return this.UUID;

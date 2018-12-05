@@ -25,7 +25,7 @@ public class TransactionManagerTest {
     @Test
     public void testEmptyTransaction() {
 
-        TransactionRequest request = TransactionRequest.newBuilder().build();
+        TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").build();
 
         try {
             blockingStub.verifyTransaction(request);
@@ -37,7 +37,7 @@ public class TransactionManagerTest {
     @Test
     public void testSingleSuccessTransaction() {
 
-        TransactionRequest request = TransactionRequest.newBuilder().addQueries(" CREATE (n)").build();
+        TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })").build();
         TransactionResponse response = blockingStub.executeTransaction(request);
 
         assert (response.getResult() == Status.SUCCESS);
@@ -46,13 +46,13 @@ public class TransactionManagerTest {
     @Test
     public void testSingleFailedTransaction() {
 
-        TransactionRequest request = TransactionRequest.newBuilder().addQueries("FakeQuery").build();
+        TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").addQueries("FakeQuery").build();
         TransactionResponse response = blockingStub.executeTransaction(request);
 
         assert (response.getResult() == Status.FAILURE);
     }
 
-    @Test
+
     public void testMultipleThreadsTransaction() {
 
         int number = 100;
@@ -68,7 +68,7 @@ public class TransactionManagerTest {
                 } catch (Exception ex) {
                 }
 
-                TransactionRequest request = TransactionRequest.newBuilder().addQueries(" CREATE (n)").build();
+                TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").addQueries(" CREATE (n)").build();
                 TransactionResponse response = blockingStub.verifyTransaction(request);
 
                 assert (response.getResult() == Status.SUCCESS);

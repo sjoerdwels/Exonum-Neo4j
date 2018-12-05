@@ -17,8 +17,6 @@ public class TransactionStateMachine {
         READY_TO_COMMIT,
         COMMITTED,
         FAILED,
-        ASSIGNED_UUIDS,
-        STORED_MODIFICATIONS,
         FINISHED
     }
 
@@ -60,13 +58,11 @@ public class TransactionStateMachine {
 
     public void failure() { this.status = TransactionStatus.FAILED; }
 
-    public void assignedUUIDs() { this.status = TransactionStatus.ASSIGNED_UUIDS; }
-
-    public void storedModifications() { this.status = TransactionStatus.STORED_MODIFICATIONS; }
-
     public void finished() { this.status = TransactionStatus.FINISHED; }
 
     public TransactionStatus getStatus() { return this.status; }
+
+    public String getUuidPrefix(){ return this.uuidPrefix; }
 
     public void addCreatedNode(ENode ENode) {
         this.createdENodes.add(ENode);
@@ -245,7 +241,7 @@ public class TransactionStateMachine {
 
         switch (this.transactionType) {
             case VERIFY:
-                success = this.status == TransactionStatus.READY_TO_COMMIT;
+                success = this.status == TransactionStatus.INITIAL;
                 break;
             case EXECUTE:
                 success = this.status == TransactionStatus.FINISHED;
