@@ -1,23 +1,16 @@
 package com.bitfury.neo4j.transaction_manager;
 
-import java.io.IOException;
-import java.util.List;
-
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
-
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.event.TransactionData;
-
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.kernel.api.txstate.TransactionState;
-import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.kernel.configuration.Config;
+import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.logging.Log;
 
-import com.bitfury.neo4j.transaction_manager.exonum.*;
+import java.io.IOException;
+import java.util.List;
 
 public class TransactionManager extends TransactionManagerGrpc.TransactionManagerImplBase {
 
@@ -30,6 +23,8 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     private TransactionManagerEventHandler eventHandler;
 
     ThreadLocal<TransactionStateMachine> TmData = new ThreadLocal<>();
+
+    private int idCounter = 0;
 
     TransactionManager(GraphDatabaseService db, Config config, LogService logService) {
 
@@ -93,7 +88,6 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         try {
 
             // TODO check if UUID is set
-
             TmData.set(new TransactionStateMachine(type, request.getUUIDPrefix()));
 
             if (request.getQueriesCount() == 0) {
@@ -185,15 +179,44 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
         TransactionStateMachine tsm = TmData.get();
 
-        int uuid_id = 0;
+        String uuid = tsm.getUuidPrefix();
 
-        // todo assign UUIDS to all new created relationships & nodes
-
-        for (Node node : transactionData.createdNodes()) {
-
+        // todo assign UUIDs to all new created relationships & nodes
+        for (Relationship relationship:
+        transactionData.createdRelationships()) {
+            uuidHelper(relationship, uuid);
+        }
+        for (Node node:
+                transactionData.createdNodes()) {
+            uuidHelper(node, uuid);
         }
 
         TmData.set(tsm);
+    }
+
+    private void uuidHelper(Entity entity, String uuid) {
+
+        // Creating a new transaction for setting the UUID property
+        try (Transaction tx = db.beginTx()) {
+
+            db.execute(
+                    String.format("MATCH (n)" +
+                            "WHERE n.id = %d%n" +
+                            "SET UUID = %s", entity.getId(), uuid + idCounter
+                    )
+            );
+
+            tx.success();
+
+        } catch(Exception ex){
+            log.error("Could not assign UUID to entity - " + ex.getMessage());
+        }
+
+        // Setting a property for the node directly
+        entity.setProperty("UUID",uuid + idCounter);
+
+        // Increase global counter value
+        idCounter++;
     }
 
     /**
