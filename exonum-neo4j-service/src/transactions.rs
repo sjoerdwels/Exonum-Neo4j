@@ -45,7 +45,9 @@ impl Transaction for CommitQueries {
 
         schema.add_query(q);
         for nc in node_changes{
-            schema.add_node_history(nc)
+            for uuid in nc.get_uuis(){
+                schema.add_node_history(uuid, &nc)
+            }
         }
         Ok(())
     }

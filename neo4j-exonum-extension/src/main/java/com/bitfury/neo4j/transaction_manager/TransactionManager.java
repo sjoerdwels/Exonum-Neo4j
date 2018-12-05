@@ -27,6 +27,8 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
     ThreadLocal<TransactionStateMachine> TmData = new ThreadLocal<>();
 
+    private int idCounter = 0;
+
     TransactionManager(GraphDatabaseService db, Config config, LogService logService) {
 
         TransactionManager.db = db;
@@ -267,6 +269,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         }
 
         TmData.set(tsm);
+
     }
 
     /**

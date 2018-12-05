@@ -81,8 +81,7 @@ impl<'a> Schema<&'a mut Fork> {
         ProofListIndex::new(format!("neo4j.node_changes_{}", node_name), &mut self.view)
     }
 
-    pub fn add_node_history(&mut self, node_change: NodeChange){
-        let name: &str = node_change.node_name();
-        self.node_history_mut(name).push(node_change.clone())
+    pub fn add_node_history(&mut self, uuid: &str, node_change: &NodeChange){
+        self.node_history_mut(uuid).push(node_change.clone())
     }
 }
