@@ -93,7 +93,7 @@ public class TransactionStateMachine {
         this.removedELabels.add(ELabel);
     }
 
-    public void addaAsignedNodeProperty(EProperty EProperty) {
+    public void addAssignedNodeProperty(EProperty EProperty) {
         this.assignedNodeProperties.add(EProperty);
     }
 
@@ -101,14 +101,14 @@ public class TransactionStateMachine {
         this.removedNodeProperties.add(EProperty);
     }
 
-    public void addaAssignedRelationshipProperty(EProperty EProperty) {
+    public void addAssignedRelationshipProperty(EProperty EProperty) {
         this.assignedRelationshipProperties.add(EProperty);
     }
 
     public void addRemovedRelationshipProperty(EProperty EProperty) {
         this.removedRelationshipProperties.add(EProperty);
     }
-    
+
     public TransactionResponse getTransactionResponse() {
 
         TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder().setResult(getTranscationResponseStatus());
@@ -188,10 +188,6 @@ public class TransactionStateMachine {
                         .setKey(EProperty.getKey())
                         .setValue(EProperty.getValue());
 
-                if (EProperty.getPreviousValue() != null) {
-                    propertyBuilder.setPreviousValue(EProperty.getPreviousValue());
-                }
-
                 modificationBuilder.addAssignedNodeProperties(propertyBuilder);
             }
 
@@ -217,10 +213,6 @@ public class TransactionStateMachine {
                         .setRelationshipUUID(EProperty.getUUID())
                         .setKey(EProperty.getKey())
                         .setValue(EProperty.getValue());
-
-                if (EProperty.getPreviousValue() != null) {
-                    propertyBuilder.setPreviousValue(EProperty.getPreviousValue());
-                }
 
                 modificationBuilder.addAssignedRelationshipProperties(propertyBuilder);
             }

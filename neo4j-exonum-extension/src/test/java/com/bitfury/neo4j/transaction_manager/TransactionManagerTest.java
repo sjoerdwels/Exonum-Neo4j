@@ -37,8 +37,28 @@ public class TransactionManagerTest {
     @Test
     public void testSingleSuccessTransaction() {
 
+        System.out.println("Insert node.");
+
         TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })").build();
         TransactionResponse response = blockingStub.executeTransaction(request);
+
+        assert (response.getResult() == Status.SUCCESS);
+
+        System.out.println(response.toString());
+        System.out.println("Update property.");
+
+        request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix2").addQueries("MATCH (n:Person) SET n.name =  'peter'").build();
+        response = blockingStub.executeTransaction(request);
+
+        assert (response.getResult() == Status.SUCCESS);
+
+        System.out.println(response.toString());
+        System.out.println("Delete node.");
+
+        request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix3").addQueries("MATCH (n:Person) DELETE n").build();
+        response = blockingStub.executeTransaction(request);
+
+        System.out.println(response.toString());
 
         assert (response.getResult() == Status.SUCCESS);
     }

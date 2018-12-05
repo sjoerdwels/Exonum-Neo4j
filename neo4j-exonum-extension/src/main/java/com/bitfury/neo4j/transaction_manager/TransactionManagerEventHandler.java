@@ -1,7 +1,5 @@
 package com.bitfury.neo4j.transaction_manager;
 
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.graphdb.event.TransactionEventHandler;
