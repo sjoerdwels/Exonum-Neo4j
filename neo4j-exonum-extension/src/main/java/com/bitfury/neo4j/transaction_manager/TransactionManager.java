@@ -24,6 +24,8 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
     ThreadLocal<TransactionStateMachine> TmData = new ThreadLocal<>();
 
+    private int idCounter = 0;
+
     TransactionManager(GraphDatabaseService db, Config config, LogService logService) {
 
         TransactionManager.db = db;
@@ -178,22 +180,21 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         TransactionStateMachine tsm = TmData.get();
 
         String uuid = tsm.getUuidPrefix();
-        int counter = 0;
 
         // todo assign UUIDs to all new created relationships & nodes
         for (Relationship relationship:
         transactionData.createdRelationships()) {
-            uuidHelper(relationship,uuid, counter);
+            uuidHelper(relationship, uuid);
         }
         for (Node node:
                 transactionData.createdNodes()) {
-            uuidHelper(node,uuid, counter);
+            uuidHelper(node, uuid);
         }
 
         TmData.set(tsm);
     }
 
-    private void uuidHelper(Entity entity, String uuid, int counter) {
+    private void uuidHelper(Entity entity, String uuid) {
 
         // Creating a new transaction for setting the UUID property
         try (Transaction tx = db.beginTx()) {
@@ -201,7 +202,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
             db.execute(
                     String.format("MATCH (n)" +
                             "WHERE n.id = %d%n" +
-                            "SET UUID = %s", entity.getId(), uuid + counter
+                            "SET UUID = %s", entity.getId(), uuid + idCounter
                     )
             );
 
@@ -212,7 +213,10 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         }
 
         // Setting a property for the node directly
-        entity.setProperty("UUID",uuid + counter);
+        entity.setProperty("UUID",uuid + idCounter);
+
+        // Increase global counter value
+        idCounter++;
     }
 
     /**

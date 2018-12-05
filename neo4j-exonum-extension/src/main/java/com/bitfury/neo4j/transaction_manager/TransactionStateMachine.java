@@ -1,5 +1,10 @@
 package com.bitfury.neo4j.transaction_manager;
 
+import com.bitfury.neo4j.transaction_manager.exonum.ELabel;
+import com.bitfury.neo4j.transaction_manager.exonum.ENode;
+import com.bitfury.neo4j.transaction_manager.exonum.EProperty;
+import com.bitfury.neo4j.transaction_manager.exonum.ERelationship;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -106,6 +111,10 @@ public class TransactionStateMachine {
 
     public void addRemovedRelationshipProperty(EProperty EProperty) {
         this.removedRelationshipProperties.add(EProperty);
+    }
+
+    public String getUuidPrefix() {
+        return uuidPrefix;
     }
 
     public TransactionResponse getTransactionResponse() {
