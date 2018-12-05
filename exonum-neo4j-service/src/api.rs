@@ -5,7 +5,9 @@ use exonum::{
     blockchain::Transaction,
     node::TransactionSend,
 };
-use structures::{Queries, NodeChange};
+use std::string::String;
+
+use structures::{Queries};
 use schema::Schema;
 
 use transactions::Neo4JTransactions;
@@ -47,12 +49,14 @@ impl Neo4JApi {
         Ok(values)
     }
 
-    pub fn get_node_history(state: &ServiceApiState, query: NodeHistoryQuery) -> api::Result<Vec<NodeChange>> {
+    pub fn get_node_history(state: &ServiceApiState, query: NodeHistoryQuery) -> api::Result<Vec<String>> {
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
         let idx = schema.node_history(query.node_name());
         let mut values = Vec::new();
-        values.extend(idx.iter());
+        for val in idx.iter(){
+            values.push(format!("{}", val));
+        }
         Ok(values)
 
     }
