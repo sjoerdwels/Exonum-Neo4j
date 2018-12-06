@@ -2,6 +2,7 @@ package com.bitfury.neo4j.transaction_manager;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 public class TransactionManagerTest {
 
     static final String TEST_PREFIX = "myPrefix";
+    private ManagedChannel channel;
 
     @Rule
     public final Neo4jRule neo4j = new Neo4jRule();
@@ -21,10 +23,15 @@ public class TransactionManagerTest {
 
     @Before
     public void setup() {
-        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 9994)
+        channel = ManagedChannelBuilder.forAddress("localhost", 9994)
                 .usePlaintext(true)
                 .build();
         blockingStub = TransactionManagerGrpc.newBlockingStub(channel);
+    }
+
+    @After
+    public  void after()  {
+        channel.shutdown();
     }
 
     @Test
@@ -162,7 +169,7 @@ public class TransactionManagerTest {
         assert (response.getResult() == Status.SUCCESS);
     }
 
-    @Test
+   @Test
     public void testModifyUUIDTransaction() {
 
         TransactionRequest request = TransactionRequest.newBuilder()
