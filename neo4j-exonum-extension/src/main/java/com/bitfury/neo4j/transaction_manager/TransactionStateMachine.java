@@ -85,7 +85,7 @@ public class TransactionStateMachine {
         this.deletedERelationships.add(ERelationship);
     }
 
-    public void addAsignedLabel(ELabel ELabel) {
+    public void addAssignedLabel(ELabel ELabel) {
         this.assignedELabels.add(ELabel);
     }
 
@@ -111,7 +111,7 @@ public class TransactionStateMachine {
 
     public TransactionResponse getTransactionResponse() {
 
-        TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder().setResult(getTranscationResponseStatus());
+        TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder().setResult(getTransactionResponseStatus());
 
         if (isCommitted) {
 
@@ -232,7 +232,7 @@ public class TransactionStateMachine {
         return responseBuilder.build();
     }
 
-    private Status getTranscationResponseStatus() {
+    private Status getTransactionResponseStatus() {
 
         boolean success = false;
 

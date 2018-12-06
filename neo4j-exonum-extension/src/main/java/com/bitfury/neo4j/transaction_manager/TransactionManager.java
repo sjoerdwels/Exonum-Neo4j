@@ -29,8 +29,13 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
     ThreadLocal<TransactionStateMachine> TmData = new ThreadLocal<>();
 
-    private int idCounter = 0;
-
+    /**
+     *
+     *
+     * @param db
+     * @param config
+     * @param logService
+     */
     TransactionManager(GraphDatabaseService db, Config config, LogService logService) {
 
         TransactionManager.db = db;
@@ -84,7 +89,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      * @param type             The gRPC method type
      * @param request          The request message
      * @param responseObserver The responseObserver
-     * @ref https://neo4j.com/docs/java-reference/current/transactions/ 7.6.1  - Neo4j transaction in a single thread to creat
+     * @ref https://neo4j.com/docs/java-reference/current/transactions/ 7.6.1  - Neo4j transaction in a single thread.
      */
     private void handleTransaction(TransactionStateMachine.TransactionType type, TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
 
@@ -141,13 +146,19 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         }
     }
 
+    /**
+     * Called by TransactionEventHandler before a Neo4j transaction is about to be committed.
+     * Processes the transaction data whether needed.
+     *
+     * @param transactionData The changes that are about to be committed in this transaction.
+     */
     public void beforeCommit(TransactionData transactionData) throws Exception {
 
         switch (TmData.get().getStatus()) {
             case INITIAL:
 
-                if (hasPropertyChange(transactionData, Properties.UUID)) {
-                    //   throw new Exception("A query tried to modify a UUID, which is not allowed.");
+                if (hasPropertyChange(transactionData, Properties.UUID, false)) {
+                    throw new Exception("A query tried to modify a UUID, which is not allowed.");
                 }
 
                 assignUUIDS(transactionData);
@@ -213,8 +224,8 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     }
 
     /**
-     * Store the TransactionData modifications in the TranscationStateMachine.
-     *
+     * Store the TransactionData modifications in the TransactionStateMachine.
+     * <p>
      * For removed relationships/nodes, the UUID is only available in the removedNodeProperties and
      * removedRelationshipProperties respectively. To retrieve the UUID based on
      * a node/relationship id, a lampda funciton is used that first  check if the UUID property was deleted.
@@ -290,7 +301,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
             }
 
             for (LabelEntry label : transactionData.assignedLabels()) {
-                tsm.addAsignedLabel(new ELabel(
+                tsm.addAssignedLabel(new ELabel(
                         nodeUUID.getUUID(transactionData, label.node().getId()),
                         label.label().name())
                 );
@@ -337,35 +348,40 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     }
 
     /**
-     * Check whether a property key was set or changed from in the transcation data.
-     * Note that it doesn't check if the property was deleted.
+     * Check whether a property key was set or changed from in the transaction data.
+     * <p>
+     * By default, if an entity is removed, all the assigned properties to that entity will be marked as removed.
+     * If incEntityRemoved is false, it will not result in an property change if the entity was removed.
      *
-     * @param transactionData The transaction data with changes.
-     * @param key             The key of the property
+     * @param txData           The transaction data with changes.
+     * @param key              The key of the property
+     * @param incEntityRemoved Boolean in case of the property entity is removed should result in a property change.
      * @return
      */
-    private boolean hasPropertyChange(TransactionData transactionData, String key) {
+    private boolean hasPropertyChange(TransactionData txData, String key, boolean incEntityRemoved) {
 
-        for (PropertyEntry<Relationship> property : transactionData.assignedRelationshipProperties()) {
+        for (PropertyEntry<Relationship> property : txData.assignedRelationshipProperties()) {
             if (property.key() == key) {
                 return true;
             }
         }
 
-        for (PropertyEntry<Relationship> property : transactionData.removedRelationshipProperties()) {
+        for (PropertyEntry<Relationship> property : txData.removedRelationshipProperties()) {
+            if (incEntityRemoved || (property.key() == key && !StreamSupport.stream(txData.deletedRelationships().spliterator(), true)
+                    .anyMatch(n -> n.getId() == property.entity().getId()))) {
+                return true;
+            }
+        }
+
+        for (PropertyEntry<Node> property : txData.assignedNodeProperties()) {
             if (property.key() == key) {
                 return true;
             }
         }
 
-        for (PropertyEntry<Node> property : transactionData.assignedNodeProperties()) {
-            if (property.key() == key) {
-                return true;
-            }
-        }
-
-        for (PropertyEntry<Node> property : transactionData.removedNodeProperties()) {
-            if (property.key() == key) {
+        for (PropertyEntry<Node> property : txData.removedNodeProperties()) {
+            if (incEntityRemoved || (property.key() == key && !StreamSupport.stream(txData.deletedNodes().spliterator(), true)
+                    .anyMatch(n -> n.getId() == property.entity().getId()))) {
                 return true;
             }
         }

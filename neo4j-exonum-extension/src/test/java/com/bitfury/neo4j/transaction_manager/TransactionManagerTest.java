@@ -64,6 +64,27 @@ public class TransactionManagerTest {
     }
 
     @Test
+    public void testModifyUUIDTransaction() {
+
+        System.out.println("Insert node.");
+
+        TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").addQueries("CREATE (n:Person { id: '2', title: 'Developer' })").build();
+        TransactionResponse response = blockingStub.executeTransaction(request);
+
+        assert (response.getResult() == Status.SUCCESS);
+
+        System.out.println(response.toString());
+        System.out.println("Update UUID property.");
+
+        request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix2").addQueries("MATCH (n:Person) SET n."+ Properties.UUID + " =  'modifiedUUID'").build();
+        response = blockingStub.executeTransaction(request);
+
+        assert (response.getResult() == Status.FAILURE);
+
+        System.out.println(response.toString());
+    }
+
+    @Test
     public void testSingleFailedTransaction() {
 
         TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").addQueries("FakeQuery").build();
