@@ -24,6 +24,10 @@ extern crate serde_derive;
 
 extern crate grpc;
 extern crate protobuf;
+extern crate tls_api;
+extern crate tls_api_native_tls;
+
+
 
 pub use schema::Schema;
 

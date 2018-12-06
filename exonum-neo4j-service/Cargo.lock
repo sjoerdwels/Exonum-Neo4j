@@ -692,6 +692,8 @@ dependencies = [
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tls-api 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tls-api-native-tls 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2153,6 +2155,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tls-api-native-tls"
+version = "0.1.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "native-tls 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tls-api 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "tls-api-stub"
 version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2926,6 +2937,7 @@ dependencies = [
 "checksum thread_local 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "c6b53e329000edc2b34dbe8545fd20e55a333362d0a321909685a19bd28c3f1b"
 "checksum time 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)" = "d825be0eb33fda1a7e68012d51e9c7f451dc1a69391e7fdc197060bb8c56667b"
 "checksum tls-api 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)" = "e452fe2fdf40a10715adb3a5f244c7411cdf2ecc887b07160310939785db9182"
+"checksum tls-api-native-tls 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)" = "8947ff592815c069b69a5dfc672194c8899403cf8b166de53a5a1b76d7ffeef3"
 "checksum tls-api-stub 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)" = "25a2dcddd0fd52bdbedf9b4f0fd1cb884abfa0984e6a54121d4cefdf3d234e4c"
 "checksum tokio 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "8ee337e5f4e501fc32966fec6fe0ca0cc1c237b0b1b14a335f8bfe3c5f06e286"
 "checksum tokio-core 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)" = "aeeffbbb94209023feaef3c196a41cbcdafa06b4a6f893f68779bb5e53796f71"
