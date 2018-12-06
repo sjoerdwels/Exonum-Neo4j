@@ -25,7 +25,7 @@ public class TransactionManagerTest {
     @Test
     public void testEmptyTransaction() {
 
-        TransactionRequest request = TransactionRequest.newBuilder().build();
+        TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").build();
 
         try {
             blockingStub.verifyTransaction(request);
@@ -37,22 +37,63 @@ public class TransactionManagerTest {
     @Test
     public void testSingleSuccessTransaction() {
 
-        TransactionRequest request = TransactionRequest.newBuilder().addQueries(" CREATE (n)").build();
+        System.out.println("Insert node.");
+
+        TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })").build();
         TransactionResponse response = blockingStub.executeTransaction(request);
+
+        assert (response.getResult() == Status.SUCCESS);
+
+        System.out.println(response.toString());
+        System.out.println("Update property.");
+
+        request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix2").addQueries("MATCH (n:Person) SET n.name =  'peter'").build();
+        response = blockingStub.executeTransaction(request);
+
+        assert (response.getResult() == Status.SUCCESS);
+
+        System.out.println(response.toString());
+        System.out.println("Delete node.");
+
+        request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix3").addQueries("MATCH (n:Person) DELETE n").build();
+        response = blockingStub.executeTransaction(request);
+
+        System.out.println(response.toString());
 
         assert (response.getResult() == Status.SUCCESS);
     }
 
     @Test
+    public void testModifyUUIDTransaction() {
+
+        System.out.println("Insert node.");
+
+        TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").addQueries("CREATE (n:Person { id: '2', title: 'Developer' })").build();
+        TransactionResponse response = blockingStub.executeTransaction(request);
+
+        assert (response.getResult() == Status.SUCCESS);
+
+        System.out.println(response.toString());
+        System.out.println("Update UUID property.");
+
+        request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix2").addQueries("MATCH (n:Person) SET n."+ Properties.UUID + " =  'modifiedUUID'").build();
+        response = blockingStub.executeTransaction(request);
+
+        assert (response.getResult() == Status.FAILURE);
+
+        System.out.println(response.toString());
+    }
+
+    @Test
     public void testSingleFailedTransaction() {
 
-        TransactionRequest request = TransactionRequest.newBuilder().addQueries("FakeQuery").build();
+        TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").addQueries("FakeQuery").build();
         TransactionResponse response = blockingStub.executeTransaction(request);
 
         assert (response.getResult() == Status.FAILURE);
     }
 
-    @Test
+
     public void testMultipleThreadsTransaction() {
 
         int number = 100;
@@ -68,7 +109,7 @@ public class TransactionManagerTest {
                 } catch (Exception ex) {
                 }
 
-                TransactionRequest request = TransactionRequest.newBuilder().addQueries(" CREATE (n)").build();
+                TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix("myPrefix").addQueries(" CREATE (n)").build();
                 TransactionResponse response = blockingStub.verifyTransaction(request);
 
                 assert (response.getResult() == Status.SUCCESS);

@@ -4,20 +4,17 @@ public class EProperty {
 
     private String UUID;
     private String key;
-    private String previous_value;
     private String value;
+
+    public EProperty(String UUID, String key) {
+        this.UUID = UUID;
+        this.key = key;
+        this.value = null;
+    }
 
     public EProperty(String UUID, String key, String value) {
         this.UUID = UUID;
         this.key = key;
-        this.value = value;
-        this.previous_value = null;
-    }
-
-    public EProperty(String UUID, String key, String previous_value, String value) {
-        this.UUID = UUID;
-        this.key = key;
-        this.previous_value = previous_value;
         this.value = value;
     }
 
@@ -27,10 +24,6 @@ public class EProperty {
 
     public String getKey() {
         return key;
-    }
-
-    public String getPreviousValue() {
-        return previous_value;
     }
 
     public String getValue() {

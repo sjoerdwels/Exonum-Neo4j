@@ -1,16 +1,21 @@
 package com.bitfury.neo4j.transaction_manager;
 
+import com.bitfury.neo4j.transaction_manager.exonum.*;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.event.TransactionData;
+import org.neo4j.graphdb.event.PropertyEntry;
+import org.neo4j.graphdb.event.LabelEntry;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.logging.Log;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.StreamSupport;
 
 public class TransactionManager extends TransactionManagerGrpc.TransactionManagerImplBase {
 
@@ -24,8 +29,13 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
     ThreadLocal<TransactionStateMachine> TmData = new ThreadLocal<>();
 
-    private int idCounter = 0;
-
+    /**
+     *
+     *
+     * @param db
+     * @param config
+     * @param logService
+     */
     TransactionManager(GraphDatabaseService db, Config config, LogService logService) {
 
         TransactionManager.db = db;
@@ -79,6 +89,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      * @param type             The gRPC method type
      * @param request          The request message
      * @param responseObserver The responseObserver
+     * @ref https://neo4j.com/docs/java-reference/current/transactions/ 7.6.1  - Neo4j transaction in a single thread.
      */
     private void handleTransaction(TransactionStateMachine.TransactionType type, TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
 
@@ -87,7 +98,10 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
         try {
 
-            // TODO check if UUID is set
+            if (request.getUUIDPrefix().isEmpty()) {
+                throw new Exception("ResponseRequest did not provide UUID prefix.");
+            }
+
             TmData.set(new TransactionStateMachine(type, request.getUUIDPrefix()));
 
             if (request.getQueriesCount() == 0) {
@@ -102,8 +116,6 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                     db.execute(query);
                 }
 
-                TmData.get().readyToCommit();
-
                 switch (type) {
                     case VERIFY:
                         tx.failure();
@@ -114,6 +126,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                 }
             } catch (Exception ex) {
                 log.info("invalid query");
+                System.out.println("Error  thrown " + ex.getMessage());
                 TmData.get().failure();
             }
 
@@ -134,6 +147,31 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     }
 
     /**
+     * Called by TransactionEventHandler before a Neo4j transaction is about to be committed.
+     * Processes the transaction data whether needed.
+     *
+     * @param transactionData The changes that are about to be committed in this transaction.
+     */
+    public void beforeCommit(TransactionData transactionData) throws Exception {
+
+        switch (TmData.get().getStatus()) {
+            case INITIAL:
+
+                if (hasPropertyChange(transactionData, Properties.UUID, false)) {
+                    throw new Exception("A query tried to modify a UUID, which is not allowed.");
+                }
+
+                assignUUIDS(transactionData);
+
+                TmData.get().readyToCommit();
+
+                break;
+            default:
+                log.debug("method=afterCommit, TmData.status=" + TmData.get().getStatus() + ", transaction data not  processed");
+        }
+    }
+
+    /**
      * Called by TransactionEventHandler after a Neo4j transaction has successfully been committed.
      * Processes the transaction data whether needed.
      *
@@ -141,24 +179,19 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      */
     public void afterCommit(TransactionData transactionData) {
 
-        switch(TmData.get().getStatus()) {
+        switch (TmData.get().getStatus()) {
             case READY_TO_COMMIT:
 
                 TmData.get().committed();
 
-                assignUUIDS( transactionData );
+                storeModifications(transactionData);
 
-                TmData.get().assignedUUIDs();
-
-                storeModifications( transactionData );
-
-                TmData.get().storedModifications();
+                TmData.get().finished();
 
                 break;
             default:
                 log.debug("method=afterCommit, TmData.status=" + TmData.get().getStatus() + ", transaction data not  processed");
         }
-
     }
 
     /**
@@ -172,62 +205,187 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     }
 
     /**
-     *
      * @param transactionData
      */
     private void assignUUIDS(TransactionData transactionData) {
 
-        TransactionStateMachine tsm = TmData.get();
+        String uuid = TmData.get().getUuidPrefix();
+        int counter = 0;
 
-        String uuid = tsm.getUuidPrefix();
-
-        // todo assign UUIDs to all new created relationships & nodes
-        for (Relationship relationship:
-        transactionData.createdRelationships()) {
-            uuidHelper(relationship, uuid);
-        }
-        for (Node node:
-                transactionData.createdNodes()) {
-            uuidHelper(node, uuid);
+        for (Node node : transactionData.createdNodes()) {
+            node.setProperty(Properties.UUID, Properties.concatUUID(uuid, counter));
+            counter++;
         }
 
-        TmData.set(tsm);
-    }
-
-    private void uuidHelper(Entity entity, String uuid) {
-
-        // Creating a new transaction for setting the UUID property
-        try (Transaction tx = db.beginTx()) {
-
-            db.execute(
-                    String.format("MATCH (n)" +
-                            "WHERE n.id = %d%n" +
-                            "SET UUID = %s", entity.getId(), uuid + idCounter
-                    )
-            );
-
-            tx.success();
-
-        } catch(Exception ex){
-            log.error("Could not assign UUID to entity - " + ex.getMessage());
+        for (Relationship relationship : transactionData.createdRelationships()) {
+            relationship.setProperty(Properties.UUID, Properties.concatUUID(uuid, counter));
+            counter++;
         }
-
-        // Setting a property for the node directly
-        entity.setProperty("UUID",uuid + idCounter);
-
-        // Increase global counter value
-        idCounter++;
     }
 
     /**
+     * Store the TransactionData modifications in the TransactionStateMachine.
+     * <p>
+     * For removed relationships/nodes, the UUID is only available in the removedNodeProperties and
+     * removedRelationshipProperties respectively. To retrieve the UUID based on
+     * a node/relationship id, a lampda funciton is used that first  check if the UUID property was deleted.
+     * Otherwise, the node/relationship still exists and it is retrieved from the graph database.
      *
      * @param transactionData
      */
     private void storeModifications(TransactionData transactionData) {
 
-        for (Node node : transactionData.createdNodes()) {
+        TransactionStateMachine tsm = TmData.get();
 
+        EUUID relationUUID = (txData, id) -> {
+
+            Optional<PropertyEntry<Relationship>> entity = StreamSupport.stream(txData.removedRelationshipProperties().spliterator(), true)
+                    .filter(p -> p.entity().getId() == id && p.key() == Properties.UUID)
+                    .findFirst();
+
+            if (entity.isPresent()) {
+                return entity.get().previouslyCommitedValue().toString();
+            }
+
+            return db.getRelationshipById(id).getProperty(Properties.UUID).toString();
+        };
+
+        EUUID nodeUUID = (txData, id) -> {
+
+            Optional<PropertyEntry<Node>> entity = StreamSupport.stream(txData.removedNodeProperties().spliterator(), true)
+                    .filter(p -> p.entity().getId() == id && p.key() == Properties.UUID)
+                    .findFirst();
+
+            if (entity.isPresent()) {
+                return entity.get().previouslyCommitedValue().toString();
+            }
+
+            return db.getNodeById(id).getProperty(Properties.UUID).toString();
+        };
+
+
+        try (Transaction tx = db.beginTx()) {
+
+            for (Node node : transactionData.createdNodes()) {
+                tsm.addCreatedNode(new ENode(nodeUUID.getUUID(transactionData, node.getId())));
+            }
+
+            for (Node node : transactionData.deletedNodes()) {
+                tsm.addDeletedNode(new ENode(nodeUUID.getUUID(transactionData, node.getId())));
+            }
+
+            for (Relationship relationship : transactionData.createdRelationships()) {
+                tsm.addCreatedRelationship(new ERelationship(
+                        relationUUID.getUUID(transactionData, relationship.getId()),
+                        relationship.getType().name(),
+                        nodeUUID.getUUID(transactionData, relationship.getStartNodeId()),
+                        nodeUUID.getUUID(transactionData, relationship.getEndNodeId())
+
+                ));
+            }
+
+            for (Relationship relationship : transactionData.deletedRelationships()) {
+                tsm.addDeletedRelationship(new ERelationship(
+                        relationUUID.getUUID(transactionData, relationship.getId()),
+                        relationship.getType().name(),
+                        nodeUUID.getUUID(transactionData, relationship.getStartNodeId()),
+                        nodeUUID.getUUID(transactionData, relationship.getEndNodeId())
+                ));
+            }
+
+            for (LabelEntry label : transactionData.removedLabels()) {
+                tsm.addRemovedLabel(new ELabel(
+                        nodeUUID.getUUID(transactionData, label.node().getId()),
+                        label.label().name())
+                );
+            }
+
+            for (LabelEntry label : transactionData.assignedLabels()) {
+                tsm.addAssignedLabel(new ELabel(
+                        nodeUUID.getUUID(transactionData, label.node().getId()),
+                        label.label().name())
+                );
+            }
+
+            for (PropertyEntry<Node> property : transactionData.assignedNodeProperties()) {
+                tsm.addAssignedNodeProperty(new EProperty(
+                        nodeUUID.getUUID(transactionData, property.entity().getId()),
+                        property.key(),
+                        property.value().toString()
+                ));
+            }
+
+            for (PropertyEntry<Node> property : transactionData.removedNodeProperties()) {
+                tsm.addRemovedNodeProperty(new EProperty(
+                        nodeUUID.getUUID(transactionData, property.entity().getId()),
+                        property.key()
+                ));
+            }
+
+            for (PropertyEntry<Relationship> property : transactionData.assignedRelationshipProperties()) {
+                tsm.addAssignedRelationshipProperty(new EProperty(
+                        relationUUID.getUUID(transactionData, property.entity().getId()),
+                        property.key(),
+                        property.value().toString()
+                ));
+            }
+
+            for (PropertyEntry<Relationship> property : transactionData.removedRelationshipProperties()) {
+                tsm.addRemovedRelationshipProperty(new EProperty(
+                        relationUUID.getUUID(transactionData, property.entity().getId()),
+                        property.key()
+                ));
+            }
+
+            tx.failure();
+
+        } catch (Exception ex) {
+            System.out.println("Exception was thrown " + ex.getMessage());
         }
+
+        TmData.set(tsm);
+
     }
 
+    /**
+     * Check whether a property key was set or changed from in the transaction data.
+     * <p>
+     * By default, if an entity is removed, all the assigned properties to that entity will be marked as removed.
+     * If incEntityRemoved is false, it will not result in an property change if the entity was removed.
+     *
+     * @param txData           The transaction data with changes.
+     * @param key              The key of the property
+     * @param incEntityRemoved Boolean in case of the property entity is removed should result in a property change.
+     * @return
+     */
+    private boolean hasPropertyChange(TransactionData txData, String key, boolean incEntityRemoved) {
+
+        for (PropertyEntry<Relationship> property : txData.assignedRelationshipProperties()) {
+            if (property.key() == key) {
+                return true;
+            }
+        }
+
+        for (PropertyEntry<Relationship> property : txData.removedRelationshipProperties()) {
+            if (incEntityRemoved || (property.key() == key && !StreamSupport.stream(txData.deletedRelationships().spliterator(), true)
+                    .anyMatch(n -> n.getId() == property.entity().getId()))) {
+                return true;
+            }
+        }
+
+        for (PropertyEntry<Node> property : txData.assignedNodeProperties()) {
+            if (property.key() == key) {
+                return true;
+            }
+        }
+
+        for (PropertyEntry<Node> property : txData.removedNodeProperties()) {
+            if (incEntityRemoved || (property.key() == key && !StreamSupport.stream(txData.deletedNodes().spliterator(), true)
+                    .anyMatch(n -> n.getId() == property.entity().getId()))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

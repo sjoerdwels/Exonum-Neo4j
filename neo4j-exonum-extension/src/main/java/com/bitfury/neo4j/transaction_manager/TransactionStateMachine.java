@@ -22,8 +22,6 @@ public class TransactionStateMachine {
         READY_TO_COMMIT,
         COMMITTED,
         FAILED,
-        ASSIGNED_UUIDS,
-        STORED_MODIFICATIONS,
         FINISHED
     }
 
@@ -65,13 +63,11 @@ public class TransactionStateMachine {
 
     public void failure() { this.status = TransactionStatus.FAILED; }
 
-    public void assignedUUIDs() { this.status = TransactionStatus.ASSIGNED_UUIDS; }
-
-    public void storedModifications() { this.status = TransactionStatus.STORED_MODIFICATIONS; }
-
     public void finished() { this.status = TransactionStatus.FINISHED; }
 
     public TransactionStatus getStatus() { return this.status; }
+
+    public String getUuidPrefix(){ return this.uuidPrefix; }
 
     public void addCreatedNode(ENode ENode) {
         this.createdENodes.add(ENode);
@@ -89,7 +85,7 @@ public class TransactionStateMachine {
         this.deletedERelationships.add(ERelationship);
     }
 
-    public void addAsignedLabel(ELabel ELabel) {
+    public void addAssignedLabel(ELabel ELabel) {
         this.assignedELabels.add(ELabel);
     }
 
@@ -97,7 +93,7 @@ public class TransactionStateMachine {
         this.removedELabels.add(ELabel);
     }
 
-    public void addaAsignedNodeProperty(EProperty EProperty) {
+    public void addAssignedNodeProperty(EProperty EProperty) {
         this.assignedNodeProperties.add(EProperty);
     }
 
@@ -105,7 +101,7 @@ public class TransactionStateMachine {
         this.removedNodeProperties.add(EProperty);
     }
 
-    public void addaAssignedRelationshipProperty(EProperty EProperty) {
+    public void addAssignedRelationshipProperty(EProperty EProperty) {
         this.assignedRelationshipProperties.add(EProperty);
     }
 
@@ -113,13 +109,9 @@ public class TransactionStateMachine {
         this.removedRelationshipProperties.add(EProperty);
     }
 
-    public String getUuidPrefix() {
-        return uuidPrefix;
-    }
-
     public TransactionResponse getTransactionResponse() {
 
-        TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder().setResult(getTranscationResponseStatus());
+        TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder().setResult(getTransactionResponseStatus());
 
         if (isCommitted) {
 
@@ -196,10 +188,6 @@ public class TransactionStateMachine {
                         .setKey(EProperty.getKey())
                         .setValue(EProperty.getValue());
 
-                if (EProperty.getPreviousValue() != null) {
-                    propertyBuilder.setPreviousValue(EProperty.getPreviousValue());
-                }
-
                 modificationBuilder.addAssignedNodeProperties(propertyBuilder);
             }
 
@@ -226,10 +214,6 @@ public class TransactionStateMachine {
                         .setKey(EProperty.getKey())
                         .setValue(EProperty.getValue());
 
-                if (EProperty.getPreviousValue() != null) {
-                    propertyBuilder.setPreviousValue(EProperty.getPreviousValue());
-                }
-
                 modificationBuilder.addAssignedRelationshipProperties(propertyBuilder);
             }
 
@@ -248,13 +232,13 @@ public class TransactionStateMachine {
         return responseBuilder.build();
     }
 
-    private Status getTranscationResponseStatus() {
+    private Status getTransactionResponseStatus() {
 
         boolean success = false;
 
         switch (this.transactionType) {
             case VERIFY:
-                success = this.status == TransactionStatus.READY_TO_COMMIT;
+                success = this.status == TransactionStatus.INITIAL;
                 break;
             case EXECUTE:
                 success = this.status == TransactionStatus.FINISHED;

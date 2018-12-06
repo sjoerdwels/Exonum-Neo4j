@@ -7,7 +7,6 @@ public class ERelationship {
     private String startNodeUUID;
     private String endNodeUUID;
 
-
     public ERelationship(String UUID, String type, String startNodeUUID, String endNodeUUID) {
         this.UUID = UUID;
         this.type = type;
