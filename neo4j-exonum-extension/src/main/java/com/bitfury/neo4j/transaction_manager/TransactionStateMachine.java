@@ -8,8 +8,6 @@ import com.bitfury.neo4j.transaction_manager.exonum.ERelationship;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.bitfury.neo4j.transaction_manager.exonum.*;
-
 public class TransactionStateMachine {
 
     public enum TransactionType {
@@ -246,6 +244,25 @@ public class TransactionStateMachine {
         }
 
         return success ? Status.SUCCESS : Status.FAILURE;
+    }
+
+    public TransactionResponse getTransactionErrorResponse(ErrorCode errorCode, String message, String query, String queryError) {
+        TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder()
+                .setResult(getTransactionResponseStatus());
+
+        Error.Builder errorBuilder = Error.newBuilder()
+                .setCode(errorCode)
+                .setMessage(message);
+
+        if(errorCode == ErrorCode.FAILED_QUERIES){
+                errorBuilder.setFailedQuery(FailedQuery.newBuilder()
+                        .setError(queryError)
+                        .setQuery(query)
+                        .build())
+                .build();
+        }
+
+        return responseBuilder.setError(errorBuilder).build();
     }
 
 }

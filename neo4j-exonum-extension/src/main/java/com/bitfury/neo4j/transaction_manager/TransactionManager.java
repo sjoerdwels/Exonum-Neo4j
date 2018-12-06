@@ -4,10 +4,13 @@ import com.bitfury.neo4j.transaction_manager.exonum.*;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
-import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.event.TransactionData;
-import org.neo4j.graphdb.event.PropertyEntry;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.event.LabelEntry;
+import org.neo4j.graphdb.event.PropertyEntry;
+import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.logging.Log;
@@ -98,14 +101,20 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
         try {
 
-            if (request.getUUIDPrefix().isEmpty()) {
-                throw new Exception("ResponseRequest did not provide UUID prefix.");
-            }
-
             TmData.set(new TransactionStateMachine(type, request.getUUIDPrefix()));
 
+            if (request.getUUIDPrefix().isEmpty()) {
+                TmData.get().failure();
+                responseObserver.onNext(TmData.get().getTransactionErrorResponse(ErrorCode.EMPTY_UUID_PREFIX,"Transaction UUID is missing","",""));
+                responseObserver.onCompleted();
+                return;
+            }
+
             if (request.getQueriesCount() == 0) {
-                throw new Exception("Transaction has no insert queries.");
+                TmData.get().failure();
+                responseObserver.onNext(TmData.get().getTransactionErrorResponse(ErrorCode.EMPTY_TRANSACTION,"Transaction has no insert queries","",""));
+                responseObserver.onCompleted();
+                return;
             }
 
             List<String> queries = request.getQueriesList();
