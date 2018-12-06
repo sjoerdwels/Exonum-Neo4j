@@ -23,7 +23,8 @@ message TransactionRequest {
 
 message TransactionResponse {
   Status result = 1;
-  DatabaseModifications modifications =  2;
+  Error error = 2;
+  DatabaseModifications modifications =  3;
 }
 
 message DatabaseModifications {
@@ -90,6 +91,25 @@ message DatabaseModifications {
     string node_UUID = 1;
   }
 }
+
+enum ErrorCode {
+  EMPTY_TRANSACTION = 0;
+  EMPTY_UUID_PREFIX = 1;
+  FAILED_QUERIES = 2;
+  MODIFIED_UUID = 3;
+}
+
+message Error {
+  string message = 1;
+  ErrorCode code = 2;
+  FailedQuery failed_query = 3;
+}
+
+message FailedQuery {
+  string query = 1;
+  string error = 2;
+}
+
 
 
 
