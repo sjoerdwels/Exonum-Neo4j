@@ -183,7 +183,7 @@ public class TransactionManagerTest {
     }
 
     @Test
-    public void testSingleFailedTransaction() {
+    public void testInvalidQueryTransaction() {
 
         TransactionRequest request = TransactionRequest.newBuilder()
                 .setUUIDPrefix(TEST_PREFIX)
@@ -266,7 +266,7 @@ public class TransactionManagerTest {
     }
 
     @Test
-    public void testCompleteResponse() {
+    public void testAllTransactionDataResponseFields() {
         TransactionRequest request = TransactionRequest.newBuilder()
                 .addQueries("CREATE (n:Person {name:'Sjoerd'})")
                 .addQueries("CREATE (m:Person {name:'Silver'})")

@@ -183,6 +183,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
             case INITIAL:
 
                 if (hasPropertyChange(transactionData, Properties.UUID, false)) {
+
                     TmData.get().failure(
                             new EError(EError.ErrorType.MODIFIED_UUID, "Transaction tried to modify UUID properties.")
                     );

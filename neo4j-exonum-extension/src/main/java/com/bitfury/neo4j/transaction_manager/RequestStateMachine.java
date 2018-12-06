@@ -17,7 +17,8 @@ public class RequestStateMachine {
         READY_TO_COMMIT,
         COMMITTED,
         FAILED,
-        FINISHED
+        FINISHED,
+        UUID_MODIFIED
     }
 
     private TransactionStatus status;
@@ -77,9 +78,12 @@ public class RequestStateMachine {
         return this.status;
     }
 
+
     public String getUuidPrefix() {
         return this.uuidPrefix;
     }
+
+    public void uuidModified() { this.status = TransactionStatus.UUID_MODIFIED; }
 
     public TransactionType getTransactionType() {
         return this.transactionType;
