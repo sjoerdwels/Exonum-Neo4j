@@ -16,6 +16,8 @@ serde = "1.0.0"
 serde_derive = "1.0.0"
 failure = "0.1.2"
 protobuf = { version = "~2.0", features = ["with-bytes"] }
+protoc-rust-grpc = "0.6.1"
+grpc = "0.6.1"
 
 [dev-dependencies]
 exonum-testkit = "0.9.0"

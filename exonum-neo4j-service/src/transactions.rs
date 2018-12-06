@@ -29,7 +29,7 @@ transactions! {
 
 impl Transaction for CommitQueries {
     fn verify(&self) -> bool {
-        let protoFields = getProtoBufList(self.queries());
+        let protoQueries = getProtoBufList(self.queries());
         true
     }
 

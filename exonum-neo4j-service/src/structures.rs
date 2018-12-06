@@ -96,7 +96,7 @@ pub fn getProtoBufList(queries: &str) -> protobuf::RepeatedField<::std::string::
 }
 
 impl Queries {
-    fn getProtoList(self) -> protobuf::RepeatedField<::std::string::String> {
+    pub fn getProtoList(self) -> protobuf::RepeatedField<::std::string::String> {
         let split = self.queries().split(";");
         let vec: Vec<::std::string::String> = split.map(|s| s.to_string()).collect();
         protobuf::RepeatedField::from_vec(vec)

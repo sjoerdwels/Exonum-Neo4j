@@ -22,6 +22,9 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+extern crate grpc;
+extern crate protobuf;
+
 pub use schema::Schema;
 
 ///Our API.
@@ -32,6 +35,9 @@ pub mod transactions;
 ///Our test value struct.
 pub mod test_value;
 pub mod structures;
+//Our gRPC client
+pub mod gRPCProtocol;
+pub mod gRPCProtocol_grpc;
 
 use transactions::Neo4JTransactions;
 
