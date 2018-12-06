@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
+import static com.bitfury.neo4j.transaction_manager.TransactionStateMachine.TransactionStatus.UUID_MODIFIED;
+
 public class TransactionManager extends TransactionManagerGrpc.TransactionManagerImplBase {
 
     private static GraphDatabaseService db;
@@ -117,6 +119,13 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                 return;
             }
 
+            if (TmData.get().getStatus() == UUID_MODIFIED){
+                TmData.get().failure();
+                responseObserver.onNext(TmData.get().getTransactionErrorResponse(ErrorCode.MODIFIED_UUID,"A query tried to modify a UUID, which is not allowed.","",""));
+                responseObserver.onCompleted();
+                return;
+            }
+
             List<String> queries = request.getQueriesList();
 
             int queryCounter = 0;
@@ -136,7 +145,6 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                         break;
                 }
             } catch (Exception ex) {
-                System.out.println("Error  thrown " + ex.getMessage());
                 TmData.get().failure();
                 responseObserver.onNext(TmData.get().getTransactionErrorResponse(ErrorCode.FAILED_QUERIES,"Could not execute query",queries.get(queryCounter),ex.getMessage()));
                 responseObserver.onCompleted();
@@ -171,7 +179,9 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
             case INITIAL:
 
                 if (hasPropertyChange(transactionData, Properties.UUID, false)) {
-                    throw new Exception("A query tried to modify a UUID, which is not allowed.");
+                    TmData.get().uuidModified();
+                    return;
+                    //throw new Exception("A query tried to modify a UUID, which is not allowed.");
                 }
 
                 assignUUIDS(transactionData);

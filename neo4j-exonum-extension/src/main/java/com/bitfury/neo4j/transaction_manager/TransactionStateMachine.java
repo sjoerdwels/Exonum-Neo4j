@@ -20,7 +20,8 @@ public class TransactionStateMachine {
         READY_TO_COMMIT,
         COMMITTED,
         FAILED,
-        FINISHED
+        FINISHED,
+        UUID_MODIFIED
     }
 
     private TransactionStatus status;
@@ -62,6 +63,8 @@ public class TransactionStateMachine {
     public void failure() { this.status = TransactionStatus.FAILED; }
 
     public void finished() { this.status = TransactionStatus.FINISHED; }
+
+    public void uuidModified() { this.status = TransactionStatus.UUID_MODIFIED; }
 
     public TransactionStatus getStatus() { return this.status; }
 
