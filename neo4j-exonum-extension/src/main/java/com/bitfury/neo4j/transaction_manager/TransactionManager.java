@@ -119,10 +119,12 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
             List<String> queries = request.getQueriesList();
 
+            int queryCounter = 0;
             try (Transaction tx = db.beginTx()) {
 
                 for (String query : queries) {
                     db.execute(query);
+                    queryCounter++;
                 }
 
                 switch (type) {
@@ -134,9 +136,11 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                         break;
                 }
             } catch (Exception ex) {
-                log.info("invalid query");
                 System.out.println("Error  thrown " + ex.getMessage());
                 TmData.get().failure();
+                responseObserver.onNext(TmData.get().getTransactionErrorResponse(ErrorCode.FAILED_QUERIES,"Could not execute query",queries.get(queryCounter),ex.getMessage()));
+                responseObserver.onCompleted();
+                return;
             }
 
             /* TransactionEventHandler hooks are called in the close() block of the try-with-resource statement.

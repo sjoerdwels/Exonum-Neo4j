@@ -190,7 +190,7 @@ public class TransactionManagerTest {
                 .addQueries("FakeQuery")
                 .build();
         TransactionResponse response = blockingStub.executeTransaction(request);
-
+        System.out.println("response.toString() = " + response.toString());
         assert (response.getResult() == Status.FAILURE);
     }
 
