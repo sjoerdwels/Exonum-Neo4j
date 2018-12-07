@@ -5,9 +5,9 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.event.TransactionData;
-import org.neo4j.graphdb.event.PropertyEntry;
 import org.neo4j.graphdb.event.LabelEntry;
+import org.neo4j.graphdb.event.PropertyEntry;
+import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.logging.Log;
@@ -27,11 +27,9 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     private Server gRPCServer;
     private TransactionManagerEventHandler eventHandler;
 
-    ThreadLocal<TransactionStateMachine> TmData = new ThreadLocal<>();
+    ThreadLocal<RequestStateMachine> TmData = new ThreadLocal<>();
 
     /**
-     *
-     *
      * @param db
      * @param config
      * @param logService
@@ -72,77 +70,104 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     @Override
     public void verifyTransaction(TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
         log.info("method=verifyTransaction request=" + request.toString());
-        handleTransaction(TransactionStateMachine.TransactionType.VERIFY, request, responseObserver);
+        processGRPCRequest(RequestStateMachine.TransactionType.VERIFY, request, responseObserver);
     }
 
     @Override
     public void executeTransaction(TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
         log.info("method=executeTransaction request=" + request.toString());
-        handleTransaction(TransactionStateMachine.TransactionType.EXECUTE, request, responseObserver);
+        processGRPCRequest(RequestStateMachine.TransactionType.EXECUTE, request, responseObserver);
     }
 
     /**
-     * Handle a new transaction by executing the provided queries and return the observer whether the transaction was successful.
-     * Uses a thread local TmData object to store all related data to the gRPC request,
-     * as the TransactionEventHandler has no reference to the gRPC executor instance.
+     * Process a new gRPC request.
+     *
+     * Creates a new thread local TmData object to store all related data to the gRPC request as the
+     * TransactionEventHandler has no reference to the gRPC executor instance. Then processes the
+     * request message and returns the result to the observer.
      *
      * @param type             The gRPC method type
      * @param request          The request message
      * @param responseObserver The responseObserver
-     * @ref https://neo4j.com/docs/java-reference/current/transactions/ 7.6.1  - Neo4j transaction in a single thread.
      */
-    private void handleTransaction(TransactionStateMachine.TransactionType type, TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
+    private void processGRPCRequest(RequestStateMachine.TransactionType type, TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
 
-        log.debug("method=handleTransaction type=" + type.name() + "totalQueries=" + request.getQueriesCount()
+        TmData.set(new RequestStateMachine(type, request.getUUIDPrefix()));
+
+        processRequestMessage(request);
+
+        responseObserver.onNext(TmData.get().getTransactionResponse());
+        responseObserver.onCompleted();
+    }
+
+    /**
+     * Process a new transaction request by executing the provided queries.
+     *
+     * @param request          The request message
+     */
+    private void processRequestMessage(TransactionRequest request) {
+
+        log.info("method=executeRequest type=" + TmData.get().getTransactionType() + "totalQueries=" + request.getQueriesCount()
                 + " threadID=" + Thread.currentThread().getId());
 
-        try {
+        if (request.getUUIDPrefix().isEmpty()) {
+            TmData.get().failure(
+                    new EError(EError.ErrorType.EMPTY_UUID_PREFIX, "Transaction is missing UUID prefix.")
+            );
+            return;
+        }
 
-            if (request.getUUIDPrefix().isEmpty()) {
-                throw new Exception("ResponseRequest did not provide UUID prefix.");
+        if (request.getQueriesCount() == 0) {
+            TmData.get().failure(
+                    new EError(EError.ErrorType.EMPTY_TRANSACTION, "No queries provided.")
+            );
+            return;
+        }
+
+        List<String> queries = request.getQueriesList();
+
+        String activeQuery = "";
+        try (Transaction tx = db.beginTx()) {
+
+            for (String query : queries) {
+                activeQuery = query;
+                db.execute(query);
             }
 
-            TmData.set(new TransactionStateMachine(type, request.getUUIDPrefix()));
-
-            if (request.getQueriesCount() == 0) {
-                throw new Exception("Transaction has no insert queries.");
+            switch (TmData.get().getTransactionType()) {
+                case VERIFY:
+                    tx.failure();
+                    break;
+                case EXECUTE:
+                    tx.success();
+                    break;
             }
+        } catch (QueryExecutionException ex) {
+            TmData.get().failure(
+                    new EError(
+                            EError.ErrorType.FAILED_QUERY,
+                            "Invalid query provided.",
+                            new EFailedQuery(
+                                    activeQuery,
+                                    ex.getMessage()
+                            )
+                    )
+            );
 
-            List<String> queries = request.getQueriesList();
-
-            try (Transaction tx = db.beginTx()) {
-
-                for (String query : queries) {
-                    db.execute(query);
-                }
-
-                switch (type) {
-                    case VERIFY:
-                        tx.failure();
-                        break;
-                    case EXECUTE:
-                        tx.success();
-                        break;
-                }
-            } catch (Exception ex) {
-                log.info("invalid query");
-                System.out.println("Error  thrown " + ex.getMessage());
-                TmData.get().failure();
+        } catch (TransactionFailureException ex) {
+            /* If the transaction was rolled back in this extension, the error is already provided.
+                Otherwise, an external extension prevented the transaction to be committed.
+             */
+            if (!TmData.get().hasError()) {
+                TmData.get().failure(
+                        new EError(EError.ErrorType.TRANSACTION_ROLLBACK, "Transaction was ready to be committed but rolled back.")
+                );
             }
-
-            /* TransactionEventHandler hooks are called in the close() block of the try-with-resource statement.
-                At this point, the transactionData is available if provided. */
-
-            responseObserver.onNext(TmData.get().getTransactionResponse());
-
-            responseObserver.onCompleted();
-
-            log.info("Transaction with " + request.getQueriesCount() + " queries successful " + type.name().toLowerCase() + ".");
 
         } catch (Exception ex) {
-            // todo Nice error handling
-            log.error("Error handling transaction: " + ex.getMessage());
-            responseObserver.onError(ex);
+            TmData.get().failure(
+                    new EError(EError.ErrorType.RUNTIME_EXCEPTION, "Runtime exception:  " + ex.getMessage())
+            );
         }
     }
 
@@ -158,6 +183,10 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
             case INITIAL:
 
                 if (hasPropertyChange(transactionData, Properties.UUID, false)) {
+
+                    TmData.get().failure(
+                            new EError(EError.ErrorType.MODIFIED_UUID, "Transaction tried to modify UUID properties.")
+                    );
                     throw new Exception("A query tried to modify a UUID, which is not allowed.");
                 }
 
@@ -201,7 +230,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      * @param transactionData The changes that were attempted to be committed in this transaction.
      */
     public void afterRollback(TransactionData transactionData) {
-        TmData.get().rolledback();
+        TmData.get().rolledBack();
     }
 
     /**
@@ -224,7 +253,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     }
 
     /**
-     * Store the TransactionData modifications in the TransactionStateMachine.
+     * Store the TransactionData modifications in the RequestStateMachine.
      * <p>
      * For removed relationships/nodes, the UUID is only available in the removedNodeProperties and
      * removedRelationshipProperties respectively. To retrieve the UUID based on
@@ -235,7 +264,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      */
     private void storeModifications(TransactionData transactionData) {
 
-        TransactionStateMachine tsm = TmData.get();
+        RequestStateMachine tsm = TmData.get();
 
         EUUID relationUUID = (txData, id) -> {
 

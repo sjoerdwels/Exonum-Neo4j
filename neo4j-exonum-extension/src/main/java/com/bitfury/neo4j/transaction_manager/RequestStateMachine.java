@@ -1,16 +1,11 @@
 package com.bitfury.neo4j.transaction_manager;
 
-import com.bitfury.neo4j.transaction_manager.exonum.ELabel;
-import com.bitfury.neo4j.transaction_manager.exonum.ENode;
-import com.bitfury.neo4j.transaction_manager.exonum.EProperty;
-import com.bitfury.neo4j.transaction_manager.exonum.ERelationship;
+import com.bitfury.neo4j.transaction_manager.exonum.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import com.bitfury.neo4j.transaction_manager.exonum.*;
-
-public class TransactionStateMachine {
+public class RequestStateMachine {
 
     public enum TransactionType {
         VERIFY,
@@ -22,11 +17,13 @@ public class TransactionStateMachine {
         READY_TO_COMMIT,
         COMMITTED,
         FAILED,
-        FINISHED
+        FINISHED,
+        UUID_MODIFIED
     }
 
     private TransactionStatus status;
     private TransactionType transactionType;
+    private EError error;
     private String uuidPrefix;
 
     private boolean isCommitted = false;
@@ -48,26 +45,49 @@ public class TransactionStateMachine {
     private List<EProperty> removedRelationshipProperties = new ArrayList<>();
 
 
-    public TransactionStateMachine(TransactionType transactionType, String uuid_prefix) {
+    public RequestStateMachine(TransactionType transactionType, String uuid_prefix) {
         this.status = TransactionStatus.INITIAL;
         this.transactionType = transactionType;
         this.uuidPrefix = uuid_prefix;
+        this.error = null;
+    }
+
+    public void readyToCommit() {
+        this.status = TransactionStatus.READY_TO_COMMIT;
+    }
+
+    public void committed() {
+        this.status = TransactionStatus.COMMITTED;
+        this.isCommitted = true;
+    }
+
+    public void rolledBack() {
+        this.status = TransactionStatus.FAILED;
+    }
+
+    public void failure(EError error) {
+        this.status = TransactionStatus.FAILED;
+        this.error = error;
+    }
+
+    public void finished() {
+        this.status = TransactionStatus.FINISHED;
+    }
+
+    public TransactionStatus getStatus() {
+        return this.status;
     }
 
 
-    public void readyToCommit() { this.status = TransactionStatus.READY_TO_COMMIT; }
+    public String getUuidPrefix() {
+        return this.uuidPrefix;
+    }
 
-    public void committed() { this.status = TransactionStatus.COMMITTED; this.isCommitted = true;}
+    public void uuidModified() { this.status = TransactionStatus.UUID_MODIFIED; }
 
-    public void rolledback() { this.status = TransactionStatus.FAILED; }
-
-    public void failure() { this.status = TransactionStatus.FAILED; }
-
-    public void finished() { this.status = TransactionStatus.FINISHED; }
-
-    public TransactionStatus getStatus() { return this.status; }
-
-    public String getUuidPrefix(){ return this.uuidPrefix; }
+    public TransactionType getTransactionType() {
+        return this.transactionType;
+    }
 
     public void addCreatedNode(ENode ENode) {
         this.createdENodes.add(ENode);
@@ -109,11 +129,17 @@ public class TransactionStateMachine {
         this.removedRelationshipProperties.add(EProperty);
     }
 
+    public boolean hasError() {
+        return error != null;
+    }
+
     public TransactionResponse getTransactionResponse() {
 
-        TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder().setResult(getTransactionResponseStatus());
+        TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder();
 
-        if (isCommitted) {
+        if (isSuccess()) {
+
+            responseBuilder.setResult(Status.SUCCESS);
 
             DatabaseModifications.Builder modificationBuilder = DatabaseModifications.newBuilder();
 
@@ -227,12 +253,43 @@ public class TransactionStateMachine {
             }
 
             responseBuilder.setModifications(modificationBuilder);
+
+        } else {
+
+            responseBuilder.setResult(Status.FAILURE);
+
+            if( hasError() ) {
+                Error.Builder errorBuilder = Error.newBuilder();
+
+                switch( error.getType() ) {
+                    case FAILED_QUERY:          errorBuilder.setCode(ErrorCode.FAILED_QUERY); break;
+                    case MODIFIED_UUID:         errorBuilder.setCode(ErrorCode.MODIFIED_UUID); break;
+                    case EMPTY_TRANSACTION:     errorBuilder.setCode(ErrorCode.EMPTY_TRANSACTION); break;
+                    case EMPTY_UUID_PREFIX:     errorBuilder.setCode(ErrorCode.EMPTY_UUID_PREFIX); break;
+                    case RUNTIME_EXCEPTION:     errorBuilder.setCode(ErrorCode.RUNTIME_EXCEPTION); break;
+                    case TRANSACTION_ROLLBACK:  errorBuilder.setCode(ErrorCode.FAILED_QUERY); break;
+                }
+
+                errorBuilder.setMessage(error.getMessage());
+
+                if( error.hasFailedQuery() ){
+
+                    EFailedQuery failedQuery = error.getFailedQuery();
+
+                    FailedQuery.Builder failedQueryBullder = FailedQuery.newBuilder();
+                    failedQueryBullder.setError(failedQuery.getError());
+                    failedQueryBullder.setQuery(failedQuery.getQuery());
+                    errorBuilder.setFailedQuery(failedQueryBullder);
+                }
+
+                responseBuilder.setError((errorBuilder));
+            }
         }
 
         return responseBuilder.build();
     }
 
-    private Status getTransactionResponseStatus() {
+    private boolean isSuccess() {
 
         boolean success = false;
 
@@ -245,7 +302,8 @@ public class TransactionStateMachine {
                 break;
         }
 
-        return success ? Status.SUCCESS : Status.FAILURE;
+        return success;
     }
+
 
 }

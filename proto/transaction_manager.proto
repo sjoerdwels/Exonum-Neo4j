@@ -95,8 +95,10 @@ message DatabaseModifications {
 enum ErrorCode {
   EMPTY_TRANSACTION = 0;
   EMPTY_UUID_PREFIX = 1;
-  FAILED_QUERIES = 2;
+  FAILED_QUERY = 2;
   MODIFIED_UUID = 3;
+  TRANSACTION_ROLLBACK = 4;
+  RUNTIME_EXCEPTION =  5;
 }
 
 message Error {
