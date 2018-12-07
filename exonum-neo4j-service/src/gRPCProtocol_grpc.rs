@@ -141,16 +141,21 @@ impl TransactionManager for TransactionImpl {
     fn verify_transaction(&self, _o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse> {
         let mut r = TransactionResponse::new();
         let queries = p.get_queries();
-        let status : Status = Status::SUCCESS;
         println!("Got queries {:?}", queries);
-        r.set_result(status);
+        println!("Comparison value is {}", queries[0].trim()=="abort");
+        if queries[0].trim()=="abort" {
+            r.set_result(Status::FAILURE);
+            println!("Setting result to FAILURE!");
+        }
+        else {
+            r.set_result(Status::SUCCESS);
+        }
         SingleResponse::completed(r)
     }
 
     fn execute_transaction(&self, _o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse> {
         let mut r = TransactionResponse::new();
         let queries = p.get_queries();
-        let status : Status = Status::SUCCESS;
         let mut modifications : DatabaseModifications = DatabaseModifications::new();
         let mut new_nodes : RepeatedField<DatabaseModifications_CreatedNode> = RepeatedField::new();
         let mut nodeA = DatabaseModifications_CreatedNode::new();
@@ -160,8 +165,16 @@ impl TransactionManager for TransactionImpl {
         nodeA.set_node_UUID("u2".to_string());
         new_nodes.push( nodeA);
 
-        println!("Got queries {:?}", queries);
-        r.set_result(status);
+        println!("TEST2 Got queries {:?}", queries);
+        println!("Comparison value is {}", queries[0].trim()=="abort");
+        if queries[0].trim()=="abort" {
+            r.set_result(Status::FAILURE);
+            println!("Setting result to FAILURE!");
+        }
+        else {
+            r.set_result(Status::SUCCESS);
+        }
+
         modifications.set_created_nodes(new_nodes);
         r.set_modifications(modifications);
         SingleResponse::completed(r)

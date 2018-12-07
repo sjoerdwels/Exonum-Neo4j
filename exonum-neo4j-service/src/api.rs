@@ -58,7 +58,6 @@ impl Neo4JApi {
             values.push(format!("{}", val));
         }
         Ok(values)
-
     }
 
 
@@ -82,8 +81,8 @@ impl Neo4JApi {
         // Binds handlers to specific routes.
         builder
             .public_scope()
-            .endpoint("v1/queries", Self::get_queries)
+            .endpoint("v1/transactions", Self::get_queries)
             .endpoint("v1/node_history", Self::get_node_history)
-            .endpoint_mut("v1/queries", Self::post_transaction);
+            .endpoint_mut("v1/insert_transaction", Self::post_transaction);
     }
 }

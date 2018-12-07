@@ -8,6 +8,7 @@ use std::borrow::Cow;
 use std::fmt;
 use structures::NodeChange::AN;
 use structures::NodeChange::AR;
+use gRPCProtocol::TransactionRequest;
 
 
 
@@ -89,19 +90,19 @@ impl fmt::Display for NodeChange {
     }
 }
 
-pub fn getProtoBufList(queries: &str) -> protobuf::RepeatedField<::std::string::String> {
+pub fn getProtoTransactionRequest(queries: &str, prefix: &str) -> TransactionRequest {
     let split = queries.split(";");
     let vec: Vec<::std::string::String> = split.map(|s| s.to_string()).collect();
-    protobuf::RepeatedField::from_vec(vec)
+    let protoVec = protobuf::RepeatedField::from_vec(vec);
+    let mut req = TransactionRequest::new();
+    req.set_UUID_prefix(prefix.to_string());
+    req.set_queries(protoVec);
+    req
+
 }
 
 impl Queries {
-    pub fn getProtoList(self) -> protobuf::RepeatedField<::std::string::String> {
-        let split = self.queries().split(";");
-        let vec: Vec<::std::string::String> = split.map(|s| s.to_string()).collect();
-        protobuf::RepeatedField::from_vec(vec)
-    }
-    
+
 
     pub fn execute(&self) -> Vec<NodeChange> {
         let c1 = NodeChange::AN(AddNode::new(

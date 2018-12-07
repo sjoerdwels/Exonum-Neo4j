@@ -2,12 +2,11 @@ extern crate exonum_neo4j;
 extern crate exonum;
 extern crate grpc;
 
-use exonum::crypto::{hash};
 // Import datatypes used in tests from the crate where the service is defined.
 use exonum_neo4j::gRPCProtocol_grpc::{getClient, run_server};
 use exonum_neo4j::gRPCProtocol_grpc::TransactionManager;
-use exonum_neo4j::gRPCProtocol::{TransactionRequest};
-use exonum_neo4j::structures::Queries;
+use exonum_neo4j::structures::{getProtoTransactionRequest};
+use exonum_neo4j::gRPCProtocol::Status;
 use std::thread;
 
 
@@ -17,26 +16,42 @@ fn test_connection() {
 
     let client = getClient(50051);
 
-    let queries = Queries::new("CREATE n:testPerson {name: 'exonumTest', age: 24 }", &hash(b"hash"));
-    let mut req = TransactionRequest::new();
-    req.set_UUID_prefix("u1".to_string());
-    req.set_queries(queries.clone().getProtoList());
+    let queries = "CREATE n:testPerson {name: 'exonumTest', age: 24 }";
+    let req = getProtoTransactionRequest(queries, "");
     let resp = client.verify_transaction(grpc::RequestOptions::new(), req);
     let answer = resp.wait();
     match answer {
-        Ok(x) => println!("Got OK result {:?}", x.1),
-        _ => println!("Got error ")
+        Ok(x) => {println!("Got OK result {:?}", x.1); assert!(true, true)},
+        _ => {println!("Got error "); assert!(true, false)}
     }
 
-    let mut req = TransactionRequest::new();
-    req.set_UUID_prefix("u1".to_string());
-    req.set_queries(queries.clone().getProtoList());
+    let req = getProtoTransactionRequest(queries, "hashahsahs");
     let resp = client.execute_transaction(grpc::RequestOptions::new(), req);
     let answer = resp.wait();
     match answer {
         Ok(x) => println!("Got OK result {:?}", x.1),
-        _ => println!("Got error ")
+        _ => {println!("Got error "); assert!(true, false)}
     }
+}
 
+#[test]
+fn test_failure() {
+    thread::spawn(move || {run_server()});
+
+    let client = getClient(50051);
+
+    let queries = "abort;Create (n)";
+
+    let req = getProtoTransactionRequest(queries, "hashahsahs");
+    let resp = client.execute_transaction(grpc::RequestOptions::new(), req);
+    let answer = resp.wait();
+    match answer {
+        Ok(x) => {println!("Got OK result {:?}", x.1);
+            match x.1.get_result() {
+                Status::FAILURE => println!("All good"),
+                Status::SUCCESS => {assert!(true, false)}
+            }},
+        _ => {println!("Got error "); assert!(true, false)}
+    }
 
 }
