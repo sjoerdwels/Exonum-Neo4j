@@ -35,35 +35,35 @@ public class TransactionManagerTest {
     }
 
     @Test
-    public void testVerifyTransaction() {
+    public void testverify() {
 
         TransactionRequest request = TransactionRequest.newBuilder()
                 .addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })")
                 .setUUIDPrefix(TEST_PREFIX)
                 .build();
-        TransactionResponse response = blockingStub.verifyTransaction(request);
+        TransactionResponse response = blockingStub.verify(request);
         assert (response.getResult() == Status.SUCCESS);
     }
 
     @Test
-    public void testExecuteTransaction() {
+    public void testexecute() {
 
         TransactionRequest request = TransactionRequest.newBuilder()
                 .addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })")
                 .setUUIDPrefix(TEST_PREFIX)
                 .build();
-        TransactionResponse response = blockingStub.executeTransaction(request);
+        TransactionResponse response = blockingStub.execute(request);
         assert (response.getResult() == Status.SUCCESS);
     }
 
     @Test
-    public void testVerifyTransactionWithoutQueries() {
+    public void testverifyWithoutQueries() {
 
         TransactionRequest request = TransactionRequest.newBuilder()
                 .setUUIDPrefix(TEST_PREFIX)
                 .build();
 
-        TransactionResponse response = blockingStub.verifyTransaction(request);
+        TransactionResponse response = blockingStub.verify(request);
         assert (response.getResult() == Status.FAILURE);
     }
 
@@ -74,7 +74,7 @@ public class TransactionManagerTest {
                 .addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })")
                 .build();
 
-        TransactionResponse response = blockingStub.verifyTransaction(request);
+        TransactionResponse response = blockingStub.verify(request);
         assert (response.getResult() == Status.FAILURE);
 
     }
@@ -86,7 +86,7 @@ public class TransactionManagerTest {
                 .setUUIDPrefix(TEST_PREFIX)
                 .addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })")
                 .build();
-        TransactionResponse response = blockingStub.executeTransaction(request);
+        TransactionResponse response = blockingStub.execute(request);
 
         assert (response.getResult() == Status.SUCCESS);
         assert (response.getModifications().getCreatedNodesCount()==1);
@@ -97,7 +97,7 @@ public class TransactionManagerTest {
                 .setUUIDPrefix(TEST_PREFIX + "2")
                 .addQueries("MATCH (n:Person) SET n.name =  'peter'")
                 .build();
-        response = blockingStub.executeTransaction(request);
+        response = blockingStub.execute(request);
 
         assert (response.getResult() == Status.SUCCESS);
         assert (response.getModifications().getAssignedNodePropertiesList().get(0).getValue().equals("peter"));
@@ -108,7 +108,7 @@ public class TransactionManagerTest {
                 .setUUIDPrefix(TEST_PREFIX + "3")
                 .addQueries("MATCH (n:Person) DELETE n")
                 .build();
-        response = blockingStub.executeTransaction(request);
+        response = blockingStub.execute(request);
 
         assert (response.getResult() == Status.SUCCESS);
         assert (response.getModifications().getDeletedNodes(0).getNodeUUID().equals("myPrefix_0"));
@@ -125,7 +125,7 @@ public class TransactionManagerTest {
                 .addQueries("CREATE (n:Person { name:\"Silver\"})")
                 .setUUIDPrefix(TEST_PREFIX)
                 .build();
-        TransactionResponse response = blockingStub.executeTransaction(request);
+        TransactionResponse response = blockingStub.execute(request);
 
         assert  (response.getModifications().getCreatedNodes(0).getNodeUUID().equals("myPrefix_0"));
         assert  (response.getModifications().getAssignedNodePropertiesList().stream().filter(prop -> prop.getKey().equals(Properties.UUID)).collect(Collectors.toList()).size()==0);
@@ -135,7 +135,7 @@ public class TransactionManagerTest {
                 .addQueries("MATCH (n:Person) WHERE n.name=\"Silver\"  DELETE n")
                 .setUUIDPrefix(TEST_PREFIX + "2")
                 .build();
-        response = blockingStub.executeTransaction(request);
+        response = blockingStub.execute(request);
 
         assert  (response.getModifications().getDeletedNodes(0).getNodeUUID().equals("myPrefix_0"));
         assert  (response.getModifications().getRemovedNodePropertiesList().stream().filter(prop -> prop.getKey().equals(Properties.UUID)).collect(Collectors.toList()).size()==1);
@@ -149,7 +149,7 @@ public class TransactionManagerTest {
                 .addQueries("CREATE (n:Person {title: 'Manager' })")
                 .setUUIDPrefix(TEST_PREFIX + "2")
                 .build();
-        TransactionResponse response = blockingStub.executeTransaction(request);
+        TransactionResponse response = blockingStub.execute(request);
 
         assert  (response.getModifications().getCreatedNodes(0).getNodeUUID().equals("myPrefix2_0"));
         assert  (response.getModifications().getCreatedNodes(1).getNodeUUID().equals("myPrefix2_1"));
@@ -161,7 +161,7 @@ public class TransactionManagerTest {
                 .addQueries("MATCH (n:Person) WHERE n.title='Manager'  DELETE n")
                 .setUUIDPrefix(TEST_PREFIX + "2")
                 .build();
-        response = blockingStub.executeTransaction(request);
+        response = blockingStub.execute(request);
 
         assert  (response.getModifications().getDeletedNodes(0).getNodeUUID().equals("myPrefix2_0"));
         assert  (response.getModifications().getDeletedNodes(1).getNodeUUID().equals("myPrefix2_1"));
@@ -176,7 +176,7 @@ public class TransactionManagerTest {
                 .setUUIDPrefix(TEST_PREFIX)
                 .addQueries("CREATE (n:Person { id: '2', title: 'Developer' })")
                 .build();
-        TransactionResponse response = blockingStub.executeTransaction(request);
+        TransactionResponse response = blockingStub.execute(request);
 
         assert (response.getResult() == Status.SUCCESS);
 
@@ -184,7 +184,7 @@ public class TransactionManagerTest {
                 .setUUIDPrefix(TEST_PREFIX + "2")
                 .addQueries("MATCH (n:Person) SET n."+ Properties.UUID + " =  'modifiedUUID'")
                 .build();
-        response = blockingStub.executeTransaction(request);
+        response = blockingStub.execute(request);
 
         assert (response.getResult() == Status.FAILURE);
     }
@@ -196,7 +196,7 @@ public class TransactionManagerTest {
                 .setUUIDPrefix(TEST_PREFIX)
                 .addQueries("FakeQuery")
                 .build();
-        TransactionResponse response = blockingStub.executeTransaction(request);
+        TransactionResponse response = blockingStub.execute(request);
 
         assert (response.getResult() == Status.FAILURE);
     }
@@ -218,7 +218,7 @@ public class TransactionManagerTest {
                 }
 
                 TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix(TEST_PREFIX).addQueries(" CREATE (n)").build();
-                TransactionResponse response = blockingStub.verifyTransaction(request);
+                TransactionResponse response = blockingStub.verify(request);
 
                 assert (response.getResult() == Status.SUCCESS);
 
@@ -245,7 +245,7 @@ public class TransactionManagerTest {
                         "CREATE (n)-[t:TO]->(m)")
                 .setUUIDPrefix(TEST_PREFIX)
                 .build();
-        TransactionResponse response = blockingStub.executeTransaction(request);
+        TransactionResponse response = blockingStub.execute(request);
 
         assert (response.getResult() == Status.SUCCESS);
         assert  (response.getModifications().getCreatedNodes(0).getNodeUUID().equals("myPrefix_0"));
@@ -254,7 +254,7 @@ public class TransactionManagerTest {
 
 
         request = TransactionRequest.newBuilder().addQueries("CREATE (o)").setUUIDPrefix("myPrefix1").build();
-        response = blockingStub.executeTransaction(request);
+        response = blockingStub.execute(request);
 
         assert  (response.getModifications().getCreatedNodes(0).getNodeUUID().equals("myPrefix1_0"));
         assert (response.getResult() == Status.SUCCESS);
@@ -265,7 +265,7 @@ public class TransactionManagerTest {
                 .addQueries("CREATE (q)")
                 .setUUIDPrefix(TEST_PREFIX + "2")
                 .build();
-        response = blockingStub.executeTransaction(request);
+        response = blockingStub.execute(request);
 
         assert  (response.getModifications().getCreatedNodes(0).getNodeUUID().equals("myPrefix2_0"));
         assert  (response.getModifications().getCreatedNodesCount()==1);
@@ -282,7 +282,7 @@ public class TransactionManagerTest {
                         "CREATE (n)-[t:TO{weight:1}]->(m)")
                 .setUUIDPrefix(TEST_PREFIX)
                 .build();
-        TransactionResponse response = blockingStub.executeTransaction(request);
+        TransactionResponse response = blockingStub.execute(request);
 
         assert (response.getResult() == Status.SUCCESS);
         assert  (response.getModifications().getCreatedNodesCount()==2);
@@ -302,7 +302,7 @@ public class TransactionManagerTest {
                         "DELETE m")
                 .setUUIDPrefix(TEST_PREFIX + "2")
                 .build();
-        response = blockingStub.executeTransaction(request);
+        response = blockingStub.execute(request);
 
         assert (response.getResult() == Status.SUCCESS);
         assert  (response.getModifications().getDeletedNodesCount()==2);

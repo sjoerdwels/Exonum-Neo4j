@@ -68,20 +68,20 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     }
 
     @Override
-    public void verifyTransaction(TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
+    public void verify(TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
         log.info("method=verifyTransaction request=" + request.toString());
         processGRPCRequest(RequestStateMachine.TransactionType.VERIFY, request, responseObserver);
     }
 
     @Override
-    public void executeTransaction(TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
+    public void execute(TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
         log.info("method=executeTransaction request=" + request.toString());
         processGRPCRequest(RequestStateMachine.TransactionType.EXECUTE, request, responseObserver);
     }
 
     /**
      * Process a new gRPC request.
-     *
+     * <p>
      * Creates a new thread local TmData object to store all related data to the gRPC request as the
      * TransactionEventHandler has no reference to the gRPC executor instance. Then processes the
      * request message and returns the result to the observer.
@@ -103,7 +103,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     /**
      * Process a new transaction request by executing the provided queries.
      *
-     * @param request          The request message
+     * @param request The request message
      */
     private void processRequestMessage(TransactionRequest request) {
 
@@ -126,33 +126,29 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
         List<String> queries = request.getQueriesList();
 
-        String activeQuery = "";
         try (Transaction tx = db.beginTx()) {
 
             for (String query : queries) {
-                activeQuery = query;
-                db.execute(query);
+                try {
+                    db.execute(query);
+                } catch (QueryExecutionException ex) {
+
+                    TmData.get().failure(
+                            new EError(
+                                    new EFailedQuery(
+                                            query,
+                                            ex.getMessage(),
+                                            ex.getStatusCode()
+                                    )
+                            )
+                    );
+                    break;
+                }
             }
 
-            switch (TmData.get().getTransactionType()) {
-                case VERIFY:
-                    tx.failure();
-                    break;
-                case EXECUTE:
-                    tx.success();
-                    break;
+            if (!TmData.get().hasError() && TmData.get().getTransactionType() == RequestStateMachine.TransactionType.EXECUTE) {
+                tx.success();
             }
-        } catch (QueryExecutionException ex) {
-            TmData.get().failure(
-                    new EError(
-                            EError.ErrorType.FAILED_QUERY,
-                            "Invalid query provided.",
-                            new EFailedQuery(
-                                    activeQuery,
-                                    ex.getMessage()
-                            )
-                    )
-            );
 
         } catch (TransactionFailureException ex) {
             /* If the transaction was rolled back in this extension, the error is already provided.
@@ -181,8 +177,8 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
         switch (TmData.get().getStatus()) {
             case INITIAL:
-
-                if (hasPropertyChange(transactionData, Properties.UUID, false)) {
+// todo d
+                if (hasPropertyChanged(transactionData, Properties.UUID, false)) {
 
                     TmData.get().failure(
                             new EError(EError.ErrorType.MODIFIED_UUID, "Transaction tried to modify UUID properties.")
@@ -257,11 +253,12 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      * <p>
      * For removed relationships/nodes, the UUID is only available in the removedNodeProperties and
      * removedRelationshipProperties respectively. To retrieve the UUID based on
-     * a node/relationship id, a lampda funciton is used that first  check if the UUID property was deleted.
+     * a node/relationship id, a lambda function is used that first  check if the UUID property was deleted.
      * Otherwise, the node/relationship still exists and it is retrieved from the graph database.
      *
      * @param transactionData
      */
+    // todo
     private void storeModifications(TransactionData transactionData) {
 
         RequestStateMachine tsm = TmData.get();
@@ -366,7 +363,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                 ));
             }
 
-            tx.failure();
+            tx.success();
 
         } catch (Exception ex) {
             System.out.println("Exception was thrown " + ex.getMessage());
@@ -377,17 +374,18 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     }
 
     /**
-     * Check whether a property key was set or changed from in the transaction data.
+     * Check whether a property key was set or changed based on the transaction data.
      * <p>
      * By default, if an entity is removed, all the assigned properties to that entity will be marked as removed.
-     * If incEntityRemoved is false, it will not result in an property change if the entity was removed.
+     * If incEntityRemoved is false, it will not result in an property change if the entity of the property was removed
+     *  as well.
      *
      * @param txData           The transaction data with changes.
      * @param key              The key of the property
      * @param incEntityRemoved Boolean in case of the property entity is removed should result in a property change.
      * @return
      */
-    private boolean hasPropertyChange(TransactionData txData, String key, boolean incEntityRemoved) {
+    private boolean hasPropertyChanged(TransactionData txData, String key, boolean incEntityRemoved) {
 
         for (PropertyEntry<Relationship> property : txData.assignedRelationshipProperties()) {
             if (property.key() == key) {
