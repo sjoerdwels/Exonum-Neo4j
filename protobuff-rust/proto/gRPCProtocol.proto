@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package protobuf;
+
+option java_multiple_files = true;
+option java_package = "com.bitfury.neo4j.transaction_manager";
+option java_outer_classname = "TransactionManagerProto";
+
+service TransactionManager {
+  rpc VerifyTransaction (TransactionRequest) returns (TransactionResponse) {}
+  rpc ExecuteTransaction (TransactionRequest) returns (TransactionResponse) {}
+}
+
+enum Status {
+  FAILURE = 0;
+  SUCCESS = 1;
+}
+
+message TransactionRequest {
+  string UUID_prefix = 1;
+  repeated string queries = 2;
+}
+
+message TransactionResponse {
+  Status result = 1;
+  DatabaseModifications modifications =  2;
+}
+
+message DatabaseModifications {
+
+  repeated CreatedNode created_nodes= 1;
+  repeated CreatedRelationShip created_relationships = 2;
+  repeated AssignedLabel assigned_labels = 3;
+  repeated AssignedNodeProperty assigned_node_properties = 4;
+  repeated AssignedRelationshipProperty assigned_relationship_properties = 5;
+  repeated RemovedRelationshipProperty removed_relation_properties = 6;
+  repeated RemovedNodeProperty removed_node_properties = 7;
+  repeated RemovedLabel removed_labels = 8;
+  repeated DeletedRelationship deleted_relationships = 9;
+  repeated DeletedNode deleted_nodes = 10;
+
+  message CreatedNode {
+    string node_UUID = 1;
+  }
+
+  message CreatedRelationShip {
+    string relationship_UUID = 1;
+    string type = 2;
+    string start_node_UUID =  3;
+    string end_node_UUID = 4;
+  }
+
+  message AssignedLabel {
+    string node_UUID = 1;
+    string name = 2;
+  }
+
+  message AssignedNodeProperty {
+    string node_UUID = 1;
+    string key = 2;
+    string previous_value = 3;
+    string value = 4;
+  }
+
+  message AssignedRelationshipProperty {
+    string relationship_UUID = 1;
+    string key = 2;
+    string previous_value = 3;
+    string value = 4;
+  }
+
+  message RemovedRelationshipProperty {
+    string relationship_UUID = 1;
+  }
+
+  message RemovedNodeProperty {
+    string node_UUID = 1;
+    string key  = 2;
+  }
+
+  message RemovedLabel {
+    string node_UUID = 1;
+    string name = 2;
+  }
+
+  message DeletedRelationship {
+    string relationship_UUID = 1;
+  }
+
+  message DeletedNode {
+    string node_UUID = 1;
+  }
+}
+
+
+

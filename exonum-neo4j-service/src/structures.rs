@@ -39,6 +39,17 @@ pub enum NodeChange {
     AN(AddNode),
     AR(AddRelation)
 }
+encoding_struct! {
+    struct ErrorMsg {
+        msg: &str,
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum ExecuteResponse {
+    Changes(Vec<NodeChange>),
+    Error(ErrorMsg),
+}
 
 impl StorageValue for NodeChange {
     fn into_bytes(self) -> Vec<u8> {
@@ -104,7 +115,7 @@ pub fn getProtoTransactionRequest(queries: &str, prefix: &str) -> TransactionReq
 impl Queries {
 
 
-    pub fn execute(&self) -> Vec<NodeChange> {
+    pub fn execute(&self) -> ExecuteResponse {
         let c1 = NodeChange::AN(AddNode::new(
             "u1"
         ));
@@ -113,7 +124,7 @@ impl Queries {
             "u1",
             "u2"
         ));
-        vec![c1, c2]
+        ExecuteResponse::Changes(vec![c1, c2])
     }
 }
 
