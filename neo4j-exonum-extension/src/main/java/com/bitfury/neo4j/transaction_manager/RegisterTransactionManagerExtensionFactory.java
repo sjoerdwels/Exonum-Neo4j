@@ -11,6 +11,8 @@ import org.neo4j.kernel.configuration.Config;
 
 public class RegisterTransactionManagerExtensionFactory extends KernelExtensionFactory<RegisterTransactionManagerExtensionFactory.Dependencies> {
 
+    public static final String SERVICE_NAME = "EXONUM_TRANSACTION_MANAGER";
+
     @Override
     public Lifecycle newInstance(KernelContext kernelContext, final Dependencies dependencies) {
         return new LifecycleAdapter() {
@@ -47,6 +49,6 @@ public class RegisterTransactionManagerExtensionFactory extends KernelExtensionF
     }
 
     public RegisterTransactionManagerExtensionFactory() {
-        super("registerTransactionManagerExtensionFactory");
+        super(SERVICE_NAME);
     }
 }

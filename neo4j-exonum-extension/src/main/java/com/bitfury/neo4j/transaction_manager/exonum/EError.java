@@ -21,9 +21,9 @@ public class EError {
         this.failedQuery = null;
     }
 
-    public EError(ErrorType type,  String message, EFailedQuery failedQuery) {
-        this.type = type;
-        this.message  = message;
+    public EError(EFailedQuery failedQuery) {
+        this.type = ErrorType.FAILED_QUERY;
+        this.message  = "Invalid query provided.";
         this.failedQuery = failedQuery;
     }
 

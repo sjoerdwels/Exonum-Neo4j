@@ -7,8 +7,8 @@ option java_package = "com.bitfury.neo4j.transaction_manager";
 option java_outer_classname = "TransactionManagerProto";
 
 service TransactionManager {
-  rpc VerifyTransaction (TransactionRequest) returns (TransactionResponse) {}
-  rpc ExecuteTransaction (TransactionRequest) returns (TransactionResponse) {}
+  rpc Verify (TransactionRequest) returns (TransactionResponse) {}
+  rpc Execute (TransactionRequest) returns (TransactionResponse) {}
 }
 
 enum Status {
@@ -110,6 +110,7 @@ message Error {
 message FailedQuery {
   string query = 1;
   string error = 2;
+  string error_code = 3;
 }
 
 
