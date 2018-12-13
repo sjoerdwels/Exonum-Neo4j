@@ -1,0 +1,6 @@
+apt-get install
+	cargo
+	build-essential
+	pkg-config
+	libssl-dev
+	curl
