@@ -110,7 +110,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         log.info("method=executeRequest type=" + TmData.get().getTransactionType() + "totalQueries=" + request.getQueriesCount()
                 + " threadID=" + Thread.currentThread().getId());
 
-        if (request.getUUIDPrefix().isEmpty()) {
+        if (request.getUUIDPrefix().isEmpty() && TmData.get().getTransactionType()==RequestStateMachine.TransactionType.EXECUTE) {
             TmData.get().failure(
                     new EError(EError.ErrorType.EMPTY_UUID_PREFIX, "Transaction is missing UUID prefix.")
             );
