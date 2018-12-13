@@ -36,9 +36,9 @@ use tls_api_native_tls::TlsAcceptor;
 // interface
 
 pub trait TransactionManager {
-    fn verify_transaction(&self, o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse>;
+    fn verify(&self, o: ::grpc::RequestOptions, p: super::gRPCProtocol::TransactionRequest) -> ::grpc::SingleResponse<super::gRPCProtocol::TransactionResponse>;
 
-    fn execute_transaction(&self, o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse>;
+    fn execute(&self, o: ::grpc::RequestOptions, p: super::gRPCProtocol::TransactionRequest) -> ::grpc::SingleResponse<super::gRPCProtocol::TransactionResponse>;
 }
 
 // client
@@ -59,13 +59,13 @@ impl ClientStub for TransactionManagerClient {
         TransactionManagerClient {
             grpc_client: grpc_client,
             method_VerifyTransaction: ::std::sync::Arc::new(MethodDescriptor {
-                name: "/protobuf.TransactionManager/VerifyTransaction".to_string(),
+                name: "/protobuf.TransactionManager/Verify".to_string(),
                 streaming: GrpcStreaming::Unary,
                 req_marshaller: Box::new(MarshallerProtobuf),
                 resp_marshaller: Box::new(MarshallerProtobuf),
             }),
             method_ExecuteTransaction: Arc::new(MethodDescriptor {
-                name: "/protobuf.TransactionManager/ExecuteTransaction".to_string(),
+                name: "/protobuf.TransactionManager/Execute".to_string(),
                 streaming: GrpcStreaming::Unary,
                 req_marshaller: Box::new(MarshallerProtobuf),
                 resp_marshaller: Box::new(MarshallerProtobuf),
@@ -75,11 +75,11 @@ impl ClientStub for TransactionManagerClient {
 }
 
 impl TransactionManager for TransactionManagerClient {
-    fn verify_transaction(&self, o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse> {
+    fn verify(&self, o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse> {
         self.grpc_client.call_unary(o, p, self.method_VerifyTransaction.clone())
     }
 
-    fn execute_transaction(&self, o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse> {
+    fn execute(&self, o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse> {
         self.grpc_client.call_unary(o, p, self.method_ExecuteTransaction.clone())
     }
 }
@@ -115,7 +115,7 @@ impl TransactionManagerServer {
                     }),
                     {
                         let handler_copy = handler_arc.clone();
-                        MethodHandlerUnary::new(move |o, p| handler_copy.verify_transaction(o, p))
+                        MethodHandlerUnary::new(move |o, p| handler_copy.verify(o, p))
                     },
                 ),
                 ServerMethod::new(
@@ -127,7 +127,7 @@ impl TransactionManagerServer {
                     }),
                     {
                         let handler_copy = handler_arc.clone();
-                        MethodHandlerUnary::new(move |o, p| handler_copy.execute_transaction(o, p))
+                        MethodHandlerUnary::new(move |o, p| handler_copy.execute(o, p))
                     },
                 ),
             ],
@@ -138,7 +138,7 @@ impl TransactionManagerServer {
 struct TransactionImpl;
 
 impl TransactionManager for TransactionImpl {
-    fn verify_transaction(&self, _o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse> {
+    fn verify(&self, _o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse> {
         let mut r = TransactionResponse::new();
         let queries = p.get_queries();
         println!("Got queries {:?}", queries);
@@ -153,7 +153,7 @@ impl TransactionManager for TransactionImpl {
         SingleResponse::completed(r)
     }
 
-    fn execute_transaction(&self, _o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse> {
+    fn execute(&self, _o: RequestOptions, p: TransactionRequest) -> SingleResponse<TransactionResponse> {
         let mut r = TransactionResponse::new();
         let queries = p.get_queries();
         let mut modifications : DatabaseModifications = DatabaseModifications::new();

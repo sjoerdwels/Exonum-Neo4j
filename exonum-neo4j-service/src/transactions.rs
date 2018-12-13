@@ -30,7 +30,7 @@ transactions! {
         }
     }
 }
-/*
+
 /// Error codes emitted by wallet transactions during execution.
 #[derive(Debug, Fail)]
 #[repr(u8)]
@@ -50,24 +50,28 @@ impl From<Error> for ExecutionError {
         }
 
     }
-}*/
+}
 
 impl Transaction for CommitQueries {
     fn verify(&self) -> bool {
-        let req = getProtoTransactionRequest(self.queries(), "");
+        println!("Verifying!");
+        let req = getProtoTransactionRequest(self.queries(), "hahshashhash");
         //TODO implement getting neo4J server info from conf somehow.
-        let client = getClient(50051);
-        let resp = client.verify_transaction(RequestOptions::new(), req);
+        let client = getClient(9994);
+        let resp = client.verify(RequestOptions::new(), req);
         let answer = resp.wait();
         let mut verified = false;
         match answer {
             Ok(x) => {
                 match x.1.get_result() {
                     Status::SUCCESS => verified = true,
-                    Status::FAILURE => verified = false //TODO must raise proper error to client, what went wrong
+                    Status::FAILURE => {
+                        let error = x.1.get_error();
+                        println!("Ok(FAILURE) {}", error.get_message()); verified = false
+                    }//TODO must raise proper error to client, what went wrong
                 }
             },
-            _ => {verified = false } //TODO must raise proper error to client! Understand Error of result.
+            _ => {println!("Err(_)"); verified = false } //TODO must raise proper error to client! Understand Error of result.
         }
         println!("Verified value is {}", verified);
         verified
@@ -94,8 +98,8 @@ impl Transaction for CommitQueries {
             },
             ExecuteResponse::Error(e) => {
                 println!("We got error {}", e.msg());
-                Ok(()sudo )
-                //Err(Error::DataBaseError(e))?
+
+                Err(Error::DataBaseError(e))?
             }
         }
 

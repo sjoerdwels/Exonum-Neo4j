@@ -1,9 +1,9 @@
 
 
 
-curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transactions -d '{
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transaction -d '{
   "body": {
-    "queries": "INSERT some stuff into some Table;UPDATE stuff"
+    "queries": "CREATE (n)"
   },
   "protocol_version": 0,
   "service_id": 144,
@@ -24,4 +24,6 @@ curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services
 curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4J_blockchain/v1/transactions
 
 curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4J_blockchain/v1/node_history?node_name=u1
+
+curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4J_blockchain/v1/node_history?node_name=6bcec96d..._0
 

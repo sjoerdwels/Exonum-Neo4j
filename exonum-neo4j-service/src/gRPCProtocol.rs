@@ -229,6 +229,7 @@ impl ::protobuf::reflect::ProtobufValue for TransactionRequest {
 pub struct TransactionResponse {
     // message fields
     pub result: Status,
+    pub error: ::protobuf::SingularPtrField<Error>,
     pub modifications: ::protobuf::SingularPtrField<DatabaseModifications>,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
@@ -255,7 +256,40 @@ impl TransactionResponse {
         self.result
     }
 
-    // .protobuf.DatabaseModifications modifications = 2;
+    // .protobuf.Error error = 2;
+
+    pub fn clear_error(&mut self) {
+        self.error.clear();
+    }
+
+    pub fn has_error(&self) -> bool {
+        self.error.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_error(&mut self, v: Error) {
+        self.error = ::protobuf::SingularPtrField::some(v);
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_error(&mut self) -> &mut Error {
+        if self.error.is_none() {
+            self.error.set_default();
+        }
+        self.error.as_mut().unwrap()
+    }
+
+    // Take field
+    pub fn take_error(&mut self) -> Error {
+        self.error.take().unwrap_or_else(|| Error::new())
+    }
+
+    pub fn get_error(&self) -> &Error {
+        self.error.as_ref().unwrap_or_else(|| Error::default_instance())
+    }
+
+    // .protobuf.DatabaseModifications modifications = 3;
 
     pub fn clear_modifications(&mut self) {
         self.modifications.clear();
@@ -291,6 +325,11 @@ impl TransactionResponse {
 
 impl ::protobuf::Message for TransactionResponse {
     fn is_initialized(&self) -> bool {
+        for v in &self.error {
+            if !v.is_initialized() {
+                return false;
+            }
+        };
         for v in &self.modifications {
             if !v.is_initialized() {
                 return false;
@@ -307,6 +346,9 @@ impl ::protobuf::Message for TransactionResponse {
                     ::protobuf::rt::read_proto3_enum_with_unknown_fields_into(wire_type, is, &mut self.result, 1, &mut self.unknown_fields)?
                 },
                 2 => {
+                    ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.error)?;
+                },
+                3 => {
                     ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.modifications)?;
                 },
                 _ => {
@@ -324,6 +366,10 @@ impl ::protobuf::Message for TransactionResponse {
         if self.result != Status::FAILURE {
             my_size += ::protobuf::rt::enum_size(1, self.result);
         }
+        if let Some(ref v) = self.error.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
+        }
         if let Some(ref v) = self.modifications.as_ref() {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
@@ -337,8 +383,13 @@ impl ::protobuf::Message for TransactionResponse {
         if self.result != Status::FAILURE {
             os.write_enum(1, self.result.value())?;
         }
-        if let Some(ref v) = self.modifications.as_ref() {
+        if let Some(ref v) = self.error.as_ref() {
             os.write_tag(2, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+            os.write_raw_varint32(v.get_cached_size())?;
+            v.write_to_with_cached_sizes(os)?;
+        }
+        if let Some(ref v) = self.modifications.as_ref() {
+            os.write_tag(3, ::protobuf::wire_format::WireTypeLengthDelimited)?;
             os.write_raw_varint32(v.get_cached_size())?;
             v.write_to_with_cached_sizes(os)?;
         }
@@ -389,6 +440,11 @@ impl ::protobuf::Message for TransactionResponse {
                     |m: &TransactionResponse| { &m.result },
                     |m: &mut TransactionResponse| { &mut m.result },
                 ));
+                fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<Error>>(
+                    "error",
+                    |m: &TransactionResponse| { &m.error },
+                    |m: &mut TransactionResponse| { &mut m.error },
+                ));
                 fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<DatabaseModifications>>(
                     "modifications",
                     |m: &TransactionResponse| { &m.modifications },
@@ -417,6 +473,7 @@ impl ::protobuf::Message for TransactionResponse {
 impl ::protobuf::Clear for TransactionResponse {
     fn clear(&mut self) {
         self.clear_result();
+        self.clear_error();
         self.clear_modifications();
         self.unknown_fields.clear();
     }
@@ -1996,7 +2053,6 @@ pub struct DatabaseModifications_AssignedRelationshipProperty {
     // message fields
     pub relationship_UUID: ::std::string::String,
     pub key: ::std::string::String,
-    pub previous_value: ::std::string::String,
     pub value: ::std::string::String,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
@@ -2060,33 +2116,7 @@ impl DatabaseModifications_AssignedRelationshipProperty {
         &self.key
     }
 
-    // string previous_value = 3;
-
-    pub fn clear_previous_value(&mut self) {
-        self.previous_value.clear();
-    }
-
-    // Param is passed by value, moved
-    pub fn set_previous_value(&mut self, v: ::std::string::String) {
-        self.previous_value = v;
-    }
-
-    // Mutable pointer to the field.
-    // If field is not initialized, it is initialized with default value first.
-    pub fn mut_previous_value(&mut self) -> &mut ::std::string::String {
-        &mut self.previous_value
-    }
-
-    // Take field
-    pub fn take_previous_value(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.previous_value, ::std::string::String::new())
-    }
-
-    pub fn get_previous_value(&self) -> &str {
-        &self.previous_value
-    }
-
-    // string value = 4;
+    // string value = 3;
 
     pub fn clear_value(&mut self) {
         self.value.clear();
@@ -2129,9 +2159,6 @@ impl ::protobuf::Message for DatabaseModifications_AssignedRelationshipProperty 
                     ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.key)?;
                 },
                 3 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.previous_value)?;
-                },
-                4 => {
                     ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.value)?;
                 },
                 _ => {
@@ -2152,11 +2179,8 @@ impl ::protobuf::Message for DatabaseModifications_AssignedRelationshipProperty 
         if !self.key.is_empty() {
             my_size += ::protobuf::rt::string_size(2, &self.key);
         }
-        if !self.previous_value.is_empty() {
-            my_size += ::protobuf::rt::string_size(3, &self.previous_value);
-        }
         if !self.value.is_empty() {
-            my_size += ::protobuf::rt::string_size(4, &self.value);
+            my_size += ::protobuf::rt::string_size(3, &self.value);
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
@@ -2170,11 +2194,8 @@ impl ::protobuf::Message for DatabaseModifications_AssignedRelationshipProperty 
         if !self.key.is_empty() {
             os.write_string(2, &self.key)?;
         }
-        if !self.previous_value.is_empty() {
-            os.write_string(3, &self.previous_value)?;
-        }
         if !self.value.is_empty() {
-            os.write_string(4, &self.value)?;
+            os.write_string(3, &self.value)?;
         }
         os.write_unknown_fields(self.get_unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -2229,11 +2250,6 @@ impl ::protobuf::Message for DatabaseModifications_AssignedRelationshipProperty 
                     |m: &mut DatabaseModifications_AssignedRelationshipProperty| { &mut m.key },
                 ));
                 fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
-                    "previous_value",
-                    |m: &DatabaseModifications_AssignedRelationshipProperty| { &m.previous_value },
-                    |m: &mut DatabaseModifications_AssignedRelationshipProperty| { &mut m.previous_value },
-                ));
-                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
                     "value",
                     |m: &DatabaseModifications_AssignedRelationshipProperty| { &m.value },
                     |m: &mut DatabaseModifications_AssignedRelationshipProperty| { &mut m.value },
@@ -2262,7 +2278,6 @@ impl ::protobuf::Clear for DatabaseModifications_AssignedRelationshipProperty {
     fn clear(&mut self) {
         self.clear_relationship_UUID();
         self.clear_key();
-        self.clear_previous_value();
         self.clear_value();
         self.unknown_fields.clear();
     }
@@ -3179,6 +3194,504 @@ impl ::protobuf::reflect::ProtobufValue for DatabaseModifications_DeletedNode {
     }
 }
 
+#[derive(PartialEq,Clone,Default)]
+pub struct Error {
+    // message fields
+    pub message: ::std::string::String,
+    pub code: ErrorCode,
+    pub failed_query: ::protobuf::SingularPtrField<FailedQuery>,
+    // special fields
+    pub unknown_fields: ::protobuf::UnknownFields,
+    pub cached_size: ::protobuf::CachedSize,
+}
+
+impl Error {
+    pub fn new() -> Error {
+        ::std::default::Default::default()
+    }
+
+    // string message = 1;
+
+    pub fn clear_message(&mut self) {
+        self.message.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_message(&mut self, v: ::std::string::String) {
+        self.message = v;
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_message(&mut self) -> &mut ::std::string::String {
+        &mut self.message
+    }
+
+    // Take field
+    pub fn take_message(&mut self) -> ::std::string::String {
+        ::std::mem::replace(&mut self.message, ::std::string::String::new())
+    }
+
+    pub fn get_message(&self) -> &str {
+        &self.message
+    }
+
+    // .protobuf.ErrorCode code = 2;
+
+    pub fn clear_code(&mut self) {
+        self.code = ErrorCode::EMPTY_TRANSACTION;
+    }
+
+    // Param is passed by value, moved
+    pub fn set_code(&mut self, v: ErrorCode) {
+        self.code = v;
+    }
+
+    pub fn get_code(&self) -> ErrorCode {
+        self.code
+    }
+
+    // .protobuf.FailedQuery failed_query = 3;
+
+    pub fn clear_failed_query(&mut self) {
+        self.failed_query.clear();
+    }
+
+    pub fn has_failed_query(&self) -> bool {
+        self.failed_query.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_failed_query(&mut self, v: FailedQuery) {
+        self.failed_query = ::protobuf::SingularPtrField::some(v);
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_failed_query(&mut self) -> &mut FailedQuery {
+        if self.failed_query.is_none() {
+            self.failed_query.set_default();
+        }
+        self.failed_query.as_mut().unwrap()
+    }
+
+    // Take field
+    pub fn take_failed_query(&mut self) -> FailedQuery {
+        self.failed_query.take().unwrap_or_else(|| FailedQuery::new())
+    }
+
+    pub fn get_failed_query(&self) -> &FailedQuery {
+        self.failed_query.as_ref().unwrap_or_else(|| FailedQuery::default_instance())
+    }
+}
+
+impl ::protobuf::Message for Error {
+    fn is_initialized(&self) -> bool {
+        for v in &self.failed_query {
+            if !v.is_initialized() {
+                return false;
+            }
+        };
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
+        while !is.eof()? {
+            let (field_number, wire_type) = is.read_tag_unpack()?;
+            match field_number {
+                1 => {
+                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.message)?;
+                },
+                2 => {
+                    ::protobuf::rt::read_proto3_enum_with_unknown_fields_into(wire_type, is, &mut self.code, 2, &mut self.unknown_fields)?
+                },
+                3 => {
+                    ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.failed_query)?;
+                },
+                _ => {
+                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u32 {
+        let mut my_size = 0;
+        if !self.message.is_empty() {
+            my_size += ::protobuf::rt::string_size(1, &self.message);
+        }
+        if self.code != ErrorCode::EMPTY_TRANSACTION {
+            my_size += ::protobuf::rt::enum_size(2, self.code);
+        }
+        if let Some(ref v) = self.failed_query.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
+        self.cached_size.set(my_size);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
+        if !self.message.is_empty() {
+            os.write_string(1, &self.message)?;
+        }
+        if self.code != ErrorCode::EMPTY_TRANSACTION {
+            os.write_enum(2, self.code.value())?;
+        }
+        if let Some(ref v) = self.failed_query.as_ref() {
+            os.write_tag(3, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+            os.write_raw_varint32(v.get_cached_size())?;
+            v.write_to_with_cached_sizes(os)?;
+        }
+        os.write_unknown_fields(self.get_unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn get_cached_size(&self) -> u32 {
+        self.cached_size.get()
+    }
+
+    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
+        &self.unknown_fields
+    }
+
+    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
+        &mut self.unknown_fields
+    }
+
+    fn as_any(&self) -> &dyn (::std::any::Any) {
+        self as &dyn (::std::any::Any)
+    }
+    fn as_any_mut(&mut self) -> &mut dyn (::std::any::Any) {
+        self as &mut dyn (::std::any::Any)
+    }
+    fn into_any(self: Box<Self>) -> ::std::boxed::Box<dyn (::std::any::Any)> {
+        self
+    }
+
+    fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
+        Self::descriptor_static()
+    }
+
+    fn new() -> Error {
+        Error::new()
+    }
+
+    fn descriptor_static() -> &'static ::protobuf::reflect::MessageDescriptor {
+        static mut descriptor: ::protobuf::lazy::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::lazy::Lazy {
+            lock: ::protobuf::lazy::ONCE_INIT,
+            ptr: 0 as *const ::protobuf::reflect::MessageDescriptor,
+        };
+        unsafe {
+            descriptor.get(|| {
+                let mut fields = ::std::vec::Vec::new();
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                    "message",
+                    |m: &Error| { &m.message },
+                    |m: &mut Error| { &mut m.message },
+                ));
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeEnum<ErrorCode>>(
+                    "code",
+                    |m: &Error| { &m.code },
+                    |m: &mut Error| { &mut m.code },
+                ));
+                fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<FailedQuery>>(
+                    "failed_query",
+                    |m: &Error| { &m.failed_query },
+                    |m: &mut Error| { &mut m.failed_query },
+                ));
+                ::protobuf::reflect::MessageDescriptor::new::<Error>(
+                    "Error",
+                    fields,
+                    file_descriptor_proto()
+                )
+            })
+        }
+    }
+
+    fn default_instance() -> &'static Error {
+        static mut instance: ::protobuf::lazy::Lazy<Error> = ::protobuf::lazy::Lazy {
+            lock: ::protobuf::lazy::ONCE_INIT,
+            ptr: 0 as *const Error,
+        };
+        unsafe {
+            instance.get(Error::new)
+        }
+    }
+}
+
+impl ::protobuf::Clear for Error {
+    fn clear(&mut self) {
+        self.clear_message();
+        self.clear_code();
+        self.clear_failed_query();
+        self.unknown_fields.clear();
+    }
+}
+
+impl ::std::fmt::Debug for Error {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for Error {
+    fn as_ref(&self) -> ::protobuf::reflect::ProtobufValueRef {
+        ::protobuf::reflect::ProtobufValueRef::Message(self)
+    }
+}
+
+#[derive(PartialEq,Clone,Default)]
+pub struct FailedQuery {
+    // message fields
+    pub query: ::std::string::String,
+    pub error: ::std::string::String,
+    pub error_code: ::std::string::String,
+    // special fields
+    pub unknown_fields: ::protobuf::UnknownFields,
+    pub cached_size: ::protobuf::CachedSize,
+}
+
+impl FailedQuery {
+    pub fn new() -> FailedQuery {
+        ::std::default::Default::default()
+    }
+
+    // string query = 1;
+
+    pub fn clear_query(&mut self) {
+        self.query.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_query(&mut self, v: ::std::string::String) {
+        self.query = v;
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_query(&mut self) -> &mut ::std::string::String {
+        &mut self.query
+    }
+
+    // Take field
+    pub fn take_query(&mut self) -> ::std::string::String {
+        ::std::mem::replace(&mut self.query, ::std::string::String::new())
+    }
+
+    pub fn get_query(&self) -> &str {
+        &self.query
+    }
+
+    // string error = 2;
+
+    pub fn clear_error(&mut self) {
+        self.error.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_error(&mut self, v: ::std::string::String) {
+        self.error = v;
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_error(&mut self) -> &mut ::std::string::String {
+        &mut self.error
+    }
+
+    // Take field
+    pub fn take_error(&mut self) -> ::std::string::String {
+        ::std::mem::replace(&mut self.error, ::std::string::String::new())
+    }
+
+    pub fn get_error(&self) -> &str {
+        &self.error
+    }
+
+    // string error_code = 3;
+
+    pub fn clear_error_code(&mut self) {
+        self.error_code.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_error_code(&mut self, v: ::std::string::String) {
+        self.error_code = v;
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_error_code(&mut self) -> &mut ::std::string::String {
+        &mut self.error_code
+    }
+
+    // Take field
+    pub fn take_error_code(&mut self) -> ::std::string::String {
+        ::std::mem::replace(&mut self.error_code, ::std::string::String::new())
+    }
+
+    pub fn get_error_code(&self) -> &str {
+        &self.error_code
+    }
+}
+
+impl ::protobuf::Message for FailedQuery {
+    fn is_initialized(&self) -> bool {
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream) -> ::protobuf::ProtobufResult<()> {
+        while !is.eof()? {
+            let (field_number, wire_type) = is.read_tag_unpack()?;
+            match field_number {
+                1 => {
+                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.query)?;
+                },
+                2 => {
+                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.error)?;
+                },
+                3 => {
+                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.error_code)?;
+                },
+                _ => {
+                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u32 {
+        let mut my_size = 0;
+        if !self.query.is_empty() {
+            my_size += ::protobuf::rt::string_size(1, &self.query);
+        }
+        if !self.error.is_empty() {
+            my_size += ::protobuf::rt::string_size(2, &self.error);
+        }
+        if !self.error_code.is_empty() {
+            my_size += ::protobuf::rt::string_size(3, &self.error_code);
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
+        self.cached_size.set(my_size);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream) -> ::protobuf::ProtobufResult<()> {
+        if !self.query.is_empty() {
+            os.write_string(1, &self.query)?;
+        }
+        if !self.error.is_empty() {
+            os.write_string(2, &self.error)?;
+        }
+        if !self.error_code.is_empty() {
+            os.write_string(3, &self.error_code)?;
+        }
+        os.write_unknown_fields(self.get_unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn get_cached_size(&self) -> u32 {
+        self.cached_size.get()
+    }
+
+    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
+        &self.unknown_fields
+    }
+
+    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
+        &mut self.unknown_fields
+    }
+
+    fn as_any(&self) -> &dyn (::std::any::Any) {
+        self as &dyn (::std::any::Any)
+    }
+    fn as_any_mut(&mut self) -> &mut dyn (::std::any::Any) {
+        self as &mut dyn (::std::any::Any)
+    }
+    fn into_any(self: Box<Self>) -> ::std::boxed::Box<dyn (::std::any::Any)> {
+        self
+    }
+
+    fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
+        Self::descriptor_static()
+    }
+
+    fn new() -> FailedQuery {
+        FailedQuery::new()
+    }
+
+    fn descriptor_static() -> &'static ::protobuf::reflect::MessageDescriptor {
+        static mut descriptor: ::protobuf::lazy::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::lazy::Lazy {
+            lock: ::protobuf::lazy::ONCE_INIT,
+            ptr: 0 as *const ::protobuf::reflect::MessageDescriptor,
+        };
+        unsafe {
+            descriptor.get(|| {
+                let mut fields = ::std::vec::Vec::new();
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                    "query",
+                    |m: &FailedQuery| { &m.query },
+                    |m: &mut FailedQuery| { &mut m.query },
+                ));
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                    "error",
+                    |m: &FailedQuery| { &m.error },
+                    |m: &mut FailedQuery| { &mut m.error },
+                ));
+                fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                    "error_code",
+                    |m: &FailedQuery| { &m.error_code },
+                    |m: &mut FailedQuery| { &mut m.error_code },
+                ));
+                ::protobuf::reflect::MessageDescriptor::new::<FailedQuery>(
+                    "FailedQuery",
+                    fields,
+                    file_descriptor_proto()
+                )
+            })
+        }
+    }
+
+    fn default_instance() -> &'static FailedQuery {
+        static mut instance: ::protobuf::lazy::Lazy<FailedQuery> = ::protobuf::lazy::Lazy {
+            lock: ::protobuf::lazy::ONCE_INIT,
+            ptr: 0 as *const FailedQuery,
+        };
+        unsafe {
+            instance.get(FailedQuery::new)
+        }
+    }
+}
+
+impl ::protobuf::Clear for FailedQuery {
+    fn clear(&mut self) {
+        self.clear_query();
+        self.clear_error();
+        self.clear_error_code();
+        self.unknown_fields.clear();
+    }
+}
+
+impl ::std::fmt::Debug for FailedQuery {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for FailedQuery {
+    fn as_ref(&self) -> ::protobuf::reflect::ProtobufValueRef {
+        ::protobuf::reflect::ProtobufValueRef::Message(self)
+    }
+}
+
 #[derive(Clone,PartialEq,Eq,Debug,Hash)]
 pub enum Status {
     FAILURE = 0,
@@ -3234,58 +3747,133 @@ impl ::protobuf::reflect::ProtobufValue for Status {
     }
 }
 
+#[derive(Clone,PartialEq,Eq,Debug,Hash)]
+pub enum ErrorCode {
+    EMPTY_TRANSACTION = 0,
+    EMPTY_UUID_PREFIX = 1,
+    FAILED_QUERY = 2,
+    MODIFIED_UUID = 3,
+    TRANSACTION_ROLLBACK = 4,
+    RUNTIME_EXCEPTION = 5,
+}
+
+impl ::protobuf::ProtobufEnum for ErrorCode {
+    fn value(&self) -> i32 {
+        *self as i32
+    }
+
+    fn from_i32(value: i32) -> ::std::option::Option<ErrorCode> {
+        match value {
+            0 => ::std::option::Option::Some(ErrorCode::EMPTY_TRANSACTION),
+            1 => ::std::option::Option::Some(ErrorCode::EMPTY_UUID_PREFIX),
+            2 => ::std::option::Option::Some(ErrorCode::FAILED_QUERY),
+            3 => ::std::option::Option::Some(ErrorCode::MODIFIED_UUID),
+            4 => ::std::option::Option::Some(ErrorCode::TRANSACTION_ROLLBACK),
+            5 => ::std::option::Option::Some(ErrorCode::RUNTIME_EXCEPTION),
+            _ => ::std::option::Option::None
+        }
+    }
+
+    fn values() -> &'static [Self] {
+        static values: &'static [ErrorCode] = &[
+            ErrorCode::EMPTY_TRANSACTION,
+            ErrorCode::EMPTY_UUID_PREFIX,
+            ErrorCode::FAILED_QUERY,
+            ErrorCode::MODIFIED_UUID,
+            ErrorCode::TRANSACTION_ROLLBACK,
+            ErrorCode::RUNTIME_EXCEPTION,
+        ];
+        values
+    }
+
+    fn enum_descriptor_static() -> &'static ::protobuf::reflect::EnumDescriptor {
+        static mut descriptor: ::protobuf::lazy::Lazy<::protobuf::reflect::EnumDescriptor> = ::protobuf::lazy::Lazy {
+            lock: ::protobuf::lazy::ONCE_INIT,
+            ptr: 0 as *const ::protobuf::reflect::EnumDescriptor,
+        };
+        unsafe {
+            descriptor.get(|| {
+                ::protobuf::reflect::EnumDescriptor::new("ErrorCode", file_descriptor_proto())
+            })
+        }
+    }
+}
+
+impl ::std::marker::Copy for ErrorCode {
+}
+
+impl ::std::default::Default for ErrorCode {
+    fn default() -> Self {
+        ErrorCode::EMPTY_TRANSACTION
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for ErrorCode {
+    fn as_ref(&self) -> ::protobuf::reflect::ProtobufValueRef {
+        ::protobuf::reflect::ProtobufValueRef::Enum(self.descriptor())
+    }
+}
+
 static file_descriptor_proto_data: &'static [u8] = b"\
     \n\x12gRPCProtocol.proto\x12\x08protobuf\"O\n\x12TransactionRequest\x12\
-    \x1f\n\x0bUUID_prefix\x18\x01\x20\x01(\tR\nuUIDPrefix\x12\x18\n\x07queri\
-    es\x18\x02\x20\x03(\tR\x07queries\"\x86\x01\n\x13TransactionResponse\x12\
-    (\n\x06result\x18\x01\x20\x01(\x0e2\x10.protobuf.StatusR\x06result\x12E\
-    \n\rmodifications\x18\x02\x20\x01(\x0b2\x1f.protobuf.DatabaseModificatio\
-    nsR\rmodifications\"\x97\x0f\n\x15DatabaseModifications\x12P\n\rcreated_\
-    nodes\x18\x01\x20\x03(\x0b2+.protobuf.DatabaseModifications.CreatedNodeR\
-    \x0ccreatedNodes\x12h\n\x15created_relationships\x18\x02\x20\x03(\x0b23.\
-    protobuf.DatabaseModifications.CreatedRelationShipR\x14createdRelationsh\
-    ips\x12V\n\x0fassigned_labels\x18\x03\x20\x03(\x0b2-.protobuf.DatabaseMo\
-    difications.AssignedLabelR\x0eassignedLabels\x12n\n\x18assigned_node_pro\
-    perties\x18\x04\x20\x03(\x0b24.protobuf.DatabaseModifications.AssignedNo\
-    dePropertyR\x16assignedNodeProperties\x12\x86\x01\n\x20assigned_relation\
-    ship_properties\x18\x05\x20\x03(\x0b2<.protobuf.DatabaseModifications.As\
-    signedRelationshipPropertyR\x1eassignedRelationshipProperties\x12{\n\x1b\
-    removed_relation_properties\x18\x06\x20\x03(\x0b2;.protobuf.DatabaseModi\
-    fications.RemovedRelationshipPropertyR\x19removedRelationProperties\x12k\
-    \n\x17removed_node_properties\x18\x07\x20\x03(\x0b23.protobuf.DatabaseMo\
-    difications.RemovedNodePropertyR\x15removedNodeProperties\x12S\n\x0eremo\
-    ved_labels\x18\x08\x20\x03(\x0b2,.protobuf.DatabaseModifications.Removed\
-    LabelR\rremovedLabels\x12h\n\x15deleted_relationships\x18\t\x20\x03(\x0b\
-    23.protobuf.DatabaseModifications.DeletedRelationshipR\x14deletedRelatio\
-    nships\x12P\n\rdeleted_nodes\x18\n\x20\x03(\x0b2+.protobuf.DatabaseModif\
-    ications.DeletedNodeR\x0cdeletedNodes\x1a*\n\x0bCreatedNode\x12\x1b\n\tn\
-    ode_UUID\x18\x01\x20\x01(\tR\x08nodeUUID\x1a\xa2\x01\n\x13CreatedRelatio\
-    nShip\x12+\n\x11relationship_UUID\x18\x01\x20\x01(\tR\x10relationshipUUI\
-    D\x12\x12\n\x04type\x18\x02\x20\x01(\tR\x04type\x12&\n\x0fstart_node_UUI\
-    D\x18\x03\x20\x01(\tR\rstartNodeUUID\x12\"\n\rend_node_UUID\x18\x04\x20\
+    \x1f\n\x0bUUID_prefix\x18\x01\x20\x01(\tR\nUUIDPrefix\x12\x18\n\x07queri\
+    es\x18\x02\x20\x03(\tR\x07queries\"\xad\x01\n\x13TransactionResponse\x12\
+    (\n\x06result\x18\x01\x20\x01(\x0e2\x10.protobuf.StatusR\x06result\x12%\
+    \n\x05error\x18\x02\x20\x01(\x0b2\x0f.protobuf.ErrorR\x05error\x12E\n\rm\
+    odifications\x18\x03\x20\x01(\x0b2\x1f.protobuf.DatabaseModificationsR\r\
+    modifications\"\xef\x0e\n\x15DatabaseModifications\x12P\n\rcreated_nodes\
+    \x18\x01\x20\x03(\x0b2+.protobuf.DatabaseModifications.CreatedNodeR\x0cc\
+    reatedNodes\x12h\n\x15created_relationships\x18\x02\x20\x03(\x0b23.proto\
+    buf.DatabaseModifications.CreatedRelationShipR\x14createdRelationships\
+    \x12V\n\x0fassigned_labels\x18\x03\x20\x03(\x0b2-.protobuf.DatabaseModif\
+    ications.AssignedLabelR\x0eassignedLabels\x12n\n\x18assigned_node_proper\
+    ties\x18\x04\x20\x03(\x0b24.protobuf.DatabaseModifications.AssignedNodeP\
+    ropertyR\x16assignedNodeProperties\x12\x86\x01\n\x20assigned_relationshi\
+    p_properties\x18\x05\x20\x03(\x0b2<.protobuf.DatabaseModifications.Assig\
+    nedRelationshipPropertyR\x1eassignedRelationshipProperties\x12{\n\x1brem\
+    oved_relation_properties\x18\x06\x20\x03(\x0b2;.protobuf.DatabaseModific\
+    ations.RemovedRelationshipPropertyR\x19removedRelationProperties\x12k\n\
+    \x17removed_node_properties\x18\x07\x20\x03(\x0b23.protobuf.DatabaseModi\
+    fications.RemovedNodePropertyR\x15removedNodeProperties\x12S\n\x0eremove\
+    d_labels\x18\x08\x20\x03(\x0b2,.protobuf.DatabaseModifications.RemovedLa\
+    belR\rremovedLabels\x12h\n\x15deleted_relationships\x18\t\x20\x03(\x0b23\
+    .protobuf.DatabaseModifications.DeletedRelationshipR\x14deletedRelations\
+    hips\x12P\n\rdeleted_nodes\x18\n\x20\x03(\x0b2+.protobuf.DatabaseModific\
+    ations.DeletedNodeR\x0cdeletedNodes\x1a*\n\x0bCreatedNode\x12\x1b\n\tnod\
+    e_UUID\x18\x01\x20\x01(\tR\x08nodeUUID\x1a\xa2\x01\n\x13CreatedRelationS\
+    hip\x12+\n\x11relationship_UUID\x18\x01\x20\x01(\tR\x10relationshipUUID\
+    \x12\x12\n\x04type\x18\x02\x20\x01(\tR\x04type\x12&\n\x0fstart_node_UUID\
+    \x18\x03\x20\x01(\tR\rstartNodeUUID\x12\"\n\rend_node_UUID\x18\x04\x20\
     \x01(\tR\x0bendNodeUUID\x1a@\n\rAssignedLabel\x12\x1b\n\tnode_UUID\x18\
     \x01\x20\x01(\tR\x08nodeUUID\x12\x12\n\x04name\x18\x02\x20\x01(\tR\x04na\
     me\x1a\x82\x01\n\x14AssignedNodeProperty\x12\x1b\n\tnode_UUID\x18\x01\
     \x20\x01(\tR\x08nodeUUID\x12\x10\n\x03key\x18\x02\x20\x01(\tR\x03key\x12\
     %\n\x0eprevious_value\x18\x03\x20\x01(\tR\rpreviousValue\x12\x14\n\x05va\
-    lue\x18\x04\x20\x01(\tR\x05value\x1a\x9a\x01\n\x1cAssignedRelationshipPr\
-    operty\x12+\n\x11relationship_UUID\x18\x01\x20\x01(\tR\x10relationshipUU\
-    ID\x12\x10\n\x03key\x18\x02\x20\x01(\tR\x03key\x12%\n\x0eprevious_value\
-    \x18\x03\x20\x01(\tR\rpreviousValue\x12\x14\n\x05value\x18\x04\x20\x01(\
-    \tR\x05value\x1aJ\n\x1bRemovedRelationshipProperty\x12+\n\x11relationshi\
-    p_UUID\x18\x01\x20\x01(\tR\x10relationshipUUID\x1aD\n\x13RemovedNodeProp\
-    erty\x12\x1b\n\tnode_UUID\x18\x01\x20\x01(\tR\x08nodeUUID\x12\x10\n\x03k\
-    ey\x18\x02\x20\x01(\tR\x03key\x1a?\n\x0cRemovedLabel\x12\x1b\n\tnode_UUI\
-    D\x18\x01\x20\x01(\tR\x08nodeUUID\x12\x12\n\x04name\x18\x02\x20\x01(\tR\
-    \x04name\x1aB\n\x13DeletedRelationship\x12+\n\x11relationship_UUID\x18\
-    \x01\x20\x01(\tR\x10relationshipUUID\x1a*\n\x0bDeletedNode\x12\x1b\n\tno\
-    de_UUID\x18\x01\x20\x01(\tR\x08nodeUUID*\"\n\x06Status\x12\x0b\n\x07FAIL\
-    URE\x10\0\x12\x0b\n\x07SUCCESS\x10\x012\xbd\x01\n\x12TransactionManager\
-    \x12R\n\x11VerifyTransaction\x12\x1c.protobuf.TransactionRequest\x1a\x1d\
-    .protobuf.TransactionResponse\"\0\x12S\n\x12ExecuteTransaction\x12\x1c.p\
-    rotobuf.TransactionRequest\x1a\x1d.protobuf.TransactionResponse\"\0BB\n%\
-    com.bitfury.neo4j.transaction_managerB\x17TransactionManagerProtoP\x01b\
-    \x06proto3\
+    lue\x18\x04\x20\x01(\tR\x05value\x1as\n\x1cAssignedRelationshipProperty\
+    \x12+\n\x11relationship_UUID\x18\x01\x20\x01(\tR\x10relationshipUUID\x12\
+    \x10\n\x03key\x18\x02\x20\x01(\tR\x03key\x12\x14\n\x05value\x18\x03\x20\
+    \x01(\tR\x05value\x1aJ\n\x1bRemovedRelationshipProperty\x12+\n\x11relati\
+    onship_UUID\x18\x01\x20\x01(\tR\x10relationshipUUID\x1aD\n\x13RemovedNod\
+    eProperty\x12\x1b\n\tnode_UUID\x18\x01\x20\x01(\tR\x08nodeUUID\x12\x10\n\
+    \x03key\x18\x02\x20\x01(\tR\x03key\x1a?\n\x0cRemovedLabel\x12\x1b\n\tnod\
+    e_UUID\x18\x01\x20\x01(\tR\x08nodeUUID\x12\x12\n\x04name\x18\x02\x20\x01\
+    (\tR\x04name\x1aB\n\x13DeletedRelationship\x12+\n\x11relationship_UUID\
+    \x18\x01\x20\x01(\tR\x10relationshipUUID\x1a*\n\x0bDeletedNode\x12\x1b\n\
+    \tnode_UUID\x18\x01\x20\x01(\tR\x08nodeUUID\"\x84\x01\n\x05Error\x12\x18\
+    \n\x07message\x18\x01\x20\x01(\tR\x07message\x12'\n\x04code\x18\x02\x20\
+    \x01(\x0e2\x13.protobuf.ErrorCodeR\x04code\x128\n\x0cfailed_query\x18\
+    \x03\x20\x01(\x0b2\x15.protobuf.FailedQueryR\x0bfailedQuery\"X\n\x0bFail\
+    edQuery\x12\x14\n\x05query\x18\x01\x20\x01(\tR\x05query\x12\x14\n\x05err\
+    or\x18\x02\x20\x01(\tR\x05error\x12\x1d\n\nerror_code\x18\x03\x20\x01(\t\
+    R\terrorCode*\"\n\x06Status\x12\x0b\n\x07FAILURE\x10\0\x12\x0b\n\x07SUCC\
+    ESS\x10\x01*\x8f\x01\n\tErrorCode\x12\x15\n\x11EMPTY_TRANSACTION\x10\0\
+    \x12\x15\n\x11EMPTY_UUID_PREFIX\x10\x01\x12\x10\n\x0cFAILED_QUERY\x10\
+    \x02\x12\x11\n\rMODIFIED_UUID\x10\x03\x12\x18\n\x14TRANSACTION_ROLLBACK\
+    \x10\x04\x12\x15\n\x11RUNTIME_EXCEPTION\x10\x052\xa7\x01\n\x12Transactio\
+    nManager\x12G\n\x06Verify\x12\x1c.protobuf.TransactionRequest\x1a\x1d.pr\
+    otobuf.TransactionResponse\"\0\x12H\n\x07Execute\x12\x1c.protobuf.Transa\
+    ctionRequest\x1a\x1d.protobuf.TransactionResponse\"\0BB\n%com.bitfury.ne\
+    o4j.transaction_managerB\x17TransactionManagerProtoP\x01b\x06proto3\
 ";
 
 static mut file_descriptor_proto_lazy: ::protobuf::lazy::Lazy<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::lazy::Lazy {

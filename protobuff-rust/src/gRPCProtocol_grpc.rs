@@ -22,31 +22,31 @@
 // interface
 
 pub trait TransactionManager {
-    fn verify_transaction(&self, o: ::grpc::RequestOptions, p: super::gRPCProtocol::TransactionRequest) -> ::grpc::SingleResponse<super::gRPCProtocol::TransactionResponse>;
+    fn verify(&self, o: ::grpc::RequestOptions, p: super::gRPCProtocol::TransactionRequest) -> ::grpc::SingleResponse<super::gRPCProtocol::TransactionResponse>;
 
-    fn execute_transaction(&self, o: ::grpc::RequestOptions, p: super::gRPCProtocol::TransactionRequest) -> ::grpc::SingleResponse<super::gRPCProtocol::TransactionResponse>;
+    fn execute(&self, o: ::grpc::RequestOptions, p: super::gRPCProtocol::TransactionRequest) -> ::grpc::SingleResponse<super::gRPCProtocol::TransactionResponse>;
 }
 
 // client
 
 pub struct TransactionManagerClient {
     grpc_client: ::std::sync::Arc<::grpc::Client>,
-    method_VerifyTransaction: ::std::sync::Arc<::grpc::rt::MethodDescriptor<super::gRPCProtocol::TransactionRequest, super::gRPCProtocol::TransactionResponse>>,
-    method_ExecuteTransaction: ::std::sync::Arc<::grpc::rt::MethodDescriptor<super::gRPCProtocol::TransactionRequest, super::gRPCProtocol::TransactionResponse>>,
+    method_Verify: ::std::sync::Arc<::grpc::rt::MethodDescriptor<super::gRPCProtocol::TransactionRequest, super::gRPCProtocol::TransactionResponse>>,
+    method_Execute: ::std::sync::Arc<::grpc::rt::MethodDescriptor<super::gRPCProtocol::TransactionRequest, super::gRPCProtocol::TransactionResponse>>,
 }
 
 impl ::grpc::ClientStub for TransactionManagerClient {
     fn with_client(grpc_client: ::std::sync::Arc<::grpc::Client>) -> Self {
         TransactionManagerClient {
             grpc_client: grpc_client,
-            method_VerifyTransaction: ::std::sync::Arc::new(::grpc::rt::MethodDescriptor {
-                name: "/protobuf.TransactionManager/VerifyTransaction".to_string(),
+            method_Verify: ::std::sync::Arc::new(::grpc::rt::MethodDescriptor {
+                name: "/protobuf.TransactionManager/Verify".to_string(),
                 streaming: ::grpc::rt::GrpcStreaming::Unary,
                 req_marshaller: Box::new(::grpc::protobuf::MarshallerProtobuf),
                 resp_marshaller: Box::new(::grpc::protobuf::MarshallerProtobuf),
             }),
-            method_ExecuteTransaction: ::std::sync::Arc::new(::grpc::rt::MethodDescriptor {
-                name: "/protobuf.TransactionManager/ExecuteTransaction".to_string(),
+            method_Execute: ::std::sync::Arc::new(::grpc::rt::MethodDescriptor {
+                name: "/protobuf.TransactionManager/Execute".to_string(),
                 streaming: ::grpc::rt::GrpcStreaming::Unary,
                 req_marshaller: Box::new(::grpc::protobuf::MarshallerProtobuf),
                 resp_marshaller: Box::new(::grpc::protobuf::MarshallerProtobuf),
@@ -56,12 +56,12 @@ impl ::grpc::ClientStub for TransactionManagerClient {
 }
 
 impl TransactionManager for TransactionManagerClient {
-    fn verify_transaction(&self, o: ::grpc::RequestOptions, p: super::gRPCProtocol::TransactionRequest) -> ::grpc::SingleResponse<super::gRPCProtocol::TransactionResponse> {
-        self.grpc_client.call_unary(o, p, self.method_VerifyTransaction.clone())
+    fn verify(&self, o: ::grpc::RequestOptions, p: super::gRPCProtocol::TransactionRequest) -> ::grpc::SingleResponse<super::gRPCProtocol::TransactionResponse> {
+        self.grpc_client.call_unary(o, p, self.method_Verify.clone())
     }
 
-    fn execute_transaction(&self, o: ::grpc::RequestOptions, p: super::gRPCProtocol::TransactionRequest) -> ::grpc::SingleResponse<super::gRPCProtocol::TransactionResponse> {
-        self.grpc_client.call_unary(o, p, self.method_ExecuteTransaction.clone())
+    fn execute(&self, o: ::grpc::RequestOptions, p: super::gRPCProtocol::TransactionRequest) -> ::grpc::SingleResponse<super::gRPCProtocol::TransactionResponse> {
+        self.grpc_client.call_unary(o, p, self.method_Execute.clone())
     }
 }
 
@@ -77,26 +77,26 @@ impl TransactionManagerServer {
             vec![
                 ::grpc::rt::ServerMethod::new(
                     ::std::sync::Arc::new(::grpc::rt::MethodDescriptor {
-                        name: "/protobuf.TransactionManager/VerifyTransaction".to_string(),
+                        name: "/protobuf.TransactionManager/Verify".to_string(),
                         streaming: ::grpc::rt::GrpcStreaming::Unary,
                         req_marshaller: Box::new(::grpc::protobuf::MarshallerProtobuf),
                         resp_marshaller: Box::new(::grpc::protobuf::MarshallerProtobuf),
                     }),
                     {
                         let handler_copy = handler_arc.clone();
-                        ::grpc::rt::MethodHandlerUnary::new(move |o, p| handler_copy.verify_transaction(o, p))
+                        ::grpc::rt::MethodHandlerUnary::new(move |o, p| handler_copy.verify(o, p))
                     },
                 ),
                 ::grpc::rt::ServerMethod::new(
                     ::std::sync::Arc::new(::grpc::rt::MethodDescriptor {
-                        name: "/protobuf.TransactionManager/ExecuteTransaction".to_string(),
+                        name: "/protobuf.TransactionManager/Execute".to_string(),
                         streaming: ::grpc::rt::GrpcStreaming::Unary,
                         req_marshaller: Box::new(::grpc::protobuf::MarshallerProtobuf),
                         resp_marshaller: Box::new(::grpc::protobuf::MarshallerProtobuf),
                     }),
                     {
                         let handler_copy = handler_arc.clone();
-                        ::grpc::rt::MethodHandlerUnary::new(move |o, p| handler_copy.execute_transaction(o, p))
+                        ::grpc::rt::MethodHandlerUnary::new(move |o, p| handler_copy.execute(o, p))
                     },
                 ),
             ],
