@@ -38,6 +38,9 @@ pub enum Error {
     ///Database error
     #[fail(display = "Database throws error on transaction")]
     DataBaseError(ErrorMsg),
+    ///Database error
+    #[fail(display = "Possible connection error with database")]
+    PossibleConnectionError(ErrorMsg),
 }
 
 impl From<Error> for ExecutionError {
@@ -46,6 +49,10 @@ impl From<Error> for ExecutionError {
             Error::DataBaseError(error) => {
                 let description = format!("{}", error.msg());
                 ExecutionError::with_description(1 as u8, description)
+            },
+            Error::PossibleConnectionError(error) => {
+                let description = format!("{}", error.msg());
+                ExecutionError::with_description(2 as u8, description)
             }
         }
 
@@ -66,12 +73,16 @@ impl Transaction for CommitQueries {
                 match x.1.get_result() {
                     Status::SUCCESS => verified = true,
                     Status::FAILURE => {
-                        let error = x.1.get_error();
-                        println!("Ok(FAILURE) {}", error.get_message()); verified = false
-                    }//TODO must raise proper error to client, what went wrong
+                        //let error = x.1.get_error();
+                        verified = false;
+                        //Err(Error::DataBaseError(error.get_message()))?
+                    }
                 }
             },
-            _ => {println!("Err(_)"); verified = false } //TODO must raise proper error to client! Understand Error of result.
+            Err(_) => {
+                verified = false;
+                //Err(Error::PossibleConnectionError(format!(" {:?}", e)));
+            }
         }
         println!("Verified value is {}", verified);
         verified
