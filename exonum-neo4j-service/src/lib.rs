@@ -50,7 +50,7 @@ use transactions::Neo4JTransactions;
 use exonum::{
     api::ServiceApiBuilder,
     blockchain::{self, Transaction, TransactionSet}, crypto::Hash,
-    encoding::Error as EncodingError, helpers::fabric::{self, Context}, messages::RawTransaction,
+    encoding::Error as EncodingError, helpers::fabric::{self, Context, keys}, messages::RawTransaction,
     storage::Snapshot,
 };
 
@@ -97,6 +97,8 @@ impl fabric::ServiceFactory for ServiceFactory {
     }
 
     fn make_service(&mut self, _: &Context) -> Box<dyn blockchain::Service> {
+        //let conf_keys = context.get(keys::NODE_CONFIG).unwrap();
+        //println!("making service ... {:?}", conf_keys);
         Box::new(Service)
     }
 }//So this is something that should construct the service?

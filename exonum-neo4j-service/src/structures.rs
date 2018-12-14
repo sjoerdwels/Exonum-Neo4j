@@ -13,16 +13,6 @@ use grpc::RequestOptions;
 
 
 
-
-
-encoding_struct! {
-    ///Our test variable, which we are going to change.
-    struct Queries {
-        queries: &str,
-        transaction_hash: &Hash
-    }
-}
-
 encoding_struct! {
     struct AddNode {
         node_uuid: &str
@@ -90,11 +80,6 @@ encoding_struct! {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum ExecuteResponse {
-    Changes(Vec<NodeChange>),
-    Error(ErrorMsg),
-}
 
 impl StorageValue for NodeChange {
     fn into_bytes(self) -> Vec<u8> {
@@ -241,8 +226,15 @@ pub fn getNodeChangeVector(modifs : &DatabaseModifications) -> Vec<NodeChange>{
     changes
 }
 
-impl Queries {
+encoding_struct! {
+    ///Our test variable, which we are going to change.
+    struct Queries {
+        queries: &str,
+        transaction_hash: &Hash
+    }
+}
 
+impl Queries {
 
     pub fn execute(&self) -> ExecuteResponse {
         let req = getProtoTransactionRequest(self.queries(), self.transaction_hash().to_hex().as_str());
@@ -259,10 +251,15 @@ impl Queries {
                         let rVec : Vec<NodeChange> =  getNodeChangeVector(changes);
                         return ExecuteResponse::Changes(rVec);
                     }
-                    Status::FAILURE => {}
+                    Status::FAILURE => {
+                        let error = x.1.get_error();
+                        return ExecuteResponse::Error(ErrorMsg::new(error.get_message()))
+                    }
                 }
             },
-            _ => {} //TODO must raise proper error to client! Understand Error of result.
+            Err(e) => {
+                return ExecuteResponse::Error(ErrorMsg::new(format!("{:?}", e).as_str()))
+            } //TODO must raise proper error to client! Understand Error of result.
         }
         ExecuteResponse::Changes(vec![])
     }
@@ -282,3 +279,8 @@ impl NodeChange {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum ExecuteResponse {
+    Changes(Vec<NodeChange>),
+    Error(ErrorMsg),
+}
