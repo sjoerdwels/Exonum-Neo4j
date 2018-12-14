@@ -74,7 +74,7 @@ public class TransactionManagerTest {
                 .addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })")
                 .build();
 
-        TransactionResponse response = blockingStub.verify(request);
+        TransactionResponse response = blockingStub.execute(request);
         assert (response.getResult() == Status.FAILURE);
 
     }
