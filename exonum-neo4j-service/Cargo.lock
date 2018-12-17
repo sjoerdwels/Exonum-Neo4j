@@ -694,6 +694,7 @@ dependencies = [
  "serde_json 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "tls-api 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "tls-api-native-tls 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "toml 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

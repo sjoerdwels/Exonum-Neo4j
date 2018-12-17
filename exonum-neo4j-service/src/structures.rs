@@ -2,15 +2,16 @@
 
 extern crate protobuf;
 
-use exonum::crypto::{CryptoHash, Hash, hash};
+use exonum::{crypto::{CryptoHash, Hash, hash}, storage::Fork};
 use exonum::storage::StorageValue;
 use std::borrow::Cow;
 use std::fmt;
-use structures::NodeChange::{AN, RN, ANP, RNP, AL, RL, AR};
+use structures::NodeChange::{AN, RN, ANP, RNP, AL, RL, AR, ARP, RRP};
 use gRPCProtocol::{TransactionRequest, DatabaseModifications, Status};
 use gRPCProtocol_grpc::{getClient, TransactionManager};
 use grpc::RequestOptions;
-
+use util;
+use schema::Schema;
 
 
 encoding_struct! {
@@ -63,6 +64,25 @@ encoding_struct! {
     }
 }
 
+encoding_struct! {
+    struct AddRelationProperty {
+        relation_uuid: &str,
+        key: &str,
+        value: &str,
+        from_uuid: &str,
+        to_uuid: &str
+    }
+}
+
+encoding_struct! {
+    struct RemoveRelationProperty {
+        relation_uuid: &str,
+        key: &str,
+        from_uuid: &str,
+        to_uuid: &str
+    }
+}
+
 
 #[derive(Clone, Debug)]
 pub enum NodeChange {
@@ -73,6 +93,8 @@ pub enum NodeChange {
     RL(RemoveLabel),
     ANP(AddNodeProperty),
     RNP(RemoveNodeProperty),
+    ARP(AddRelationProperty),
+    RRP(RemoveRelationProperty),
 }
 encoding_struct! {
     struct ErrorMsg {
@@ -119,6 +141,16 @@ impl StorageValue for NodeChange {
                 bytes.push(7);
                 bytes
             }
+            ARP(x) => {
+                let mut bytes = x.raw;
+                bytes.push(8);
+                bytes
+            }
+            RRP(x) => {
+                let mut bytes = x.raw;
+                bytes.push(9);
+                bytes
+            }
         }
     }
 
@@ -133,6 +165,8 @@ impl StorageValue for NodeChange {
             Some(4) => RNP(RemoveNodeProperty::from_bytes(Cow::Borrowed(&data))),
             Some(5) => AL(AddLabel::from_bytes(Cow::Borrowed(&data))),
             Some(6) => RL(RemoveLabel::from_bytes(Cow::Borrowed(&data))),
+            Some(8) => ARP(AddRelationProperty::from_bytes(Cow::Borrowed(&data))),
+            Some(9) => RRP(RemoveRelationProperty::from_bytes(Cow::Borrowed(&data))),
             _ => AR(AddRelation::from_bytes(Cow::Borrowed(&data)))
         };
         nc
@@ -164,6 +198,12 @@ impl CryptoHash for NodeChange {
             AR(x) => {
                 hash(x.raw.as_ref())
             }
+            ARP(x) => {
+                hash(x.raw.as_ref())
+            }
+            RRP(x) => {
+                hash(x.raw.as_ref())
+            }
         }
     }
 }
@@ -178,6 +218,8 @@ impl fmt::Display for NodeChange {
             ANP(x) => write!(f, "Added new property, key {}, value {}", x.key(), x.value()),
             RNP(x) => write!(f, "Removed property, key {}", x.key()),
             AR(x) => write!(f, "Relationship with UUID {} added. Starting from {}, and going to {}", x.rel_uuid(), x.from_uuid(), x.to_uuid()),
+            ARP(x) => write!(f, "Property, {}, with value {}, added to relation with uuid {}", x.key(), x.value(), x.relation_uuid()),
+            RRP(x) => write!(f, "Property, {}, removed to relation with uuid {}", x.key(), x.relation_uuid()),
         }
     }
 }
@@ -193,7 +235,7 @@ pub fn getProtoTransactionRequest(queries: &str, prefix: &str) -> TransactionReq
 
 }
 
-pub fn getNodeChangeVector(modifs : &DatabaseModifications) -> Vec<NodeChange>{
+pub fn getNodeChangeVector(modifs : &DatabaseModifications, schema : &mut Schema<&mut Fork>) -> Vec<NodeChange>{
     let mut changes : Vec<NodeChange> = Vec::new();
     for newNode in modifs.get_created_nodes() {
         let newChange = AddNode::new(newNode.get_node_UUID());
@@ -222,8 +264,40 @@ pub fn getNodeChangeVector(modifs : &DatabaseModifications) -> Vec<NodeChange>{
     for newRelation in modifs.get_created_relationships() {
         let newChange = AddRelation::new(newRelation.get_relationship_UUID(), newRelation.get_field_type(), newRelation.get_start_node_UUID(), newRelation.get_end_node_UUID());
         changes.push(AR(newChange));
+        let r : Relation = Relation::new(newRelation.get_start_node_UUID(), newRelation.get_end_node_UUID());
+        schema.add_relation(r, newRelation.get_relationship_UUID());
+    }
+    for addRelationProperty in modifs.get_assigned_relationship_properties() {
+        match schema.relation(addRelationProperty.get_relationship_UUID()) {
+            Some(relation) => {
+                let newChange = AddRelationProperty::new(addRelationProperty.get_relationship_UUID(),
+                     addRelationProperty.get_key(), addRelationProperty.get_value(), relation.start_node_uuid(), relation.end_node_uuid());
+                changes.push(ARP(newChange));
+            },
+            _ => {} //TODO what if relationship is not found?
+        }
+    }
+    for removeRelationProperty in modifs.get_removed_relation_properties() {
+        match schema.relation(removeRelationProperty.get_relationship_UUID()) {
+            Some(relation) => {
+                let newChange = RemoveRelationProperty::new(removeRelationProperty.get_relationship_UUID(), "",
+                        relation.start_node_uuid(), relation.end_node_uuid());
+                changes.push(RRP(newChange));
+            },
+            _ => {} //TODO what if relationship is not found?
+        }
+
+
     }
     changes
+}
+
+encoding_struct! {
+    ///Our test variable, which we are going to change.
+    struct Relation {
+        start_node_uuid: &str,
+        end_node_uuid: &str
+    }
 }
 
 encoding_struct! {
@@ -236,11 +310,14 @@ encoding_struct! {
 
 impl Queries {
 
-    pub fn execute(&self) -> ExecuteResponse {
+    pub fn execute(&self,  schema: &mut Schema<&mut Fork>) -> ExecuteResponse {
         let req = getProtoTransactionRequest(self.queries(), self.transaction_hash().to_hex().as_str());
         println!("prefix gonna be {}", req.get_UUID_prefix());
-        //TODO implement getting neo4J server info from conf somehow.
-        let client = getClient(9994);
+        let port = match util::parse_port(){
+            Ok(x) => x,
+            Err(_) => 9994
+        };
+        let client = getClient(port);
         let resp = client.execute(RequestOptions::new(), req);
         let answer = resp.wait();
         match answer {
@@ -248,7 +325,7 @@ impl Queries {
                 match x.1.get_result() {
                     Status::SUCCESS => {
                         let changes = x.1.get_modifications();
-                        let rVec : Vec<NodeChange> =  getNodeChangeVector(changes);
+                        let rVec : Vec<NodeChange> =  getNodeChangeVector(changes, schema);
                         return ExecuteResponse::Changes(rVec);
                     }
                     Status::FAILURE => {
@@ -275,6 +352,8 @@ impl NodeChange {
             AL(x) => vec![x.node_uuid()],
             RL(x) => vec![x.node_uuid()],
             AR(x) => vec![x.from_uuid(), x.to_uuid()],
+            ARP(x) => vec![x.from_uuid(), x.to_uuid()],
+            RRP(x) => vec![x.from_uuid(), x.to_uuid()],
         }
     }
 }

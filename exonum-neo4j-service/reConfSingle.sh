@@ -1,3 +1,4 @@
+cargo build
 rm -R example
 mkdir example
 ./target/debug/exonum-neo4j generate-template example/common.toml --validators-count 1

@@ -18,7 +18,7 @@ use exonum::{
     crypto::{hash, Hash}, storage::{Fork, ProofListIndex, ProofMapIndex, Snapshot,},
 };
 
-use structures::{Queries, NodeChange};
+use structures::{Queries, NodeChange, Relation};
 
 
 /// Database schema for the cryptocurrency.
@@ -52,6 +52,15 @@ where
         self.queries().get(&hash(query.as_bytes()))
     }
 
+    pub fn relations(&self) -> ProofMapIndex<&T, Hash, Relation> {
+        ProofMapIndex::new("neo4j.relations", &self.view)
+    }
+
+    ///Get a single variable, by giving variable name as key.
+    pub fn relation(&self, relation_uuid: &str) -> Option<Relation> {
+        self.relations().get(&hash(relation_uuid.as_bytes()))
+    }
+
     pub fn node_history(&self, node_name: &str) -> ProofListIndex<&T, NodeChange> {
         ProofListIndex::new(format!("neo4j.node_changes_{}", node_name), &self.view)
 
@@ -74,6 +83,17 @@ impl<'a> Schema<&'a mut Fork> {
     pub fn add_query(&mut self, q: Queries) {
         let hash = q.transaction_hash().clone();
         self.queries_mut().put(&hash, q);
+
+    }
+
+    pub fn relations_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, Relation> {
+        ProofMapIndex::new("neo4j.relations", &mut self.view)
+    }
+
+    ///Add a new variable to the table.
+    pub fn add_relation(&mut self, r: Relation, relation_uuid : &str) {
+        let hash = hash(relation_uuid.as_bytes());
+        self.relations_mut().put(&hash, r);
 
     }
 

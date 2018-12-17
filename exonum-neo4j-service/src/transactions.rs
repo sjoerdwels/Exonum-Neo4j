@@ -61,7 +61,7 @@ impl From<Error> for ExecutionError {
 
 impl Transaction for CommitQueries {
     fn verify(&self) -> bool {
-        println!("Verifying!");
+        /*println!("Verifying!");
         let req = getProtoTransactionRequest(self.queries(), "hahshashhash");
         //TODO implement getting neo4J server info from conf somehow.
         let client = getClient(9994);
@@ -85,18 +85,19 @@ impl Transaction for CommitQueries {
             }
         }
         println!("Verified value is {}", verified);
-        verified
+        verified*/
+        true //TODO maybe implement the signature checking since it is mandatory for .9, if we stay in this version.
     }
 
     fn execute(&self, fork: &mut Fork) -> ExecutionResult {
         let hash = self.hash();
 
-        let mut schema = Schema::new(fork);
+        let mut schema: Schema<&mut Fork> = Schema::new(fork);
 
         let queries = self.queries();
         let q = Queries::new(queries, &hash);
 
-        let node_changes : ExecuteResponse = q.execute();//TODO alternate sequence of action for failed stuff.
+        let node_changes : ExecuteResponse = q.execute(&mut schema);//TODO alternate sequence of action for failed stuff.
         schema.add_query(q);
         match node_changes{
             ExecuteResponse::Changes(node_changes) => {
