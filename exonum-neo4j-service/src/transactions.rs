@@ -18,13 +18,14 @@ use gRPCProtocol_grpc::{getClient, TransactionManager};
 use grpc::RequestOptions;
 //use std::io::{self, Write};
 
-
+///Transaction groups
 transactions! {
-    /// Transaction group.
+    /// Our neo4j Transaction group.
     pub Neo4JTransactions {
         const SERVICE_ID = NEO4J_SERVICE_ID; // Remove this when updating.
-        // Transfer `amount` of the currency from one wallet to another.
+        /// Commit set of queries as a single transaction in neo4j database
         struct CommitQueries {
+            ///Queries for the transaction
             queries: &str,
         }
     }

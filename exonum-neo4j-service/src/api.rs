@@ -1,4 +1,6 @@
 
+//! neo4j exonum integration API. Provides us with necessary endpoints.
+
 use exonum::{
     api::{self, ServiceApiBuilder, ServiceApiState},
     crypto::{Hash},
@@ -15,6 +17,7 @@ use std::{thread, time};
 
 /// Describes the query parameters for the `insert_transaction` endpoint.
 encoding_struct! {
+    ///Commit queries transaction.
     struct commitQueriesQuery {
         /// Public key of the queried wallet.
         queries: &str,
@@ -26,11 +29,15 @@ encoding_struct! {
 pub struct CommitResponse {
     /// Hash of the transaction.
     pub tx_hash: Hash,
+    ///error msg, if none, is empty
     pub error_msg: std::string::String,
 }
+///Node history query
 encoding_struct! {
+    ///Node history query
     struct NodeHistoryQuery {
-        node_name: &str,
+        ///node's uuid
+        node_uuid: &str,
     }
 }
 
@@ -41,7 +48,7 @@ pub struct Neo4JApi;
 
 impl Neo4JApi {
 
-    /// Endpoint for dumping all wallets from the storage.
+    /// Endpoint for dumping all queries from the storage.
     pub fn get_queries(state: &ServiceApiState, _query: ()) -> api::Result<Vec<Queries>> {
         print!("Collecting queries");
         let snapshot = state.snapshot();
@@ -51,10 +58,11 @@ impl Neo4JApi {
         Ok(values)
     }
 
+    /// Endpoint for getting a single node's history by providing it's uuid.
     pub fn get_node_history(state: &ServiceApiState, query: NodeHistoryQuery) -> api::Result<Vec<String>> {
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
-        let idx = schema.node_history(query.node_name());
+        let idx = schema.node_history(query.node_uuid());
         let mut values = Vec::new();
         for val in idx.iter(){
             values.push(format!("{}", val));
@@ -81,8 +89,8 @@ impl Neo4JApi {
 
                 let mut found : bool = false;
                 while !found{
-                    let ten_millis = time::Duration::from_millis(200);
-                    thread::sleep(ten_millis);
+                    let millis = time::Duration::from_millis(200);
+                    thread::sleep(millis);
                     let snapshop = state.snapshot();
                     let schema = Schema::new(snapshop);
                     let query = schema.query(&tx_hash);

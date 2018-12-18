@@ -1,3 +1,5 @@
+//! utility functions. Currently just reading port from our custom .toml conf
+
 use std::fs::File;
 use std::io::prelude::*;
 use toml;

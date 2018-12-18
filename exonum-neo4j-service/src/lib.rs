@@ -14,7 +14,12 @@
 
 //! Cryptocurrency implementation example using [exonum](http://exonum.com/).
 
-#![deny(missing_debug_implementations, unsafe_code, bare_trait_objects)]
+#![deny(
+    missing_debug_implementations,
+    missing_docs,
+    unsafe_code,
+    bare_trait_objects
+)]
 
 #[macro_use]
 extern crate exonum;
@@ -39,8 +44,6 @@ pub mod api;
 pub mod schema;
 ///Our possible transactions
 pub mod transactions;
-///Our test value struct.
-pub mod test_value;
 pub mod structures;
 //Our gRPC client
 pub mod gRPCProtocol;

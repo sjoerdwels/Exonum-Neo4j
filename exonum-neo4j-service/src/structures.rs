@@ -1,3 +1,5 @@
+//!Defines all basic structures and implements them when necessary
+
 #![allow(warnings)]
 
 extern crate protobuf;
@@ -14,93 +16,141 @@ use util;
 use schema::Schema;
 
 
+///add node
 encoding_struct! {
+    ///add node
     struct AddNode {
+        ///node uuid, made of transaction hash for prefix and index.
         node_uuid: &str
     }
 }
 
+///remove node
 encoding_struct! {
+    ///remove node
     struct RemoveNode {
+        ///node uuid
         node_uuid: &str
     }
 }
 
+///add relation
 encoding_struct! {
+    ///add relation
     struct AddRelation {
+        ///relation uuid, needed since we add to our own database
         rel_uuid: &str,
+        ///relationship type
         field_type: &str,
+        ///from node uuid
         from_uuid: &str,
+        ///to node uuid
         to_uuid: &str
     }
 }
 
+///add label
 encoding_struct! {
+    ///add label
     struct AddLabel {
+        ///node uuid
         node_uuid: &str,
+        ///label name
         label_name: &str,
     }
 }
 
+///remove label
 encoding_struct! {
+    ///Remove label
     struct RemoveLabel {
+        ///Node uuid
         node_uuid: &str,
+        ///label name
         label_name: &str,
     }
 }
 
+///add new property
 encoding_struct! {
+    ///Add new property
     struct AddNodeProperty {
+        ///Node uuid
         node_uuid: &str,
+        ///property key
         key: &str,
+        ///property new value
         value: &str,
     }
 }
 
+///remove node property
 encoding_struct! {
+    ///remove node property
     struct RemoveNodeProperty {
+        ///Node uuid
         node_uuid: &str,
+        ///property key
         key: &str,
     }
 }
 
+///Add relation property
 encoding_struct! {
+    ///Add relation property
     struct AddRelationProperty {
+        ///relation's uuid
         relation_uuid: &str,
+        ///property key
         key: &str,
+        ///property new value
         value: &str,
+        ///from node uuid
         from_uuid: &str,
+        ///to node uuid
         to_uuid: &str
     }
 }
 
+
+///Remove relation property
 encoding_struct! {
+    ///Remove relation property
     struct RemoveRelationProperty {
+        ///relation's uuid
         relation_uuid: &str,
+        ///property key
         key: &str,
+        ///from node uuid
         from_uuid: &str,
+        ///to node uuid
         to_uuid: &str
     }
 }
 
-
+///All possible node changes
 #[derive(Clone, Debug)]
 pub enum NodeChange {
+    ///Add new node
     AN(AddNode),
+    ///Remove existing node
     RN(RemoveNode),
+    ///Add new relation
     AR(AddRelation),
+    ///Add new label
     AL(AddLabel),
+    ///Remove existing label
     RL(RemoveLabel),
+    ///Add new node property, Could be part of modification.
     ANP(AddNodeProperty),
+    ///Delete existing node property, Could be part of modification.
     RNP(RemoveNodeProperty),
+    ///Add new relation property. Could be part of modification.
     ARP(AddRelationProperty),
+    ///Remove existing relation property. Could be part of modification.
     RRP(RemoveRelationProperty),
 }
-encoding_struct! {
-    struct ErrorMsg {
-        msg: &str,
-    }
-}
+
 
 
 impl StorageValue for NodeChange {
@@ -224,6 +274,7 @@ impl fmt::Display for NodeChange {
     }
 }
 
+///This generates a protobuff message that we will send to neo4j
 pub fn getProtoTransactionRequest(queries: &str, prefix: &str) -> TransactionRequest {
     let split = queries.split(";");
     let vec: Vec<::std::string::String> = split.map(|s| s.to_string()).collect();
@@ -235,6 +286,7 @@ pub fn getProtoTransactionRequest(queries: &str, prefix: &str) -> TransactionReq
 
 }
 
+///Based on the modifications we get from neo4j, we generate a vector of nodeChanges to be processed later by transaction.execute.
 pub fn getNodeChangeVector(modifs : &DatabaseModifications, schema : &mut Schema<&mut Fork>) -> Vec<NodeChange>{
     let mut changes : Vec<NodeChange> = Vec::new();
     for newNode in modifs.get_created_nodes() {
@@ -292,25 +344,41 @@ pub fn getNodeChangeVector(modifs : &DatabaseModifications, schema : &mut Schema
     changes
 }
 
+///Error msg
 encoding_struct! {
-    ///Our test variable, which we are going to change.
-    struct Relation {
-        start_node_uuid: &str,
-        end_node_uuid: &str
+    ///Error msg
+    struct ErrorMsg {
+        ///message itself.
+        msg: &str,
     }
 }
 
+///Relation struct
 encoding_struct! {
-    ///Our test variable, which we are going to change.
+    ///Relation struct
+    struct Relation {
+        ///Start node
+        start_node_uuid: &str,
+        ///End node
+        end_node_uuid: &str
+    }
+}
+///Our queries structure. This represents a set of queries for a single transaction
+/// It has related transaction hash and in case of error, the appropriate message.
+encoding_struct! {
+    ///Queries struct
     struct Queries {
+        ///queries themselves
         queries: &str,
+        ///hash for transaction where it is executed
         transaction_hash: &Hash,
+        ///error from the database if any.
         error_msg: &str,
     }
 }
 
 impl Queries {
-
+    ///This executes the commiting of a transaction in the neo4j. It handles communication and parsing error.
     pub fn execute(&self,  schema: &mut Schema<&mut Fork>) -> ExecuteResponse {
         let req = getProtoTransactionRequest(self.queries(), self.transaction_hash().to_hex().as_str());
         println!("prefix gonna be {}", req.get_UUID_prefix());
@@ -344,6 +412,7 @@ impl Queries {
 }
 
 impl NodeChange {
+    ///This defines the logic of which nodes we add specific changes. Some changes, related to relations we have to add to both end points.
     pub fn get_uuis(&self) -> Vec<&str>{
         match self {
             AN(x) => vec![x.node_uuid()],
@@ -359,8 +428,11 @@ impl NodeChange {
     }
 }
 
+///Response we get from communicating with neo4j
 #[derive(Clone, Debug)]
 pub enum ExecuteResponse {
+    ///List of changes
     Changes(Vec<NodeChange>),
+    ///error when something went wrong
     Error(ErrorMsg),
 }
