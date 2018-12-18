@@ -399,7 +399,9 @@ impl Queries {
                     }
                     Status::FAILURE => {
                         let error = x.1.get_error();
-                        return ExecuteResponse::Error(ErrorMsg::new(error.get_message()))
+                        let failed_query = error.get_failed_query();
+                        let error_msg = format!("{}\nHappened in query: {}\n{}", error.get_message(), failed_query.get_query(), failed_query.get_error());
+                        return ExecuteResponse::Error(ErrorMsg::new(error_msg.as_str()));
                     }
                 }
             },
