@@ -1,9 +1,39 @@
 
 
 
-curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transaction -d '{
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transaction -d $'{
   "body": {
-    "queries": "CREATE (n)"
+    "queries": "CREATE (n:Person {name:\'Indrek\'})"
+  },
+  "protocol_version": 0,
+  "service_id": 144,
+  "message_id": 0,
+  "signature":"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+}'
+
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transaction -d $'{
+  "body": {
+    "queries": "CR EA TE  (n:Person {name:\'Indrek\'})"
+  },
+  "protocol_version": 0,
+  "service_id": 144,
+  "message_id": 0,
+  "signature":"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+}'
+
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transaction -d $'{
+  "body": {
+    "queries": "CREATE (n:Person {name:\'Indrek Klanberg\'})"
+  },
+  "protocol_version": 0,
+  "service_id": 144,
+  "message_id": 0,
+  "signature":"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+}'
+
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transaction -d $'{
+  "body": {
+    "queries": "MATCH (n:Person {name:\'Indrek\'}) MATCH (m:Person {name:\'Indrek Klanberg\'}) CREATE (n)-[:SAME_PERSON]->(m)"
   },
   "protocol_version": 0,
   "service_id": 144,

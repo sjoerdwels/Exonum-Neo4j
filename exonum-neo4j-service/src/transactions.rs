@@ -19,7 +19,6 @@ use grpc::RequestOptions;
 //use std::io::{self, Write};
 
 
-
 transactions! {
     /// Transaction group.
     pub Neo4JTransactions {
@@ -47,11 +46,11 @@ impl From<Error> for ExecutionError {
     fn from(value: Error) -> ExecutionError {
         match value {
             Error::DataBaseError(error) => {
-                let description = format!("{}", error.msg());
+                let description = format!("Database error: {}", error.msg());
                 ExecutionError::with_description(1 as u8, description)
             },
             Error::PossibleConnectionError(error) => {
-                let description = format!("{}", error.msg());
+                let description = format!("Possible connection error: {}", error.msg());
                 ExecutionError::with_description(2 as u8, description)
             }
         }
@@ -61,27 +60,35 @@ impl From<Error> for ExecutionError {
 
 impl Transaction for CommitQueries {
     fn verify(&self) -> bool {
-        /*println!("Verifying!");
+        /*let hash = self.hash();
+        println!("Verifying!");
         let req = getProtoTransactionRequest(self.queries(), "hahshashhash");
         //TODO implement getting neo4J server info from conf somehow.
         let client = getClient(9994);
         let resp = client.verify(RequestOptions::new(), req);
         let answer = resp.wait();
         let mut verified = false;
-        match answer {
+
+        let result = match answer {
             Ok(x) => {
                 match x.1.get_result() {
-                    Status::SUCCESS => verified = true,
+                    Status::SUCCESS => {verified = true; Ok(())},
                     Status::FAILURE => {
                         //let error = x.1.get_error();
                         verified = false;
-                        //Err(Error::DataBaseError(error.get_message()))?
+                        Err(Error::DataBaseError(error.get_message()))
                     }
                 }
             },
             Err(_) => {
                 verified = false;
-                //Err(Error::PossibleConnectionError(format!(" {:?}", e)));
+                Err(Error::PossibleConnectionError(format!("{:?}", e)))
+            }
+        };
+        match result {
+            Ok(_) => {},
+            Err(e) => {
+
             }
         }
         println!("Verified value is {}", verified);
@@ -94,27 +101,27 @@ impl Transaction for CommitQueries {
 
         let mut schema: Schema<&mut Fork> = Schema::new(fork);
 
-        let queries = self.queries();
-        let q = Queries::new(queries, &hash);
+        let q = Queries::new(self.queries(), &hash, "");
 
-        let node_changes : ExecuteResponse = q.execute(&mut schema);//TODO alternate sequence of action for failed stuff.
-        schema.add_query(q);
-        match node_changes{
+        let node_changes : ExecuteResponse = q.execute(&mut schema);
+        let result : ExecutionResult = match node_changes {
             ExecuteResponse::Changes(node_changes) => {
                 for nc in node_changes{
                     for uuid in nc.get_uuis(){
                         schema.add_node_history(uuid, &nc)
                     }
                 }
+                schema.add_query(q);
                 Ok(())
             },
             ExecuteResponse::Error(e) => {
                 println!("We got error {}", e.msg());
-
-                Err(Error::DataBaseError(e))?
+                let q = Queries::new(self.queries(), &hash, format!("We got error: {}", e.msg()).as_str());
+                schema.add_query(q);
+                Ok(())
             }
-        }
+        };
 
-
+        result
     }
 }

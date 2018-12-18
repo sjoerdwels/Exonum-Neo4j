@@ -48,8 +48,8 @@ where
     }
 
     ///Get a single variable, by giving variable name as key.
-    pub fn query(&self, query: &str) -> Option<Queries> {
-        self.queries().get(&hash(query.as_bytes()))
+    pub fn query(&self, q_hash: &Hash) -> Option<Queries> {
+        self.queries().get(q_hash)
     }
 
     pub fn relations(&self) -> ProofMapIndex<&T, Hash, Relation> {

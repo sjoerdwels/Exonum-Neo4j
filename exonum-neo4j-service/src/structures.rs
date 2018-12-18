@@ -304,7 +304,8 @@ encoding_struct! {
     ///Our test variable, which we are going to change.
     struct Queries {
         queries: &str,
-        transaction_hash: &Hash
+        transaction_hash: &Hash,
+        error_msg: &str,
     }
 }
 

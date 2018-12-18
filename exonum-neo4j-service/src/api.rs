@@ -2,7 +2,7 @@
 use exonum::{
     api::{self, ServiceApiBuilder, ServiceApiState},
     crypto::{Hash},
-    blockchain::Transaction,
+    blockchain::{Transaction},
     node::TransactionSend,
 };
 use std::string::String;
@@ -11,8 +11,9 @@ use structures::{Queries};
 use schema::Schema;
 
 use transactions::Neo4JTransactions;
+use std::{thread, time};
 
-/// Describes the query parameters for the `get_wallet` endpoint.
+/// Describes the query parameters for the `insert_transaction` endpoint.
 encoding_struct! {
     struct commitQueriesQuery {
         /// Public key of the queried wallet.
@@ -25,6 +26,7 @@ encoding_struct! {
 pub struct CommitResponse {
     /// Hash of the transaction.
     pub tx_hash: Hash,
+    pub error_msg: std::string::String,
 }
 encoding_struct! {
     struct NodeHistoryQuery {
@@ -69,9 +71,30 @@ impl Neo4JApi {
     ) -> api::Result<CommitResponse> {
         let transaction: Box<dyn Transaction> = query.into();
         let tx_hash = transaction.hash();
+        println!("tx_hash is {}", tx_hash.to_string());
 
-        state.sender().send(transaction)?;
-        Ok(CommitResponse { tx_hash })
+        match state.sender().send(transaction) {
+            Ok(()) => {
+
+                let mut error_msg : std::string::String = String::from("");;
+
+
+                let mut found : bool = false;
+                while !found{
+                    let ten_millis = time::Duration::from_millis(200);
+                    thread::sleep(ten_millis);
+                    let snapshop = state.snapshot();
+                    let schema = Schema::new(snapshop);
+                    let query = schema.query(&tx_hash);
+                    match query {
+                        Some(x) => {found = true; error_msg = x.error_msg().to_string();},
+                        _ => {},
+                    }
+                }
+
+                Ok(CommitResponse { tx_hash: tx_hash, error_msg: error_msg })},
+            Err(err) => Ok(CommitResponse { tx_hash: tx_hash, error_msg: format!("got error: {:?}", err) })
+        }
     }
 
     /// 'ServiceApiBuilder' facilitates conversion between transactions/read requests and REST
