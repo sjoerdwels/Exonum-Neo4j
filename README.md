@@ -27,6 +27,12 @@ Neo4j installation:
     - sudo apt-get update
     - sudo apt-get install neo4j=1:3.4.9
 
+Extension building:
+- Install Maven with "sudo apt-get install maven"
+- In project repository root folder run "mvn package"
+- Add created extension .jar file (in traget folder) to  ./var/lib/neo4j/plugins folder
+- Start Neo4j by "sudo neo4j console"
+
 ## Tests
 
 ## Contributors
