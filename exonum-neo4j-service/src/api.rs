@@ -6,14 +6,15 @@ use exonum::{
     crypto::{Hash},
     blockchain::{Transaction},
     node::TransactionSend,
+    encoding::serialize::FromHex,
 };
-use std::string::String;
 
 use structures::{Queries};
 use schema::Schema;
-
 use transactions::Neo4JTransactions;
-use std::{thread, time};
+
+use std::io;
+use std::string::String;
 
 /// Describes the query parameters for the `insert_transaction` endpoint.
 encoding_struct! {
@@ -41,6 +42,15 @@ encoding_struct! {
     }
 }
 
+///Query query
+encoding_struct! {
+    ///Node history query
+    struct GetQueryQuery {
+        ///node's uuid
+        hash_string: &str,
+    }
+}
+
 /// Public service API description.
 #[derive(Debug, Clone)]
 pub struct Neo4JApi;
@@ -56,6 +66,22 @@ impl Neo4JApi {
         let idx = schema.queries();
         let values = idx.values().collect();
         Ok(values)
+    }
+
+    /// Returns query based on provided hash.
+    pub fn get_query(state: &ServiceApiState, query: GetQueryQuery) -> api::Result<Queries> {
+        let snapshot = state.snapshot();
+        let schema = Schema::new(snapshot);
+        match Hash::from_hex(query.hash_string()) {
+            Ok(query_hash) => {
+                let query = schema.query(&query_hash);
+                match query {
+                    Some(x) => Ok(x),
+                    None => Err(api::Error::from(io::Error::new(io::ErrorKind::Other, "No query found"))),
+                }
+            },
+            Err(e) => Err(api::Error::from(io::Error::new(io::ErrorKind::Other, format!("Error unpacking hash: {:?}", e)))),
+        }
     }
 
     /// Endpoint for getting a single node's history by providing it's uuid.
@@ -82,25 +108,7 @@ impl Neo4JApi {
         println!("tx_hash is {}", tx_hash.to_string());
 
         match state.sender().send(transaction) {
-            Ok(()) => {
-
-                let mut error_msg : std::string::String = String::from("");;
-
-
-                let mut found : bool = false;
-                while !found{
-                    let millis = time::Duration::from_millis(200);
-                    thread::sleep(millis);
-                    let snapshop = state.snapshot();
-                    let schema = Schema::new(snapshop);
-                    let query = schema.query(&tx_hash);
-                    match query {
-                        Some(x) => {found = true; error_msg = x.error_msg().to_string();},
-                        _ => {},
-                    }
-                }
-
-                Ok(CommitResponse { tx_hash: tx_hash, error_msg: error_msg })},
+            Ok(()) =>   Ok(CommitResponse { tx_hash: tx_hash, error_msg: format!("") }),
             Err(err) => Ok(CommitResponse { tx_hash: tx_hash, error_msg: format!("got error: {:?}", err) })
         }
     }
@@ -114,6 +122,7 @@ impl Neo4JApi {
             .public_scope()
             .endpoint("v1/transactions", Self::get_queries)
             .endpoint("v1/node_history", Self::get_node_history)
+            .endpoint("v1/transaction", Self::get_query)
             .endpoint_mut("v1/insert_transaction", Self::post_transaction);
     }
 }

@@ -57,3 +57,5 @@ curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/n
 
 curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4J_blockchain/v1/node_history?node_name=6bcec96d..._0
 
+curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4J_blockchain/v1/transaction?hash_string=71afce3e6a18a05376fccf766bfba321aa801af0ea6aef1a07b30e521363b3f8
+
