@@ -29,8 +29,8 @@ Neo4j installation:
 
 Extension building:
 - Install Maven with "sudo apt-get install maven"
-- In project repository root folder run "mvn package"
-- Add created extension .jar file (in traget folder) to  ./var/lib/neo4j/plugins folder
+- In project repository root directory run "mvn package"
+- Add created extension .jar file (in traget directory) to  ./var/lib/neo4j/plugins directory
 - Start Neo4j by "sudo neo4j console"
 
 ## Tests
