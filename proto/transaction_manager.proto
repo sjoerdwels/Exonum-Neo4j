@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package protobuf;
+package exonum.neo4j.transaction_manager;
 
 option java_multiple_files = true;
 option java_package = "com.bitfury.neo4j.transaction_manager";

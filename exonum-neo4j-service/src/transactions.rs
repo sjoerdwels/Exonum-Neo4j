@@ -1,7 +1,6 @@
 #![allow(bare_trait_objects)]
 #![allow(warnings)]
-
-
+/// Transaction documentation
 use exonum::{
     blockchain::{ExecutionResult, Transaction, ExecutionError},
     storage::{Fork},
@@ -9,13 +8,13 @@ use exonum::{
 };
 
 use schema::Schema;
-
-use structures::getProtoTransactionRequest;
 use structures::{NodeChange, Queries, ExecuteResponse, ErrorMsg};
 use NEO4J_SERVICE_ID;
-use gRPCProtocol::Status;
-use gRPCProtocol_grpc::{getClient, TransactionManager};
+
+use proto::transaction_manager::Status;
+use proto::transaction_manager_grpc::TransactionManager;
 use grpc::RequestOptions;
+
 //use std::io::{self, Write};
 
 ///Transaction groups

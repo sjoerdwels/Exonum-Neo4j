@@ -3,10 +3,10 @@ extern crate exonum;
 extern crate grpc;
 
 // Import datatypes used in tests from the crate where the service is defined.
-use exonum_neo4j::gRPCProtocol_grpc::{getClient, run_server};
-use exonum_neo4j::gRPCProtocol_grpc::TransactionManager;
-use exonum_neo4j::structures::{getProtoTransactionRequest};
-use exonum_neo4j::gRPCProtocol::Status;
+use exonum_neo4j::proto::{getClient, run_server};
+use exonum_neo4j::proto::TransactionManager;
+use exonum_neo4j::neo4j_client::{getProtoTransactionRequest};
+use exonum_neo4j::proto::Status;
 use std::thread;
 
 

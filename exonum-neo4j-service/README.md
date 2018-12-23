@@ -1,3 +1,12 @@
+#Exonum Neo4j service
+
+#### Requirements
+
+- Cargo 
+- Screen
+- Protobuf (protoc in $PATH)
+
+
 Requirements: Install screen, run*.sh requires that.
 
 apt-get install

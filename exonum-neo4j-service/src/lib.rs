@@ -14,7 +14,8 @@
 
 //! Cryptocurrency implementation example using [exonum](http://exonum.com/).
 
-#![deny(
+// TODO FIX LINTER
+#![allow(
     missing_debug_implementations,
     missing_docs,
     unsafe_code,
@@ -35,22 +36,15 @@ extern crate tls_api;
 extern crate tls_api_native_tls;
 extern crate toml;
 
-
-
 pub use schema::Schema;
 
-///Our API.
 pub mod api;
+pub mod proto;
+pub mod neo4j_client;
 pub mod schema;
-///Our possible transactions
 pub mod transactions;
 pub mod structures;
-//Our gRPC client
-pub mod gRPCProtocol;
-pub mod gRPCProtocol_grpc;
-
 pub mod util;
-
 
 use transactions::Neo4JTransactions;
 

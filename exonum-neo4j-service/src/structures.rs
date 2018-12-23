@@ -9,8 +9,8 @@ use exonum::storage::StorageValue;
 use std::borrow::Cow;
 use std::fmt;
 use structures::NodeChange::{AN, RN, ANP, RNP, AL, RL, AR, ARP, RRP};
-use gRPCProtocol::{TransactionRequest, DatabaseModifications, Status};
-use gRPCProtocol_grpc::{getClient, TransactionManager};
+use neo4j_client;
+use proto::{Status, TransactionManager, DatabaseModifications};
 use grpc::RequestOptions;
 use util;
 use schema::Schema;
@@ -274,18 +274,6 @@ impl fmt::Display for NodeChange {
     }
 }
 
-///This generates a protobuff message that we will send to neo4j
-pub fn getProtoTransactionRequest(queries: &str, prefix: &str) -> TransactionRequest {
-    let split = queries.split(";");
-    let vec: Vec<::std::string::String> = split.map(|s| s.to_string()).collect();
-    let protoVec = protobuf::RepeatedField::from_vec(vec);
-    let mut req = TransactionRequest::new();
-    req.set_UUID_prefix(prefix.to_string());
-    req.set_queries(protoVec);
-    req
-
-}
-
 ///Based on the modifications we get from neo4j, we generate a vector of nodeChanges to be processed later by transaction.execute.
 pub fn getNodeChangeVector(modifs : &DatabaseModifications, schema : &mut Schema<&mut Fork>) -> Vec<NodeChange>{
     let mut changes : Vec<NodeChange> = Vec::new();
@@ -380,13 +368,13 @@ encoding_struct! {
 impl Queries {
     ///This executes the commiting of a transaction in the neo4j. It handles communication and parsing error.
     pub fn execute(&self,  schema: &mut Schema<&mut Fork>) -> ExecuteResponse {
-        let req = getProtoTransactionRequest(self.queries(), self.transaction_hash().to_hex().as_str());
+        let req = neo4j_client::getProtoTransactionRequest(self.queries(), self.transaction_hash().to_hex().as_str());
         println!("prefix gonna be {}", req.get_UUID_prefix());
         let port = match util::parse_port(){
             Ok(x) => x,
             Err(_) => 9994
         };
-        let client = getClient(port);
+        let client = neo4j_client::get_client(port);
         let resp = client.execute(RequestOptions::new(), req);
         let answer = resp.wait();
         match answer {

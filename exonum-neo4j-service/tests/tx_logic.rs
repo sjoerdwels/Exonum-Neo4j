@@ -8,7 +8,7 @@ use exonum_testkit::{TestKit, TestKitBuilder};
 use exonum_neo4j::schema::Schema;
 use exonum_neo4j::transactions::CommitQueries;
 use exonum_neo4j::Service;
-use exonum_neo4j::gRPCProtocol_grpc::run_server;
+use exonum_neo4j::proto::run_server;
 use std::thread;
 
 fn init_testkit() -> TestKit {
