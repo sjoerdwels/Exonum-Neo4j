@@ -20,7 +20,7 @@ protoc-rust-grpc = "0.6.1"
 grpc = "0.6.1"
 tls-api = "0.1.*"
 tls-api-native-tls = "0.1.*"
-
+toml = "*"
 
 
 [dev-dependencies]

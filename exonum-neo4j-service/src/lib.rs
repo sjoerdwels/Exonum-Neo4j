@@ -14,7 +14,12 @@
 
 //! Cryptocurrency implementation example using [exonum](http://exonum.com/).
 
-#![deny(missing_debug_implementations, unsafe_code, bare_trait_objects)]
+#![deny(
+    missing_debug_implementations,
+    missing_docs,
+    unsafe_code,
+    bare_trait_objects
+)]
 
 #[macro_use]
 extern crate exonum;
@@ -28,6 +33,7 @@ extern crate grpc;
 extern crate protobuf;
 extern crate tls_api;
 extern crate tls_api_native_tls;
+extern crate toml;
 
 
 
@@ -38,12 +44,13 @@ pub mod api;
 pub mod schema;
 ///Our possible transactions
 pub mod transactions;
-///Our test value struct.
-pub mod test_value;
 pub mod structures;
 //Our gRPC client
 pub mod gRPCProtocol;
 pub mod gRPCProtocol_grpc;
+
+pub mod util;
+
 
 use transactions::Neo4JTransactions;
 
@@ -97,6 +104,10 @@ impl fabric::ServiceFactory for ServiceFactory {
     }
 
     fn make_service(&mut self, _: &Context) -> Box<dyn blockchain::Service> {
+        match util::parse_port() {
+            Ok(x) => println!("All good, neo4j port is {}", x),
+            Err(e) => println!("error: {:?}", e),
+        };
         Box::new(Service)
     }
 }//So this is something that should construct the service?
