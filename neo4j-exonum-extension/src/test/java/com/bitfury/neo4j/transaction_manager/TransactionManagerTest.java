@@ -2,36 +2,45 @@ package com.bitfury.neo4j.transaction_manager;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.neo4j.harness.junit.Neo4jRule;
+
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.test.TestGraphDatabaseFactory;
 
 import java.util.Random;
 import java.util.stream.Collectors;
 
 public class TransactionManagerTest {
 
+    private GraphDatabaseService db;
+
     static final String TEST_PREFIX = "myPrefix";
+    static final int TEST_GRPC_PORT = Properties.GRPC_DEFAULT_PORT;
+
     private ManagedChannel channel;
-
-    @Rule
-    public final Neo4jRule neo4j = new Neo4jRule();
-
     private static TransactionManagerGrpc.TransactionManagerBlockingStub blockingStub;
 
     @Before
-    public void setup() {
-        channel = ManagedChannelBuilder.forAddress("localhost", 9994)
+    public void setUp() {
+        db = new TestGraphDatabaseFactory()
+                .newImpermanentDatabaseBuilder()
+                .setConfig(Properties.GRPC_KEY_PORT,  String.valueOf(TEST_GRPC_PORT))
+                .newGraphDatabase();
+
+        channel = ManagedChannelBuilder.forAddress("localhost", TEST_GRPC_PORT)
                 .usePlaintext(true)
                 .build();
+
         blockingStub = TransactionManagerGrpc.newBlockingStub(channel);
     }
 
     @After
-    public  void after()  {
+    public  void tearDown()  {
         channel.shutdown();
+        db.shutdown();
     }
 
     @Test

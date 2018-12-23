@@ -9,7 +9,7 @@ import org.neo4j.graphdb.event.LabelEntry;
 import org.neo4j.graphdb.event.PropertyEntry;
 import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.kernel.configuration.Config;
-import org.neo4j.kernel.impl.logging.LogService;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.Log;
 
 import java.io.IOException;
@@ -19,63 +19,65 @@ import java.util.stream.StreamSupport;
 
 public class TransactionManager extends TransactionManagerGrpc.TransactionManagerImplBase {
 
-    private static GraphDatabaseService db;
-    private static LogService logService;
-    private static Config config;
+    private GraphDatabaseAPI db;
 
-    private Log log;
+    private Log userLog;
     private Server gRPCServer;
-    private TransactionManagerEventHandler eventHandler;
 
     ThreadLocal<RequestStateMachine> TmData = new ThreadLocal<>();
 
     /**
      * @param db
      * @param config
-     * @param logService
+     * @param userLog
      */
-    TransactionManager(GraphDatabaseService db, Config config, LogService logService) {
+    TransactionManager(GraphDatabaseAPI db, Config config, Log userLog) {
 
-        TransactionManager.db = db;
-        TransactionManager.logService = logService;
-        TransactionManager.config = config;
-        log = logService.getUserLog(getClass());
+        this.db = db;
+        this.userLog = userLog;
 
-        // Start gRPC server
-        gRPCServer = ServerBuilder.forPort(9994).addService(this).build();
+        int port = Properties.GRPC_DEFAULT_PORT;
 
-        // Register EventHandler
-        eventHandler = new TransactionManagerEventHandler(this, logService);
-        db.registerTransactionEventHandler(eventHandler);
+        Optional<String> portConfig =  config.getRaw(Properties.GRPC_KEY_PORT);
+        if(portConfig.isPresent()) {
+            try {
+                port = Integer.parseInt(portConfig.get());
+            }catch (NumberFormatException ex){
+                userLog.info("method=constructor error=NumberFormatException could not parse gRPC config port = " + portConfig.get());
+            }
+        }
 
-        log.info("method=constructor gRPCPort=" + 9994); //todo correct port from config
+        // Create gRPC server
+        gRPCServer = ServerBuilder.forPort(port).addService(this).build();
+
+        userLog.info("method=constructor gRPCPort=" + port);
     }
 
     public void start() {
 
         try {
-            log.info("method=start");
+            userLog.info("method=start");
             gRPCServer.start();
         } catch (IOException e) {
-            log.error("method=start error=IOException shutdown database");
+            userLog.error("method=start error=IOException shutdown database");
             db.shutdown();
         }
     }
 
     public void shutdown() {
-        log.info("method=shutdown");
+        userLog.info("method=shutdown");
         gRPCServer.shutdown();
     }
 
     @Override
     public void verify(TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
-        log.info("method=verifyTransaction request=" + request.toString());
+        userLog.info("method=verifyTransaction request=" + request.toString());
         processGRPCRequest(RequestStateMachine.TransactionType.VERIFY, request, responseObserver);
     }
 
     @Override
     public void execute(TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
-        log.info("method=executeTransaction request=" + request.toString());
+        userLog.info("method=executeTransaction request=" + request.toString());
         processGRPCRequest(RequestStateMachine.TransactionType.EXECUTE, request, responseObserver);
     }
 
@@ -107,7 +109,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      */
     private void processRequestMessage(TransactionRequest request) {
 
-        log.info("method=executeRequest type=" + TmData.get().getTransactionType() + "totalQueries=" + request.getQueriesCount()
+        userLog.info("method=executeRequest type=" + TmData.get().getTransactionType() + "totalQueries=" + request.getQueriesCount()
                 + " threadID=" + Thread.currentThread().getId());
 
         if (request.getUUIDPrefix().isEmpty() && TmData.get().getTransactionType()==RequestStateMachine.TransactionType.EXECUTE) {
@@ -192,7 +194,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
                 break;
             default:
-                log.debug("method=afterCommit, TmData.status=" + TmData.get().getStatus() + ", transaction data not  processed");
+                userLog.debug("method=afterCommit, TmData.status=" + TmData.get().getStatus() + ", transaction data not  processed");
         }
     }
 
@@ -215,7 +217,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
                 break;
             default:
-                log.debug("method=afterCommit, TmData.status=" + TmData.get().getStatus() + ", transaction data not  processed");
+                userLog.debug("method=afterCommit, TmData.status=" + TmData.get().getStatus() + ", transaction data not  processed");
         }
     }
 
