@@ -274,6 +274,23 @@ impl fmt::Display for NodeChange {
     }
 }
 
+impl NodeChange {
+    ///This defines the logic of which nodes we add specific changes. Some changes, related to relations we have to add to both end points.
+    pub fn get_uuis(&self) -> Vec<&str>{
+        match self {
+            AN(x) => vec![x.node_uuid()],
+            RN(x) => vec![x.node_uuid()],
+            ANP(x) => vec![x.node_uuid()],
+            RNP(x) => vec![x.node_uuid()],
+            AL(x) => vec![x.node_uuid()],
+            RL(x) => vec![x.node_uuid()],
+            AR(x) => vec![x.from_uuid(), x.to_uuid()],
+            ARP(x) => vec![x.from_uuid(), x.to_uuid()],
+            RRP(x) => vec![x.from_uuid(), x.to_uuid()],
+        }
+    }
+}
+
 ///Based on the modifications we get from neo4j, we generate a vector of nodeChanges to be processed later by transaction.execute.
 pub fn getNodeChangeVector(modifs : &DatabaseModifications, schema : &mut Schema<&mut Fork>) -> Vec<NodeChange>{
     let mut changes : Vec<NodeChange> = Vec::new();
@@ -368,7 +385,7 @@ encoding_struct! {
 impl Queries {
     ///This executes the commiting of a transaction in the neo4j. It handles communication and parsing error.
     pub fn execute(&self,  schema: &mut Schema<&mut Fork>) -> ExecuteResponse {
-        let req = neo4j_client::getProtoTransactionRequest(self.queries(), self.transaction_hash().to_hex().as_str());
+        let req = neo4j_client::get_commit_transaction_request(self.queries(), self.transaction_hash().to_hex().as_str());
         println!("prefix gonna be {}", req.get_UUID_prefix());
         let port = match util::parse_port(){
             Ok(x) => x,
@@ -401,22 +418,7 @@ impl Queries {
     }
 }
 
-impl NodeChange {
-    ///This defines the logic of which nodes we add specific changes. Some changes, related to relations we have to add to both end points.
-    pub fn get_uuis(&self) -> Vec<&str>{
-        match self {
-            AN(x) => vec![x.node_uuid()],
-            RN(x) => vec![x.node_uuid()],
-            ANP(x) => vec![x.node_uuid()],
-            RNP(x) => vec![x.node_uuid()],
-            AL(x) => vec![x.node_uuid()],
-            RL(x) => vec![x.node_uuid()],
-            AR(x) => vec![x.from_uuid(), x.to_uuid()],
-            ARP(x) => vec![x.from_uuid(), x.to_uuid()],
-            RRP(x) => vec![x.from_uuid(), x.to_uuid()],
-        }
-    }
-}
+
 
 ///Response we get from communicating with neo4j
 #[derive(Clone, Debug)]

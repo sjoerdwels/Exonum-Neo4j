@@ -24,12 +24,12 @@ pub fn get_client(port : u16) -> TransactionManagerClient {
 
 
 ///This generates a protobuff message that we will send to neo4j
-pub fn getProtoTransactionRequest(queries: &str, prefix: &str) -> TransactionRequest {
+pub fn get_commit_transaction_request(queries: &str, prefix: &str) -> TransactionRequest {
     let split = queries.split(";");
     let vec: Vec<::std::string::String> = split.map(|s| s.to_string()).collect();
-    let protoVec = protobuf::RepeatedField::from_vec(vec);
+    let proto_vec = protobuf::RepeatedField::from_vec(vec);
     let mut req = TransactionRequest::new();
     req.set_UUID_prefix(prefix.to_string());
-    req.set_queries(protoVec);
+    req.set_queries(proto_vec);
     req
 }

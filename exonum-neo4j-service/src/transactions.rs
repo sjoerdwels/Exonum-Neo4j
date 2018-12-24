@@ -62,7 +62,7 @@ impl Transaction for CommitQueries {
     fn verify(&self) -> bool {
         /*let hash = self.hash();
         println!("Verifying!");
-        let req = getProtoTransactionRequest(self.queries(), "hahshashhash");
+        let req = get_commit_transaction_request(self.queries(), "hahshashhash");
         //TODO implement getting neo4J server info from conf somehow.
         let client = getClient(9994);
         let resp = client.verify(RequestOptions::new(), req);
