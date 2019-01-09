@@ -8,12 +8,11 @@ use exonum::{crypto::{CryptoHash, Hash, hash}, storage::Fork};
 use exonum::storage::StorageValue;
 use std::borrow::Cow;
 use std::fmt;
-use structures::NodeChange::{AN, RN, ANP, RNP, AL, RL, AR, ARP, RRP};
-use neo4j_client;
-use proto::{Status, TransactionManager, DatabaseModifications};
 use grpc::RequestOptions;
 use util;
 use schema::Schema;
+use structures::NodeChange::{AN, RN, ANP, RNP, AL, RL, AR, ARP, RRP};
+
 
 
 ///add node
@@ -291,63 +290,6 @@ impl NodeChange {
     }
 }
 
-///Based on the modifications we get from neo4j, we generate a vector of nodeChanges to be processed later by transaction.execute.
-pub fn getNodeChangeVector(modifs : &DatabaseModifications, schema : &mut Schema<&mut Fork>) -> Vec<NodeChange>{
-    let mut changes : Vec<NodeChange> = Vec::new();
-    for newNode in modifs.get_created_nodes() {
-        let newChange = AddNode::new(newNode.get_node_UUID());
-        changes.push(AN(newChange));
-    }
-    for removedNode in modifs.get_deleted_nodes() {
-        let newChange = RemoveNode::new(removedNode.get_node_UUID());
-        changes.push(RN(newChange));
-    }
-    for newLabel in modifs.get_assigned_labels() {
-        let newChange = AddLabel::new(newLabel.get_node_UUID(), newLabel.get_name());
-        changes.push(AL(newChange));
-    }
-    for removeLabel in modifs.get_removed_labels() {
-        let newChange = RemoveLabel::new(removeLabel.get_node_UUID(), removeLabel.get_name());
-        changes.push(RL(newChange));
-    }
-    for newNodeProperty in modifs.get_assigned_node_properties() {
-        let newChange = AddNodeProperty::new(newNodeProperty.get_node_UUID(), newNodeProperty.get_key(), newNodeProperty.get_value());
-        changes.push(ANP(newChange));
-    }
-    for removeNodeProperty in modifs.get_removed_node_properties() {
-        let newChange = RemoveNodeProperty::new(removeNodeProperty.get_node_UUID(), removeNodeProperty.get_key());
-        changes.push(RNP(newChange));
-    }
-    for newRelation in modifs.get_created_relationships() {
-        let newChange = AddRelation::new(newRelation.get_relationship_UUID(), newRelation.get_field_type(), newRelation.get_start_node_UUID(), newRelation.get_end_node_UUID());
-        changes.push(AR(newChange));
-        let r : Relation = Relation::new(newRelation.get_start_node_UUID(), newRelation.get_end_node_UUID());
-        schema.add_relation(r, newRelation.get_relationship_UUID());
-    }
-    for addRelationProperty in modifs.get_assigned_relationship_properties() {
-        match schema.relation(addRelationProperty.get_relationship_UUID()) {
-            Some(relation) => {
-                let newChange = AddRelationProperty::new(addRelationProperty.get_relationship_UUID(),
-                     addRelationProperty.get_key(), addRelationProperty.get_value(), relation.start_node_uuid(), relation.end_node_uuid());
-                changes.push(ARP(newChange));
-            },
-            _ => {} //TODO what if relationship is not found?
-        }
-    }
-    for removeRelationProperty in modifs.get_removed_relation_properties() {
-        match schema.relation(removeRelationProperty.get_relationship_UUID()) {
-            Some(relation) => {
-                let newChange = RemoveRelationProperty::new(removeRelationProperty.get_relationship_UUID(), "",
-                        relation.start_node_uuid(), relation.end_node_uuid());
-                changes.push(RRP(newChange));
-            },
-            _ => {} //TODO what if relationship is not found?
-        }
-
-
-    }
-    changes
-}
 
 ///Error msg
 encoding_struct! {
@@ -368,11 +310,12 @@ encoding_struct! {
         end_node_uuid: &str
     }
 }
+
 ///Our queries structure. This represents a set of queries for a single transaction
 /// It has related transaction hash and in case of error, the appropriate message.
 encoding_struct! {
     ///Queries struct
-    struct Queries {
+    struct Neo4jTransaction {
         ///queries themselves
         queries: &str,
         ///hash for transaction where it is executed
@@ -381,44 +324,6 @@ encoding_struct! {
         error_msg: &str,
     }
 }
-
-impl Queries {
-    ///This executes the commiting of a transaction in the neo4j. It handles communication and parsing error.
-    pub fn execute(&self,  schema: &mut Schema<&mut Fork>) -> ExecuteResponse {
-        let req = neo4j_client::get_commit_transaction_request(self.queries(), self.transaction_hash().to_hex().as_str());
-        println!("prefix gonna be {}", req.get_UUID_prefix());
-        let port = match util::parse_port(){
-            Ok(x) => x,
-            Err(_) => 9994
-        };
-        let client = neo4j_client::get_client(port);
-        let resp = client.execute(RequestOptions::new(), req);
-        let answer = resp.wait();
-        match answer {
-            Ok(x) => {
-                match x.1.get_result() {
-                    Status::SUCCESS => {
-                        let changes = x.1.get_modifications();
-                        let rVec : Vec<NodeChange> =  getNodeChangeVector(changes, schema);
-                        return ExecuteResponse::Changes(rVec);
-                    }
-                    Status::FAILURE => {
-                        let error = x.1.get_error();
-                        let failed_query = error.get_failed_query();
-                        let error_msg = format!("{}\nHappened in query: {}\n{}", error.get_message(), failed_query.get_query(), failed_query.get_error());
-                        return ExecuteResponse::Error(ErrorMsg::new(error_msg.as_str()));
-                    }
-                }
-            },
-            Err(e) => {
-                return ExecuteResponse::Error(ErrorMsg::new(format!("{:?}", e).as_str()))
-            } //TODO must raise proper error to client! Understand Error of result.
-        }
-        ExecuteResponse::Changes(vec![])
-    }
-}
-
-
 
 ///Response we get from communicating with neo4j
 #[derive(Clone, Debug)]

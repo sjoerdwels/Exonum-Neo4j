@@ -97,7 +97,20 @@ impl Transaction for CommitQueries {
     }
 
     fn execute(&self, fork: &mut Fork) -> ExecutionResult {
+
         let hash = self.hash();
+
+        // todo : Why are queries proviced via a string???
+        let queries = queries.split(";");
+        let queries : Vec<::std::string::String> = split.map(|s| s.to_string()).collect();
+
+        // Get RPC object
+        let neo4j_config = neo4j::Neo4jConfig{
+            address : String::from("127.0.0.1"),
+            port : 9994
+        };
+
+        let neo4j_rpc = neo4j::Neo4jRpc::new(neo4j_config);
 
         let mut schema: Schema<&mut Fork> = Schema::new(fork);
 

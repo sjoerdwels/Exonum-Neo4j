@@ -40,7 +40,7 @@ pub use schema::Schema;
 
 pub mod api;
 pub mod proto;
-pub mod neo4j_client;
+pub mod neo4j;
 pub mod schema;
 pub mod transactions;
 pub mod structures;
@@ -58,14 +58,27 @@ use exonum::{
 /// Unique service ID.
 const NEO4J_SERVICE_ID: u16 = 144;
 /// Name of the service.
-const SERVICE_NAME: &str = "neo4J_blockchain";
-/// Initial balance of the wallet.
+const SERVICE_NAME: &str = "neo4j_blockchain";
 
-/// Exonum `Service` implementation.
-#[derive(Default, Debug)]
-pub struct Service;
+/// Exonum `Neo4jService` implementation.
+pub struct Neo4jService {
+    neo4j : neo4j::Neo4jRpc
+}
 
-impl blockchain::Service for Service {
+impl ::std::fmt::Debug for Neo4jService {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        f.debug_struct("Neo4jService").finish()
+    }
+}
+
+impl Neo4jService {
+    /// Creates  a Neo4j RPC service
+    pub fn new( neo4j : neo4j::Neo4jRpc) -> Self {
+        Self {neo4j}
+    }
+}
+
+impl blockchain::Service for Neo4jService {
     fn service_id(&self) -> u16 {
         NEO4J_SERVICE_ID
     }
@@ -83,16 +96,20 @@ impl blockchain::Service for Service {
         Neo4JTransactions::tx_from_raw(raw).map(Into::into)
     }
 
+    fn after_commit(&self, context: &ServiceContext) {
+
+    }
+
     fn wire_api(&self, builder: &mut ServiceApiBuilder) {
         api::Neo4JApi::wire(builder);
     }
 }
 
 /// A configuration service creator for the `NodeBuilder`.
-#[derive(Debug)]
-pub struct ServiceFactory;
+#[derive(Debug, Copy, Clone)]
+pub struct Neo4jServiceFactory;
 
-impl fabric::ServiceFactory for ServiceFactory {
+impl fabric::ServiceFactory for Neo4jServiceFactory {
     fn service_name(&self) -> &str {
         SERVICE_NAME
     }
@@ -102,6 +119,18 @@ impl fabric::ServiceFactory for ServiceFactory {
             Ok(x) => println!("All good, neo4j port is {}", x),
             Err(e) => println!("error: {:?}", e),
         };
-        Box::new(Service)
+
+        let neo4j_config = neo4j::Neo4jConfig{
+            address : String::from("127.0.0.1"),
+            port : 9994
+        };
+
+        let neo4j_rpc = neo4j::Neo4jRpc::new(neo4j_config);
+
+        let service = Neo4jService::new(
+           neo4j_rpc
+        );
+
+        Box::new(service)
     }
-}//So this is something that should construct the service?
+}

@@ -7,8 +7,9 @@ option java_package = "com.bitfury.neo4j.transaction_manager";
 option java_outer_classname = "TransactionManagerProto";
 
 service TransactionManager {
-  rpc Verify (TransactionRequest) returns (TransactionResponse) {}
-  rpc Execute (TransactionRequest) returns (TransactionResponse) {}
+  rpc ExecuteBlock (BlockExecuteRequest) returns (BlockExecuteResponse) {}
+  rpc RetrieveBlockChanges (BlockChangesRequest) returns (BlockChangesResponse) {}
+  rpc DeleteBlockChanges (DeleteBlockRequest) returns (DeleteBlockResponse) {}
 }
 
 enum Status {
@@ -16,15 +17,42 @@ enum Status {
   SUCCESS = 1;
 }
 
+message DeleteBlockRequest {
+  string block_id = 1;
+}
+
+message DeleteBlockResponse {
+  bool success = 1;
+}
+
+message BlockExecuteResponse {
+  bool success = 1;
+}
+
+message BlockExecuteRequest {
+  string block_id = 1;
+  repeated TransactionRequest transactions = 2;
+}
+
+message BlockChangesRequest {
+  string block_id = 1;
+}
+
+message BlockChangesResponse {
+  string block_id = 1;
+  repeated TransactionResponse transactions= 2;
+}
+
 message TransactionRequest {
-  string UUID_prefix = 1;
+  string transaction_id = 1;
   repeated string queries = 2;
 }
 
 message TransactionResponse {
-  Status result = 1;
-  Error error = 2;
-  DatabaseModifications modifications =  3;
+  string transaction_id = 1;
+  Status result = 2;
+  Error error = 3;
+  DatabaseModifications modifications =  4;
 }
 
 message DatabaseModifications {
