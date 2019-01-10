@@ -49,10 +49,12 @@ use transactions::Neo4JTransactions;
 
 use exonum::{
     api::ServiceApiBuilder,
-    blockchain::{self, ServiceContext, Transaction, TransactionSet}, crypto::Hash,
+    blockchain::{self, Schema as CoreSchema, ServiceContext, Transaction, TransactionSet}, crypto::Hash,
     encoding::Error as EncodingError, helpers::fabric::{self, Context}, messages::RawTransaction,
     storage::Snapshot,
 };
+
+use neo4j::ExecuteResponse::*;
 
 /// Unique service ID.
 const NEO4J_SERVICE_ID: u16 = 144;
@@ -96,6 +98,29 @@ impl blockchain::Service for Neo4jService {
     }
 
     fn after_commit(&self, context: &ServiceContext) {
+        let snapshot = context.snapshot();
+        let core_schema = CoreSchema::new(snapshot);
+        let schema = Schema::new(snapshot);
+        let last_block = core_schema.block_hashes_by_height().last();
+        match last_block {
+            Some(block_hash) => {
+                let block_option = core_schema.blocks().get(&block_hash);
+                match block_option {
+                    Some(block) => {
+                        let result = self.neo4j.execute_block(block, core_schema, schema);
+                        match result {
+                            OkExe(_) => {
+                                //TODO create new transaction for auditing.
+                            },
+                            _ => {} //No need to do anything
+                        }
+                    },
+                    None => {}
+                }
+
+            },
+            None => {} //TODO Error, should never get here though, as we always have a last block in an after_commit
+        }
 
     }
 

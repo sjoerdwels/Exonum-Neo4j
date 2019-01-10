@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::vec::Vec;
 use std::string::String;
 use grpc::{Client, ClientStub, RequestOptions};
-use exonum::{crypto::Hash, storage::Fork, blockchain::{Schema as CoreSchema, Block}};
+use exonum::{crypto::Hash, storage::{Fork, Snapshot}, blockchain::{Schema as CoreSchema, Block}};
 
 use structures::*;
 use structures::NodeChange::{AN, RN, ANP, RNP, AL, RL, AR, ARP, RRP};
@@ -43,9 +43,8 @@ impl Neo4jRpc {
         }
     }
 
-    pub fn execute_block(&self, block: Block, fork: &mut Fork) -> ExecuteResponse {
-        let schema: Schema<&Fork> = Schema::new(fork);
-        let core_schema: CoreSchema<&Fork> = CoreSchema::new(fork);
+    pub fn execute_block(&self, block: Block, core_schema : CoreSchema<&Snapshot>, schema : Schema<&Snapshot>) -> ExecuteResponse {
+
         let transactions = core_schema.block_transactions(block.height());
 
         let mut request = BlockExecuteRequest::new();
@@ -67,17 +66,21 @@ impl Neo4jRpc {
             }
 
         }
-        request.set_transactions(protobuf::RepeatedField::from_vec(trans_vector));
-        let resp = self.transaction_manager.execute_block(RequestOptions::new(), request);
+        if trans_vector.len() > 0 {
+            request.set_transactions(protobuf::RepeatedField::from_vec(trans_vector));
+            let resp = self.transaction_manager.execute_block(RequestOptions::new(), request);
 
-        let result = resp.wait();
-        match result {
-            Ok(_) => {
-                OkExe(())
-            },
-            Err(e) => {
-                ExecuteResponse::Error(ErrorMsg::new(format!("{:?}", e).as_str()))
+            let result = resp.wait();
+            match result {
+                Ok(_) => {
+                    OkExe(())
+                },
+                Err(e) => {
+                    ExecuteResponse::Error(ErrorMsg::new(format!("{:?}", e).as_str()))
+                }
             }
+        } else {
+            NoCommits(())
         }
     }
 
@@ -165,4 +168,6 @@ pub enum ExecuteResponse {
     Error(ErrorMsg),
     ///RetrieveChangesResponse
     ChangeResponse(BlockChangesResponse),
+    ///Block had no commit transactions, propably only audit.
+    NoCommits(()),
 }

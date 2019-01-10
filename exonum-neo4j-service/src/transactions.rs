@@ -6,6 +6,7 @@ use exonum::{
     storage::{Fork},
     crypto::{CryptoHash, Hash},
     encoding::serialize::FromHex,
+    helpers::Height,
 };
 
 use schema::Schema;
@@ -99,6 +100,18 @@ impl AuditBlocks {
                             let added_block_hash = all_blocks_by_height.get(x);
                             match added_block_hash {
                                 Some(block) => {
+                                    let mut ignore = true;
+                                    let h = Height(x);
+                                    let transactions = core_schema.block_transactions(h);
+                                    for trans in transactions.iter() {
+                                        match schema.neo4j_transaction(&trans) {
+                                            Some(_) => ignore = false,
+                                            None => {}
+                                        }
+                                    }
+                                    if ignore {
+                                        continue
+                                    }
                                     match neo4j_rpc.retrieve_block_changes(block) {
                                         ChangeResponse(changes) => { returnVector.push(changes) },
                                         _ => {} //TODO error handling
