@@ -39,7 +39,6 @@ extern crate toml;
 pub use schema::Schema;
 
 pub mod api;
-pub mod proto;
 pub mod neo4j;
 pub mod schema;
 pub mod transactions;
@@ -50,7 +49,7 @@ use transactions::Neo4JTransactions;
 
 use exonum::{
     api::ServiceApiBuilder,
-    blockchain::{self, Transaction, TransactionSet}, crypto::Hash,
+    blockchain::{self, ServiceContext, Transaction, TransactionSet}, crypto::Hash,
     encoding::Error as EncodingError, helpers::fabric::{self, Context}, messages::RawTransaction,
     storage::Snapshot,
 };
@@ -127,9 +126,7 @@ impl fabric::ServiceFactory for Neo4jServiceFactory {
 
         let neo4j_rpc = neo4j::Neo4jRpc::new(neo4j_config);
 
-        let service = Neo4jService::new(
-           neo4j_rpc
-        );
+        let service = Neo4jService::new(neo4j_rpc);
 
         Box::new(service)
     }

@@ -9,7 +9,7 @@ use exonum::{
     encoding::serialize::FromHex,
 };
 
-use structures::{Queries};
+use structures::{Neo4jTransaction};
 use schema::Schema;
 use transactions::Neo4JTransactions;
 
@@ -59,22 +59,22 @@ pub struct Neo4JApi;
 impl Neo4JApi {
 
     /// Endpoint for dumping all queries from the storage.
-    pub fn get_queries(state: &ServiceApiState, _query: ()) -> api::Result<Vec<Queries>> {
+    pub fn get_queries(state: &ServiceApiState, _query: ()) -> api::Result<Vec<Neo4jTransaction>> {
         print!("Collecting queries");
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
-        let idx = schema.queries();
+        let idx = schema.neo4j_transactions();
         let values = idx.values().collect();
         Ok(values)
     }
 
     /// Returns query based on provided hash.
-    pub fn get_query(state: &ServiceApiState, query: GetQueryQuery) -> api::Result<Queries> {
+    pub fn get_query(state: &ServiceApiState, query: GetQueryQuery) -> api::Result<Neo4jTransaction> {
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
         match Hash::from_hex(query.hash_string()) {
             Ok(query_hash) => {
-                let query = schema.query(&query_hash);
+                let query = schema.neo4j_transaction(&query_hash);
                 match query {
                     Some(x) => Ok(x),
                     None => Err(api::Error::from(io::Error::new(io::ErrorKind::Other, "No query found"))),

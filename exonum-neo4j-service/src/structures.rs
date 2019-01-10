@@ -300,6 +300,7 @@ encoding_struct! {
     }
 }
 
+
 ///Relation struct
 encoding_struct! {
     ///Relation struct
@@ -318,18 +319,10 @@ encoding_struct! {
     struct Neo4jTransaction {
         ///queries themselves
         queries: &str,
-        ///hash for transaction where it is executed
-        transaction_hash: &Hash,
         ///error from the database if any.
         error_msg: &str,
+        ///Result, empty when not processed, otherwise either FAILURE or SUCCESS
+        result: &str,
     }
 }
 
-///Response we get from communicating with neo4j
-#[derive(Clone, Debug)]
-pub enum ExecuteResponse {
-    ///List of changes
-    Changes(Vec<NodeChange>),
-    ///error when something went wrong
-    Error(ErrorMsg),
-}
