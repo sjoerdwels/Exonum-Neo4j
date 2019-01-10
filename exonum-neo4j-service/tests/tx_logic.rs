@@ -8,8 +8,8 @@ use exonum_testkit::{TestKit, TestKitBuilder};
 use exonum_neo4j::schema::Schema;
 use exonum_neo4j::transactions::CommitQueries;
 use exonum_neo4j::Service;
-use exonum_neo4j::gRPCProtocol_grpc::run_server;
-use std::thread;
+
+mod transaction_test_server;
 
 fn init_testkit() -> TestKit {
     TestKitBuilder::validator()
@@ -17,9 +17,9 @@ fn init_testkit() -> TestKit {
         .create()
 }
 
-//#[test]
+#[test]
 fn test_wrong_query() {
-    thread::spawn(move || {run_server()});
+    let server = transaction_test_server::TestServer::new(50051);
 
     let mut testkit = init_testkit();
     let (_pubkey, key) = crypto::gen_keypair();
@@ -30,13 +30,13 @@ fn test_wrong_query() {
     let schema = Schema::new(&snapshot);
     let queries = schema.queries();
 
-    assert_eq!(queries.values().count(), 0);
+    assert_eq!(queries.values().count(), 1);
 }
 
 
-//#[test]
+#[test]
 fn test_commit_query() {
-    thread::spawn(move || {run_server()});
+    let server = transaction_test_server::TestServer::new(50052);
 
     let mut testkit = init_testkit();
     let snapshot = testkit.snapshot();

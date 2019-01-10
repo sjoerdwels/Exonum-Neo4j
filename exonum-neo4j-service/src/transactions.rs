@@ -1,7 +1,6 @@
 #![allow(bare_trait_objects)]
 #![allow(warnings)]
-
-
+/// Transaction documentation
 use exonum::{
     blockchain::{ExecutionResult, Transaction, ExecutionError},
     storage::{Fork},
@@ -9,13 +8,13 @@ use exonum::{
 };
 
 use schema::Schema;
-
-use structures::getProtoTransactionRequest;
 use structures::{NodeChange, Queries, ExecuteResponse, ErrorMsg};
 use NEO4J_SERVICE_ID;
-use gRPCProtocol::Status;
-use gRPCProtocol_grpc::{getClient, TransactionManager};
+
+use proto::transaction_manager::Status;
+use proto::transaction_manager_grpc::TransactionManager;
 use grpc::RequestOptions;
+
 //use std::io::{self, Write};
 
 ///Transaction groups
@@ -63,7 +62,7 @@ impl Transaction for CommitQueries {
     fn verify(&self) -> bool {
         /*let hash = self.hash();
         println!("Verifying!");
-        let req = getProtoTransactionRequest(self.queries(), "hahshashhash");
+        let req = get_commit_transaction_request(self.queries(), "hahshashhash");
         //TODO implement getting neo4J server info from conf somehow.
         let client = getClient(9994);
         let resp = client.verify(RequestOptions::new(), req);
@@ -98,7 +97,20 @@ impl Transaction for CommitQueries {
     }
 
     fn execute(&self, fork: &mut Fork) -> ExecutionResult {
+
         let hash = self.hash();
+
+        // todo : Why are queries proviced via a string???
+        let queries = queries.split(";");
+        let queries : Vec<::std::string::String> = split.map(|s| s.to_string()).collect();
+
+        // Get RPC object
+        let neo4j_config = neo4j::Neo4jConfig{
+            address : String::from("127.0.0.1"),
+            port : 9994
+        };
+
+        let neo4j_rpc = neo4j::Neo4jRpc::new(neo4j_config);
 
         let mut schema: Schema<&mut Fork> = Schema::new(fork);
 
