@@ -3,6 +3,10 @@ package com.bitfury.neo4j.transaction_manager;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -10,14 +14,12 @@ import org.junit.Test;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.test.TestGraphDatabaseFactory;
 
-import java.util.Random;
-import java.util.stream.Collectors;
 
 public class TransactionManagerTest {
 
     private GraphDatabaseService db;
+    private static int block_id = 0;
 
-    static final String TEST_PREFIX = "myPrefix";
     static final int TEST_GRPC_PORT = Properties.GRPC_DEFAULT_PORT;
 
     private ManagedChannel channel;
@@ -27,7 +29,7 @@ public class TransactionManagerTest {
     public void setUp() {
         db = new TestGraphDatabaseFactory()
                 .newImpermanentDatabaseBuilder()
-                .setConfig(Properties.GRPC_KEY_PORT,  String.valueOf(TEST_GRPC_PORT))
+                .setConfig(Properties.GRPC_KEY_PORT, String.valueOf(TEST_GRPC_PORT))
                 .newGraphDatabase();
 
         channel = ManagedChannelBuilder.forAddress("localhost", TEST_GRPC_PORT)
@@ -35,289 +37,390 @@ public class TransactionManagerTest {
                 .build();
 
         blockingStub = TransactionManagerGrpc.newBlockingStub(channel);
+
+        block_id++;
     }
 
     @After
-    public  void tearDown()  {
+    public void tearDown() {
         channel.shutdown();
         db.shutdown();
     }
 
     @Test
-    public void testverify() {
+    public void testNonExistingBlockDelete() {
 
-        TransactionRequest request = TransactionRequest.newBuilder()
+        DeleteBlockRequest deleteRequest = DeleteBlockRequest.newBuilder().setBlockId(getBlockID()).build();
+        DeleteBlockResponse deleteResponse = blockingStub.deleteBlockChanges(deleteRequest);
+
+        assertFalse(deleteResponse.getSuccess());
+    }
+
+    @Test
+    public void testDoubleDelete() {
+
+        // Execute
+        BlockExecuteRequest executeRequest = BlockExecuteRequest.newBuilder().setBlockId(getBlockID()).build();
+        BlockExecuteResponse executeResponse = blockingStub.executeBlock(executeRequest);
+
+        assertTrue(executeResponse.getSuccess());
+
+        // Delete
+        DeleteBlockRequest deleteRequest = DeleteBlockRequest.newBuilder().setBlockId(getBlockID()).build();
+        DeleteBlockResponse deleteResponse = blockingStub.deleteBlockChanges(deleteRequest);
+
+        assertTrue(deleteResponse.getSuccess());
+
+        // Delete twice
+        deleteResponse = blockingStub.deleteBlockChanges(deleteRequest);
+
+        assertFalse(deleteResponse.getSuccess());
+
+    }
+
+    @Test
+    public void testEmptyBlock() {
+
+        // Execute
+        BlockExecuteRequest executeRequest = BlockExecuteRequest.newBuilder().setBlockId(getBlockID()).build();
+        BlockExecuteResponse executeResponse = blockingStub.executeBlock(executeRequest);
+
+        assertTrue(executeResponse.getSuccess());
+
+        // Retrieve
+        BlockChangesRequest changesRequest = BlockChangesRequest.newBuilder().setBlockId(getBlockID()).build();
+        BlockChangesResponse changeResponse = blockingStub.retrieveBlockChanges(changesRequest);
+
+        assertEquals(changeResponse.getBlockId(), getBlockID());
+        assertTrue(changeResponse.getTransactionsCount() == 0);
+
+        // Delete
+        DeleteBlockRequest deleteRequest = DeleteBlockRequest.newBuilder().setBlockId(getBlockID()).build();
+        DeleteBlockResponse deleteResponse = blockingStub.deleteBlockChanges(deleteRequest);
+
+        assertTrue(deleteResponse.getSuccess());
+    }
+
+    @Test(expected = io.grpc.StatusRuntimeException.class)
+    public void testNonExistingBlockRetrieve() {
+
+        BlockChangesRequest changesRequest = BlockChangesRequest.newBuilder().setBlockId(getBlockID()).build();
+        blockingStub.retrieveBlockChanges(changesRequest);
+
+    }
+
+    @Test
+    public void testDoubleBlockRetrieve() {
+
+        // Execute
+        TransactionRequest transaction = TransactionRequest.newBuilder().setTransactionId("txID1").addQueries("CREATE (n:Person {name:'Sjoerd'})").build();
+        BlockExecuteRequest executeRequest = BlockExecuteRequest.newBuilder().setBlockId(getBlockID()).addTransactions(transaction).build();
+        BlockExecuteResponse executeResponse = blockingStub.executeBlock(executeRequest);
+
+        assertTrue(executeResponse.getSuccess());
+
+        // Retrieve
+        BlockChangesRequest changesRequest = BlockChangesRequest.newBuilder().setBlockId(getBlockID()).build();
+        BlockChangesResponse changeResponse = blockingStub.retrieveBlockChanges(changesRequest);
+
+        assertEquals(changeResponse.getBlockId(), getBlockID());
+        assertTrue(changeResponse.getTransactionsCount() > 0);
+
+        // Second retrieve
+        BlockChangesResponse secondChangeResponse = blockingStub.retrieveBlockChanges(changesRequest);
+
+        assertEquals(changeResponse.getBlockId(), getBlockID());
+        assertTrue(secondChangeResponse.getTransactionsCount() > 0);
+
+        assertEquals(changeResponse, secondChangeResponse);
+    }
+
+    @Test(expected = io.grpc.StatusRuntimeException.class)
+    public void testTransactionWithoutID() {
+
+        // Execute
+        TransactionRequest transactionRequest = TransactionRequest.newBuilder()
                 .addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })")
-                .setUUIDPrefix(TEST_PREFIX)
                 .build();
-        TransactionResponse response = blockingStub.verify(request);
-        assert (response.getResult() == Status.SUCCESS);
+        BlockExecuteRequest executeRequest = BlockExecuteRequest.newBuilder()
+                .addTransactions(transactionRequest)
+                .setBlockId(getBlockID())
+                .build();
+        BlockExecuteResponse executeResponse = blockingStub.executeBlock(executeRequest);
     }
 
     @Test
-    public void testexecute() {
+    public void testSingleTransactionSingleQuery() {
 
-        TransactionRequest request = TransactionRequest.newBuilder()
-                .addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })")
-                .setUUIDPrefix(TEST_PREFIX)
+        // Execute
+        TransactionRequest transactionRequest = TransactionRequest.newBuilder()
+                .addQueries("CREATE (n:Person { name: 'Sjoerd' })")
+                .setTransactionId("txID2")
                 .build();
-        TransactionResponse response = blockingStub.execute(request);
-        assert (response.getResult() == Status.SUCCESS);
+        BlockExecuteRequest executeRequest = BlockExecuteRequest.newBuilder()
+                .addTransactions(transactionRequest)
+                .setBlockId(getBlockID())
+                .build();
+        BlockExecuteResponse executeResponse = blockingStub.executeBlock(executeRequest);
+
+        assertTrue("Execute block failed.",executeResponse.getSuccess());
+
+        // Retrieve
+        BlockChangesRequest changesRequest = BlockChangesRequest.newBuilder()
+                .setBlockId(getBlockID())
+                .build();
+        BlockChangesResponse changeResponse = blockingStub.retrieveBlockChanges(changesRequest);
+
+        assertEquals("Received incorrect block ID.", getBlockID(), changeResponse.getBlockId());
+        assertEquals("Received incorrect number of transactions.", 1, changeResponse.getTransactionsCount());
+
+        TransactionResponse transactionResponse = changeResponse.getTransactions(0);
+
+        assertEquals("Transaction execution failed", Status.SUCCESS, transactionResponse.getResult());
+        assertEquals("Received incorrect transaction ID", transactionRequest.getTransactionId(), transactionResponse.getTransactionId());
+        assertTrue("Transaction did not have modifications", transactionResponse.hasModifications());
+
+        // Compare changes
+        assertEquals("Incorrect number of nodes created.", 1, transactionResponse.getModifications().getCreatedNodesCount());
+        assertEquals("Incorrect number of nodes deleted.", 0, transactionResponse.getModifications().getDeletedNodesCount());
+        assertEquals("Incorrect number of relationships created.", 0, transactionResponse.getModifications().getCreatedRelationshipsCount());
+        assertEquals("Incorrect number of relationships deleted.", 0, transactionResponse.getModifications().getDeletedRelationshipsCount());
+        assertEquals("Incorrect number of assigned relationship properties.", 0, transactionResponse.getModifications().getAssignedRelationshipPropertiesCount());
+        assertEquals("Incorrect number of removed relationship properties.", 0, transactionResponse.getModifications().getRemovedRelationPropertiesCount());
+        assertEquals("Incorrect number of assigned node properties.", 1, transactionResponse.getModifications().getAssignedNodePropertiesCount());
+        assertEquals("Incorrect number of removed node properties.", 0,transactionResponse.getModifications().getRemovedNodePropertiesCount());
+        assertEquals("Incorrect number of assigned labels.", 1, transactionResponse.getModifications().getAssignedLabelsCount());
+        assertEquals("Incorrect number of removed labels.", 0,transactionResponse.getModifications().getRemovedLabelsCount());
+
+        // First query
+        DatabaseModifications.CreatedNode createdNode = transactionResponse.getModifications().getCreatedNodes(0);
+        String nodeUUID = createdNode.getNodeUUID();
+        assertFalse("Empty UUID", nodeUUID.isEmpty());
+        DatabaseModifications.AssignedNodeProperty nodeProperty = transactionResponse.getModifications().getAssignedNodeProperties(0);
+        assertEquals("Incorrect property UUID", nodeUUID, nodeProperty.getNodeUUID());
+        assertEquals("Incorrect property key", "name", nodeProperty.getKey());
+        assertEquals("Incorrect property key", "Sjoerd", nodeProperty.getValue());
+        DatabaseModifications.AssignedLabel label = transactionResponse.getModifications().getAssignedLabels(0);
+        assertEquals("Label name incorrect", "Person", label.getName());
+        assertEquals("Label uuid", nodeUUID, label.getNodeUUID());
     }
 
     @Test
-    public void testverifyWithoutQueries() {
+    public void testSingleTransactionMultipleQueries() {
 
-        TransactionRequest request = TransactionRequest.newBuilder()
-                .setUUIDPrefix(TEST_PREFIX)
+        // Execute
+        TransactionRequest transactionRequest = TransactionRequest.newBuilder()
+                .addQueries("CREATE (n:Person { name: 'Sjoerd' })")
+                .addQueries("CREATE (n:Person { name: 'Sjoerd' })")
+                .addQueries("CREATE (n:Person { name: 'Sjoerd' })")
+                .setTransactionId("txID2")
                 .build();
+        BlockExecuteRequest executeRequest = BlockExecuteRequest.newBuilder()
+                .addTransactions(transactionRequest)
+                .setBlockId(getBlockID())
+                .build();
+        BlockExecuteResponse executeResponse = blockingStub.executeBlock(executeRequest);
 
-        TransactionResponse response = blockingStub.verify(request);
-        assert (response.getResult() == Status.FAILURE);
+        assertTrue(executeResponse.getSuccess());
+
+        // Retrieve
+        BlockChangesRequest changesRequest = BlockChangesRequest.newBuilder()
+                .setBlockId(getBlockID())
+                .build();
+        BlockChangesResponse changeResponse = blockingStub.retrieveBlockChanges(changesRequest);
+
+        assertEquals("Received block  has incorrect block id", getBlockID(), changeResponse.getBlockId());
+        assertEquals("Received block has  incorrect transaction count", 1, changeResponse.getTransactionsCount());
+
+        TransactionResponse transactionResponse = changeResponse.getTransactions(0);
+
+        assertEquals(transactionResponse.getResult(), Status.SUCCESS);
+        assertEquals(transactionResponse.getTransactionId(), transactionRequest.getTransactionId());
+        assertTrue(transactionResponse.hasModifications());
+
+        // Compare changes
+        assertEquals("Incorrect number of nodes created.", 3, transactionResponse.getModifications().getCreatedNodesCount());
+        assertEquals("Incorrect number of nodes deleted.", 0, transactionResponse.getModifications().getDeletedNodesCount());
+        assertEquals("Incorrect number of relationships created.", 0, transactionResponse.getModifications().getCreatedRelationshipsCount());
+        assertEquals("Incorrect number of relationships deleted.", 0, transactionResponse.getModifications().getDeletedRelationshipsCount());
+        assertEquals("Incorrect number of assigned relationship properties.", 0, transactionResponse.getModifications().getAssignedRelationshipPropertiesCount());
+        assertEquals("Incorrect number of removed relationship properties.", 0, transactionResponse.getModifications().getRemovedRelationPropertiesCount());
+        assertEquals("Incorrect number of assigned node properties.", 3, transactionResponse.getModifications().getAssignedNodePropertiesCount());
+        assertEquals("Incorrect number of removed node properties.", 0,transactionResponse.getModifications().getRemovedNodePropertiesCount());
+        assertEquals("Incorrect number of assigned labels.", 3, transactionResponse.getModifications().getAssignedLabelsCount());
+        assertEquals("Incorrect number of removed labels.", 0,transactionResponse.getModifications().getRemovedLabelsCount());
+
+        DatabaseModifications.CreatedNode createdNode1 = transactionResponse.getModifications().getCreatedNodes(0);
+        String nodeUUID1 = createdNode1.getNodeUUID();
+        assertFalse("Empty UUID", nodeUUID1.isEmpty());
+
+        assertTrue("Could not find created node property in modification list.", transactionResponse
+                .getModifications()
+                .getAssignedNodePropertiesList()
+                .stream()
+                .anyMatch(item -> nodeUUID1.equals(item.getNodeUUID()) && "name".equals(item.getKey()) && !item.getValue().isEmpty()));
+
+        assertTrue("Could not find created node label in modification list.", transactionResponse
+                .getModifications()
+                .getAssignedLabelsList()
+                .stream()
+                .anyMatch(item -> nodeUUID1.equals(item.getNodeUUID()) && "Person".equals(item.getName())));
+
+        DatabaseModifications.CreatedNode createdNode2 = transactionResponse.getModifications().getCreatedNodes(1);
+        String nodeUUID2 = createdNode2.getNodeUUID();
+        assertFalse("Empty UUID", nodeUUID2.isEmpty());
+
+        assertTrue("Could not find created node property in modification list.", transactionResponse
+                .getModifications()
+                .getAssignedNodePropertiesList()
+                .stream()
+                .anyMatch(item -> nodeUUID2.equals(item.getNodeUUID()) && "name".equals(item.getKey()) && !item.getValue().isEmpty()));
+
+        assertTrue("Could not find created node label in modification list.", transactionResponse
+                .getModifications()
+                .getAssignedLabelsList()
+                .stream()
+                .anyMatch(item -> nodeUUID2.equals(item.getNodeUUID()) && "Person".equals(item.getName())));
+
+        DatabaseModifications.CreatedNode createdNode3 = transactionResponse.getModifications().getCreatedNodes(2);
+        String nodeUUID3 = createdNode3.getNodeUUID();
+        assertFalse("Empty UUID", nodeUUID3.isEmpty());
+
+        assertTrue("Could not find created node property in modification list.", transactionResponse
+                .getModifications()
+                .getAssignedNodePropertiesList()
+                .stream()
+                .anyMatch(item -> nodeUUID3.equals(item.getNodeUUID()) && "name".equals(item.getKey()) && !item.getValue().isEmpty()));
+
+        assertTrue("Could not find created node label in modification list.", transactionResponse
+                .getModifications()
+                .getAssignedLabelsList()
+                .stream()
+                .anyMatch(item -> nodeUUID3.equals(item.getNodeUUID()) && "Person".equals(item.getName())));
     }
 
     @Test
-    public void testTransactionWithoutUUIDPrefix() {
+    public void testSingleTransactionMultipleQueriesEmptyResult() {
 
-        TransactionRequest request = TransactionRequest.newBuilder()
-                .addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })")
+        // Execute
+        TransactionRequest transactionRequest = TransactionRequest.newBuilder()
+                .addQueries("CREATE (n:Person { name: 'Sjoerd' })")
+                .addQueries("MATCH (n:Person { name: 'Sjoerd' }) DELETE n")
+                .setTransactionId("txID2")
                 .build();
+        BlockExecuteRequest executeRequest = BlockExecuteRequest.newBuilder()
+                .addTransactions(transactionRequest)
+                .setBlockId(getBlockID())
+                .build();
+        BlockExecuteResponse executeResponse = blockingStub.executeBlock(executeRequest);
 
-        TransactionResponse response = blockingStub.execute(request);
-        assert (response.getResult() == Status.FAILURE);
+        assertTrue(executeResponse.getSuccess());
 
+        // Retrieve
+        BlockChangesRequest changesRequest = BlockChangesRequest.newBuilder()
+                .setBlockId(getBlockID())
+                .build();
+        BlockChangesResponse changeResponse = blockingStub.retrieveBlockChanges(changesRequest);
+
+        assertEquals("Received block has incorrect block id", getBlockID(), changeResponse.getBlockId());
+        assertEquals("Received block has incorrect transaction count", 1, changeResponse.getTransactionsCount());
+
+        TransactionResponse transactionResponse = changeResponse.getTransactions(0);
+
+        assertEquals(transactionResponse.getResult(), Status.SUCCESS);
+        assertEquals(transactionResponse.getTransactionId(), transactionRequest.getTransactionId());
+        assertTrue(transactionResponse.hasModifications());
+
+        // Compare changes
+        assertEquals("Incorrect number of nodes created.", 0, transactionResponse.getModifications().getCreatedNodesCount());
+        assertEquals("Incorrect number of nodes deleted.", 0, transactionResponse.getModifications().getDeletedNodesCount());
+        assertEquals("Incorrect number of relationships created.", 0, transactionResponse.getModifications().getCreatedRelationshipsCount());
+        assertEquals("Incorrect number of relationships deleted.", 0, transactionResponse.getModifications().getDeletedRelationshipsCount());
+        assertEquals("Incorrect number of assigned relationship properties.", 0, transactionResponse.getModifications().getAssignedRelationshipPropertiesCount());
+        assertEquals("Incorrect number of removed relationship properties.", 0, transactionResponse.getModifications().getRemovedRelationPropertiesCount());
+        assertEquals("Incorrect number of assigned node properties.", 0, transactionResponse.getModifications().getAssignedNodePropertiesCount());
+        assertEquals("Incorrect number of removed node properties.", 0,transactionResponse.getModifications().getRemovedNodePropertiesCount());
+        assertEquals("Incorrect number of assigned labels.", 0, transactionResponse.getModifications().getAssignedLabelsCount());
+        assertEquals("Incorrect number of removed labels.", 0,transactionResponse.getModifications().getRemovedLabelsCount());
     }
 
     @Test
-    public void testSingleNodeSuccessTransaction() {
+    public void testMultipleTransactionsMultipleQueries() {
 
-        TransactionRequest request = TransactionRequest.newBuilder()
-                .setUUIDPrefix(TEST_PREFIX)
-                .addQueries("CREATE (n:Person { name: 'Sjoerd', title: 'Developer' })")
-                .build();
-        TransactionResponse response = blockingStub.execute(request);
+        int nr_transactions = 50;
+        int nr_queries = 50;
 
-        assert (response.getResult() == Status.SUCCESS);
-        assert (response.getModifications().getCreatedNodesCount()==1);
-        assert (response.getModifications().getAssignedNodePropertiesCount()==2);
-        assert (response.getModifications().getAssignedLabelsCount()==1);
+        BlockExecuteRequest.Builder bkBuilder = BlockExecuteRequest.newBuilder();
+        bkBuilder.setBlockId(getBlockID());
 
-        request = TransactionRequest.newBuilder()
-                .setUUIDPrefix(TEST_PREFIX + "2")
-                .addQueries("MATCH (n:Person) SET n.name =  'peter'")
-                .build();
-        response = blockingStub.execute(request);
+        for (int i = 0; i < nr_transactions; i++) {
 
-        assert (response.getResult() == Status.SUCCESS);
-        assert (response.getModifications().getAssignedNodePropertiesList().get(0).getValue().equals("peter"));
-        assert (response.getModifications().getAssignedNodePropertiesCount()==1);
-        assert (response.getModifications().getRemovedNodePropertiesCount()==0);
+            TransactionRequest.Builder txBuilder = TransactionRequest.newBuilder();
+            txBuilder.setTransactionId("txID" + i);
 
-        request = TransactionRequest.newBuilder()
-                .setUUIDPrefix(TEST_PREFIX + "3")
-                .addQueries("MATCH (n:Person) DELETE n")
-                .build();
-        response = blockingStub.execute(request);
-
-        assert (response.getResult() == Status.SUCCESS);
-        assert (response.getModifications().getDeletedNodes(0).getNodeUUID().equals("myPrefix_0"));
-        assert (response.getModifications().getDeletedNodesCount()==1);
-        assert (response.getModifications().getRemovedNodePropertiesCount()==3);
-        assert (response.getModifications().getRemovedLabelsCount()==1);
-
-    }
-
-    @Test
-    public void testSingleUUIDAllocation() {
-
-        TransactionRequest request = TransactionRequest.newBuilder()
-                .addQueries("CREATE (n:Person { name:\"Silver\"})")
-                .setUUIDPrefix(TEST_PREFIX)
-                .build();
-        TransactionResponse response = blockingStub.execute(request);
-
-        assert  (response.getModifications().getCreatedNodes(0).getNodeUUID().equals("myPrefix_0"));
-        assert  (response.getModifications().getAssignedNodePropertiesList().stream().filter(prop -> prop.getKey().equals(Properties.UUID)).collect(Collectors.toList()).size()==0);
-        assert (response.getResult() == Status.SUCCESS);
-
-        request = TransactionRequest.newBuilder()
-                .addQueries("MATCH (n:Person) WHERE n.name=\"Silver\"  DELETE n")
-                .setUUIDPrefix(TEST_PREFIX + "2")
-                .build();
-        response = blockingStub.execute(request);
-
-        assert  (response.getModifications().getDeletedNodes(0).getNodeUUID().equals("myPrefix_0"));
-        assert  (response.getModifications().getRemovedNodePropertiesList().stream().filter(prop -> prop.getKey().equals(Properties.UUID)).collect(Collectors.toList()).size()==1);
-        assert (response.getResult() == Status.SUCCESS);
-    }
-
-    @Test
-    public void testMultipleUUIDAllocation(){
-        TransactionRequest request = TransactionRequest.newBuilder()
-                .addQueries("CREATE (n:Person {title: 'Tester' })")
-                .addQueries("CREATE (n:Person {title: 'Manager' })")
-                .setUUIDPrefix(TEST_PREFIX + "2")
-                .build();
-        TransactionResponse response = blockingStub.execute(request);
-
-        assert  (response.getModifications().getCreatedNodes(0).getNodeUUID().equals("myPrefix2_0"));
-        assert  (response.getModifications().getCreatedNodes(1).getNodeUUID().equals("myPrefix2_1"));
-        assert  (response.getModifications().getAssignedNodePropertiesList().stream().filter(prop -> prop.getKey().equals(Properties.UUID)).collect(Collectors.toList()).size()==0);
-        assert (response.getResult() == Status.SUCCESS);
-
-        request = TransactionRequest.newBuilder()
-                .addQueries("MATCH (n:Person) WHERE n.title='Tester'  DELETE n")
-                .addQueries("MATCH (n:Person) WHERE n.title='Manager'  DELETE n")
-                .setUUIDPrefix(TEST_PREFIX + "2")
-                .build();
-        response = blockingStub.execute(request);
-
-        assert  (response.getModifications().getDeletedNodes(0).getNodeUUID().equals("myPrefix2_0"));
-        assert  (response.getModifications().getDeletedNodes(1).getNodeUUID().equals("myPrefix2_1"));
-        assert  (response.getModifications().getRemovedNodePropertiesList().stream().filter(prop -> prop.getKey().equals(Properties.UUID)).collect(Collectors.toList()).size()==2);
-        assert (response.getResult() == Status.SUCCESS);
-    }
-
-   @Test
-    public void testModifyUUIDTransaction() {
-
-        TransactionRequest request = TransactionRequest.newBuilder()
-                .setUUIDPrefix(TEST_PREFIX)
-                .addQueries("CREATE (n:Person { id: '2', title: 'Developer' })")
-                .build();
-        TransactionResponse response = blockingStub.execute(request);
-
-        assert (response.getResult() == Status.SUCCESS);
-
-        request = TransactionRequest.newBuilder()
-                .setUUIDPrefix(TEST_PREFIX + "2")
-                .addQueries("MATCH (n:Person) SET n."+ Properties.UUID + " =  'modifiedUUID'")
-                .build();
-        response = blockingStub.execute(request);
-
-        assert (response.getResult() == Status.FAILURE);
-    }
-
-    @Test
-    public void testInvalidQueryTransaction() {
-
-        TransactionRequest request = TransactionRequest.newBuilder()
-                .setUUIDPrefix(TEST_PREFIX)
-                .addQueries("FakeQuery")
-                .build();
-        TransactionResponse response = blockingStub.execute(request);
-
-        assert (response.getResult() == Status.FAILURE);
-    }
-
-
-    public void testMultipleThreadsTransaction() {
-
-        int number = 100;
-
-        Thread transactionThreads[] = new Thread[number];
-
-        for (int j = 0; j < number; j++) {
-            transactionThreads[j] = new Thread(() -> {
-
-                Random random = new Random();
-                try {
-                    Thread.sleep(random.nextInt(500));
-                } catch (Exception ex) {
-                }
-
-                TransactionRequest request = TransactionRequest.newBuilder().setUUIDPrefix(TEST_PREFIX).addQueries(" CREATE (n)").build();
-                TransactionResponse response = blockingStub.verify(request);
-
-                assert (response.getResult() == Status.SUCCESS);
-
-            });
-            transactionThreads[j].start();
-        }
-        try {
-            for (int j = 0; j < number; j++) {
-                transactionThreads[j].join();
+            for (int j = 0; j < nr_queries; j++) {
+                txBuilder.addQueries("CREATE (n:Person { name: 'Sjoerd_" + i + "_" + j + "' })");
             }
-        } catch (Exception e) {
-            System.out.println("Exception during thread joining occurred.");
+
+            bkBuilder.addTransactions(txBuilder);
+        }
+
+        // Execute
+        BlockExecuteResponse executeResponse = blockingStub.executeBlock(bkBuilder.build());
+        assertTrue(executeResponse.getSuccess());
+
+        // Retrieve
+        BlockChangesRequest changesRequest = BlockChangesRequest.newBuilder()
+                .setBlockId(getBlockID())
+                .build();
+        BlockChangesResponse changeResponse = blockingStub.retrieveBlockChanges(changesRequest);
+
+        assertEquals("Received block has incorrect block id", getBlockID(), changeResponse.getBlockId());
+        assertEquals("Received block has incorrect transaction count", nr_transactions, changeResponse.getTransactionsCount());
+
+        // Compare changes
+        for (int i = 0; i < nr_transactions; i++) {
+
+            TransactionResponse transactionResponse = changeResponse.getTransactions(i);
+
+            assertEquals("Incorrect number of nodes created.", nr_queries, transactionResponse.getModifications().getCreatedNodesCount());
+            assertEquals("Incorrect number of nodes deleted.", 0, transactionResponse.getModifications().getDeletedNodesCount());
+            assertEquals("Incorrect number of relationships created.", 0, transactionResponse.getModifications().getCreatedRelationshipsCount());
+            assertEquals("Incorrect number of relationships deleted.", 0, transactionResponse.getModifications().getDeletedRelationshipsCount());
+            assertEquals("Incorrect number of assigned relationship properties.", 0, transactionResponse.getModifications().getAssignedRelationshipPropertiesCount());
+            assertEquals("Incorrect number of removed relationship properties.", 0, transactionResponse.getModifications().getRemovedRelationPropertiesCount());
+            assertEquals("Incorrect number of assigned node properties.", nr_queries, transactionResponse.getModifications().getAssignedNodePropertiesCount());
+            assertEquals("Incorrect number of removed node properties.", 0,transactionResponse.getModifications().getRemovedNodePropertiesCount());
+            assertEquals("Incorrect number of assigned labels.", nr_queries, transactionResponse.getModifications().getAssignedLabelsCount());
+            assertEquals("Incorrect number of removed labels.", 0,transactionResponse.getModifications().getRemovedLabelsCount());
+
+            // Check if for every node, the related label and name property is in the modification list.
+            for (int j = 0; j < nr_queries; j++) {
+
+                DatabaseModifications.CreatedNode createdNode = transactionResponse.getModifications().getCreatedNodes(j);
+                String nodeUUID = createdNode.getNodeUUID();
+                assertFalse("Empty UUID", nodeUUID.isEmpty());
+
+                // New created node property exists
+                assertTrue(transactionResponse
+                        .getModifications()
+                        .getAssignedNodePropertiesList()
+                        .stream()
+                        .anyMatch(item -> nodeUUID.equals(item.getNodeUUID()) && "name".equals(item.getKey())));
+
+                // New created label exists
+                assertTrue(transactionResponse
+                        .getModifications()
+                        .getAssignedLabelsList()
+                        .stream()
+                        .anyMatch(item -> nodeUUID.equals(item.getNodeUUID()) && "Person".equals(item.getName())));
+
+            }
         }
     }
 
-    @Test
-    public void testUUIDCounter() {
-
-        TransactionRequest request = TransactionRequest.newBuilder()
-                .addQueries("CREATE (n:Person {name:'Sjoerd'})")
-                .addQueries("CREATE (m:Person {name:'Silver'})")
-                .addQueries("MATCH (n:Person),(m:Person) " +
-                        "WHERE n.name = 'Sjoerd' AND m.name = 'Silver' " +
-                        "CREATE (n)-[t:TO]->(m)")
-                .setUUIDPrefix(TEST_PREFIX)
-                .build();
-        TransactionResponse response = blockingStub.execute(request);
-
-        assert (response.getResult() == Status.SUCCESS);
-        assert  (response.getModifications().getCreatedNodes(0).getNodeUUID().equals("myPrefix_0"));
-        assert  (response.getModifications().getCreatedNodes(1).getNodeUUID().equals("myPrefix_1"));
-        assert  (response.getModifications().getCreatedRelationships(0).getRelationshipUUID().equals("myPrefix_2"));
-
-
-        request = TransactionRequest.newBuilder().addQueries("CREATE (o)").setUUIDPrefix("myPrefix1").build();
-        response = blockingStub.execute(request);
-
-        assert  (response.getModifications().getCreatedNodes(0).getNodeUUID().equals("myPrefix1_0"));
-        assert (response.getResult() == Status.SUCCESS);
-
-        request = TransactionRequest.newBuilder()
-                .addQueries("CREATE (p:Person {name:'John'})")
-                .addQueries("MATCH (p:Person) WHERE p.name='John' DELETE p")
-                .addQueries("CREATE (q)")
-                .setUUIDPrefix(TEST_PREFIX + "2")
-                .build();
-        response = blockingStub.execute(request);
-
-        assert  (response.getModifications().getCreatedNodes(0).getNodeUUID().equals("myPrefix2_0"));
-        assert  (response.getModifications().getCreatedNodesCount()==1);
-        assert (response.getResult() == Status.SUCCESS);
-    }
-
-    @Test
-    public void testAllTransactionDataResponseFields() {
-        TransactionRequest request = TransactionRequest.newBuilder()
-                .addQueries("CREATE (n:Person {name:'Sjoerd'})")
-                .addQueries("CREATE (m:Person {name:'Silver'})")
-                .addQueries("MATCH (n:Person),(m:Person) " +
-                        "WHERE n.name = 'Sjoerd' AND m.name = 'Silver' " +
-                        "CREATE (n)-[t:TO{weight:1}]->(m)")
-                .setUUIDPrefix(TEST_PREFIX)
-                .build();
-        TransactionResponse response = blockingStub.execute(request);
-
-        assert (response.getResult() == Status.SUCCESS);
-        assert  (response.getModifications().getCreatedNodesCount()==2);
-        assert  (response.getModifications().getCreatedRelationshipsCount()==1);
-        assert  (response.getModifications().getAssignedLabelsCount()==2);
-        assert  (response.getModifications().getAssignedNodePropertiesCount()==2);
-        assert  (response.getModifications().getAssignedRelationshipPropertiesCount()==1);
-
-        request = TransactionRequest.newBuilder()
-                .addQueries("MATCH (:Person)-[t:TO]->(:Person) " +
-                        "DELETE t")
-                .addQueries("MATCH (n:Person) " +
-                        "WHERE n.name='Sjoerd' " +
-                        "DELETE n")
-                .addQueries("MATCH (m:Person) " +
-                        "WHERE m.name='Silver' " +
-                        "DELETE m")
-                .setUUIDPrefix(TEST_PREFIX + "2")
-                .build();
-        response = blockingStub.execute(request);
-
-        assert (response.getResult() == Status.SUCCESS);
-        assert  (response.getModifications().getDeletedNodesCount()==2);
-        assert  (response.getModifications().getDeletedRelationshipsCount()==1);
-        assert  (response.getModifications().getRemovedLabelsCount()==2);
-        assert  (response.getModifications().getRemovedNodePropertiesCount()==4); //2+2 with UUIDs
-        assert  (response.getModifications().getRemovedRelationPropertiesCount()==2); //1+1 with UUIDs
+    private String getBlockID() {
+        return "block_id" + block_id;
     }
 }
+

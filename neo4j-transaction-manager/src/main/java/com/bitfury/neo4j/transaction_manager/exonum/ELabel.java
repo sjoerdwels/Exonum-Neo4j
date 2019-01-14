@@ -1,6 +1,8 @@
 package com.bitfury.neo4j.transaction_manager.exonum;
 
-public class ELabel {
+import java.util.Comparator;
+
+public class ELabel implements Comparable<ELabel> {
 
     private String nodeUUID;
     private String name;
@@ -18,6 +20,10 @@ public class ELabel {
         return name;
     }
 
-
-
+    @Override
+    public int compareTo(ELabel o) {
+        return Comparator.comparing(ELabel::getNodeUUID)
+                .thenComparing(ELabel::getName)
+                .compare(this, o);
+    }
 }
