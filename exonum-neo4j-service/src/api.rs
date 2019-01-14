@@ -105,7 +105,6 @@ impl Neo4JApi {
     ) -> api::Result<CommitResponse> {
         let transaction: Box<dyn Transaction> = query.into();
         let tx_hash = transaction.hash();
-        println!("tx_hash is {}", tx_hash.to_string());
 
         match state.sender().send(transaction) {
             Ok(()) =>   Ok(CommitResponse { tx_hash: tx_hash, error_msg: format!("") }),

@@ -1,14 +1,12 @@
 
-
-
 curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
   "body": {
-    "queries": "CREATE (n:Person {name:\'Indrek2\', money:100})"
+    "queries": "CREATE (n:Person {name:\'Indrek3\', money:100})"
   },
   "protocol_version": 0,
   "service_id": 144,
   "message_id": 0,
-  "signature":"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+  "signature":"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
 }'
 
 curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
@@ -19,6 +17,26 @@ curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services
   "service_id": 144,
   "message_id": 0,
   "signature":"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+}'
+
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
+  "body": {
+    "queries": "MATCH ()-[r]-() DELETE r"
+  },
+  "protocol_version": 0,
+  "service_id": 144,
+  "message_id": 0,
+  "signature":"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+}'
+
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
+  "body": {
+    "queries": "MATCH (i) DELETE i"
+  },
+  "protocol_version": 0,
+  "service_id": 144,
+  "message_id": 0,
+  "signature":"9f684227f1de663775848123b656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
 }'
 
 curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
@@ -63,9 +81,7 @@ curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services
 
 curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/transactions
 
-curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/node_history?node_name=u1
-
-curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/node_history?node_name=6bcec96d..._0
+curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/node_history?node_uuid=b7d484ebd8d1566e8c1b4f6bb6b264e0a764e996ef23e4c3996697dd28bd049c_0
 
 curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/transaction?hash_string=71afce3e6a18a05376fccf766bfba321aa801af0ea6aef1a07b30e521363b3f8
 curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/transaction?hash_string=a052c745d3a616d6f68561aebdaf28dfeeb7a367f799b92c35c7d59388cebbd6

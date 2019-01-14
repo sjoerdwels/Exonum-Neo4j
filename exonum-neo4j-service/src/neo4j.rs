@@ -43,12 +43,12 @@ impl Neo4jRpc {
         }
     }
 
-    pub fn execute_block(&self, block: Block, core_schema : CoreSchema<&Snapshot>, schema : Schema<&Snapshot>) -> ExecuteResponse {
+    pub fn execute_block(&self, block: Block, block_hash: &str, core_schema : CoreSchema<&Snapshot>, schema : Schema<&Snapshot>) -> ExecuteResponse {
 
         let transactions = core_schema.block_transactions(block.height());
 
         let mut request = BlockExecuteRequest::new();
-        request.set_block_id(block.state_hash().to_hex().as_str().to_string());
+        request.set_block_id(block_hash.to_string());
         let mut trans_vector : Vec<TransactionRequest> = Vec::new();
         for trans_hash in transactions.iter() {
             let potential_trans = schema.neo4j_transaction(&trans_hash);

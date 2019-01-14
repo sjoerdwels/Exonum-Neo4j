@@ -13,7 +13,8 @@ use schema::Schema;
 use structures::{NodeChange, Neo4jTransaction, ErrorMsg};
 use neo4j::{Neo4jRpc, ExecuteResponse, Neo4jConfig, generate_database_changes_from_proto};
 use neo4j::transaction_manager::{Status, BlockChangesResponse};
-use neo4j::ExecuteResponse::ChangeResponse;
+use neo4j::ExecuteResponse::{ChangeResponse, Error as DBError};
+
 use NEO4J_SERVICE_ID;
 
 use grpc::RequestOptions;
@@ -33,6 +34,7 @@ transactions! {
 
         ///Retrieves all changes from Neo4j that are supposed to be executed.
         struct AuditBlocks {
+            block_id: &str,
         }
     }
 }
@@ -91,36 +93,14 @@ impl AuditBlocks {
         let neo4j_rpc = Neo4jRpc::new(neo4j_config);
 
         let last_block_option = schema.get_last_confirmed_block();
+        let mut last_block_index = 0;
         match last_block_option {
             Some(block_hash) => {
                 let block_option = all_blocks.get(&block_hash);
                 match block_option {
                     Some(block) => {
-                        for x in block.height().0+1..all_blocks_by_height.len() {
-                            let added_block_hash = all_blocks_by_height.get(x);
-                            match added_block_hash {
-                                Some(block) => {
-                                    let mut ignore = true;
-                                    let h = Height(x);
-                                    let transactions = core_schema.block_transactions(h);
-                                    for trans in transactions.iter() {
-                                        match schema.neo4j_transaction(&trans) {
-                                            Some(_) => ignore = false,
-                                            None => {}
-                                        }
-                                    }
-                                    if ignore {
-                                        continue
-                                    }
-                                    match neo4j_rpc.retrieve_block_changes(block) {
-                                        ChangeResponse(changes) => { returnVector.push(changes) },
-                                        _ => {} //TODO error handling
-                                    }
-                                },
-                                None => {} //TODO shouldn't get here but error handling.
-                            }
+                        last_block_index = block.height().0+1;
 
-                        }
                     },
                     None => {
                         //TODO should not get here
@@ -128,20 +108,34 @@ impl AuditBlocks {
                 }
 
             },
-            None => {
-                for x in 0..all_blocks_by_height.len() {
-                    let added_block_hash = all_blocks_by_height.get(x);
-                    match added_block_hash {
-                        Some(block) => {
-                            match neo4j_rpc.retrieve_block_changes(block) {
-                                ChangeResponse(changes) => { returnVector.push(changes) },
-                                _ => {} //TODO error handling
-                            }
-                        },
-                        None => {} //TODO shouldn't get here but error handling.
+            None => {}
+        }
+        for x in last_block_index..all_blocks_by_height.len() {
+            let added_block_hash = all_blocks_by_height.get(x);
+            match added_block_hash {
+                Some(block) => {
+                    let mut ignore = true;
+                    let h = Height(x);
+                    let transactions = core_schema.block_transactions(h);
+                    for trans in transactions.iter() {
+                        match schema.neo4j_transaction(&trans) {
+                            Some(_) => ignore = false,
+                            None => {}
+                        }
                     }
-                }
+                    if ignore {
+                        continue
+                    }
+
+                    match neo4j_rpc.retrieve_block_changes(block) {
+                        ChangeResponse(changes) => { returnVector.push(changes) },
+                        DBError(e) => {println!("{:?}", e.msg())},//TODO error handling
+                        _ => {}
+                    }
+                },
+                None => {} //TODO shouldn't get here but error handling.
             }
+
         }
         returnVector
     }
