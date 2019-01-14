@@ -123,7 +123,7 @@ impl AuditBlocks {
                         }
                     },
                     None => {
-                        //TODO return Err(ExecutionError::from(ErrorMsg::new("Block does not exist in RockDB :: critical error")));
+                        //TODO should not get here
                     }
                 }
 
@@ -222,37 +222,5 @@ impl Transaction for CommitQueries {
 
         schema.add_neo4j_transaction(q, &hash);
         Ok(())
-
-        /*
-                // todo : Why are queries proviced via a string???
-        let queries = queries.split(";");
-        let queries : Vec<::std::string::String> = split.map(|s| s.to_string()).collect();
-
-        let execResult : ExecuteResponse = q.execute(&mut schema);
-        let neo4j_config = neo4j::Neo4jConfig{
-            address : String::from("127.0.0.1"),
-            port : 9994
-        };
-
-        let neo4j_rpc = neo4j::Neo4jRpc::new(neo4j_config);
-        let result : ExecutionResult = match execResult {
-            ExecuteResponse::Changes(node_changes) => {
-                for nc in node_changes{
-                    for uuid in nc.get_uuis(){
-                        schema.add_node_history(uuid, &nc)
-                    }
-                }
-
-                Ok(())
-            },
-            ExecuteResponse::Error(e) => {
-                println!("We got error {}", e.msg());
-                let q = Neo4jTransaction::new(self.queries(), format!("We got error: {}", e.msg()).as_str());
-                schema.add_query(q);
-                Ok(())
-            }
-        };
-
-        result*/
     }
 }

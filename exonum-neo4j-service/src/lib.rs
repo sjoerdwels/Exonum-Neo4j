@@ -46,6 +46,7 @@ pub mod structures;
 pub mod util;
 
 use transactions::Neo4JTransactions;
+use transactions::AuditBlocks;
 
 use exonum::{
     api::ServiceApiBuilder,
@@ -110,7 +111,11 @@ impl blockchain::Service for Neo4jService {
                         let result = self.neo4j.execute_block(block, core_schema, schema);
                         match result {
                             OkExe(_) => {
-                                //TODO create new transaction for auditing.
+                                let tx_sender = context.transaction_sender();
+                                let new_tx = AuditBlocks::new(context.secret_key());
+                                match tx_sender.send(Box::new(new_tx)) {
+                                    _ => {}
+                                };
                             },
                             _ => {} //No need to do anything
                         }
