@@ -30,6 +30,8 @@ transactions! {
         struct CommitQueries {
             ///Queries for the transaction
             queries: &str,
+            ///Date and time, it is to separate same queries, which is plausible thing to happen
+            datetime: &str,
         }
 
         ///Retrieves all changes from Neo4j that are supposed to be executed.
