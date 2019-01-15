@@ -15,7 +15,7 @@
 //! Cryptocurrency database schema.
 
 use exonum::{
-    crypto::{hash, Hash}, storage::{Fork, MapIndex, ProofListIndex, ProofMapIndex, Snapshot,},
+    crypto::{hash, Hash}, storage::{Fork, MapIndex, ListIndex, ProofListIndex, ProofMapIndex, Snapshot,},
 };
 
 use std::string::String;
@@ -52,7 +52,6 @@ where
     pub fn get_last_confirmed_block(&self) -> Option<Hash> {
         let index : MapIndex<&T, String, Hash> = MapIndex::new("neo4j.values", &self.view);
         index.get(&String::from("lastConfirmedBlock"))
-
     }
 
     ///Get a single query, by giving transaction hash as key
@@ -74,6 +73,11 @@ where
     pub fn node_history(&self, node_name: &str) -> ProofListIndex<&T, NodeChange> {
         ProofListIndex::new(format!("neo4j.node_changes_{}", node_name), &self.view)
 
+    }
+
+    ///Get blocks that were audited by a Audit transaction.
+    pub fn audited_blocks(&self, transaction_hash: &Hash) -> ListIndex<&T, Hash> {
+        ListIndex::new(format!("neo4j.audited_block_{}", transaction_hash.to_hex().as_str()), &self.view)
     }
 
     ///Get state hash
@@ -134,5 +138,10 @@ impl<'a> Schema<&'a mut Fork> {
     ///Add to node history
     pub fn add_node_history(&mut self, uuid: &str, node_change: &NodeChange){
         self.node_history_mut(uuid).push(node_change.clone())
+    }
+
+    pub fn add_audited_block(&mut self, transaction_hash: &Hash, block_hash: Hash) {
+        let mut index : ListIndex<&mut Fork, Hash> = ListIndex::new(format!("neo4j.audited_block_{}", transaction_hash.to_hex().as_str()), &mut self.view);
+        index.push(block_hash);
     }
 }

@@ -60,7 +60,6 @@ impl Neo4JApi {
 
     /// Endpoint for dumping all queries from the storage.
     pub fn get_queries(state: &ServiceApiState, _query: ()) -> api::Result<Vec<Neo4jTransaction>> {
-        print!("Collecting queries");
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
         let idx = schema.neo4j_transactions();

@@ -11,7 +11,7 @@ use exonum::{
 
 use schema::Schema;
 use structures::{NodeChange, Neo4jTransaction, ErrorMsg};
-use neo4j::{Neo4jRpc, ExecuteResponse, Neo4jConfig, generate_database_changes_from_proto};
+use neo4j::{get_neo4j_rpc_client, ExecuteResponse, generate_database_changes_from_proto};
 use neo4j::transaction_manager::{Status, BlockChangesResponse};
 use neo4j::ExecuteResponse::{ChangeResponse, Error as DBError};
 
@@ -88,11 +88,8 @@ impl AuditBlocks {
 
         let mut returnVector : Vec<BlockChangesResponse> = Vec::new();
 
-        let neo4j_config = Neo4jConfig{
-            address : String::from("127.0.0.1"),
-            port : 9994
-        };
-        let neo4j_rpc = Neo4jRpc::new(neo4j_config);
+
+        let neo4j_rpc = get_neo4j_rpc_client();
 
         let last_block_option = schema.get_last_confirmed_block();
         let mut last_block_index = 0;
@@ -102,10 +99,9 @@ impl AuditBlocks {
                 match block_option {
                     Some(block) => {
                         last_block_index = block.height().0+1;
-
                     },
                     None => {
-                        //TODO should not get here
+                        println!("ERROR: Should not be here 001");//shouldn't get here
                     }
                 }
 
@@ -113,9 +109,9 @@ impl AuditBlocks {
             None => {}
         }
         for x in last_block_index..all_blocks_by_height.len() {
-            let added_block_hash = all_blocks_by_height.get(x);
-            match added_block_hash {
-                Some(block) => {
+            let block_hash_option = all_blocks_by_height.get(x);
+            match block_hash_option {
+                Some(block_hash) => {
                     let mut ignore = true;
                     let h = Height(x);
                     let transactions = core_schema.block_transactions(h);
@@ -129,29 +125,36 @@ impl AuditBlocks {
                         continue
                     }
 
-                    match neo4j_rpc.retrieve_block_changes(block) {
+                    match neo4j_rpc.retrieve_block_changes(block_hash) {
                         ChangeResponse(changes) => { returnVector.push(changes) },
                         DBError(e) => {println!("{:?}", e.msg())},//TODO error handling
                         _ => {}
                     }
                 },
-                None => {} //TODO shouldn't get here but error handling.
+                None => {println!("ERROR: Should not be here 002");} //shouldn't get here
             }
 
         }
         returnVector
     }
 
-    pub fn add_changes_to_exonum(&self, fork: &mut Fork, changes_per_block : Vec<BlockChangesResponse>){
+    pub fn add_changes_to_exonum(&self, fork: &mut Fork, changes_per_block : Vec<BlockChangesResponse>, current_transaction: Hash){
         let mut schema: Schema<&mut Fork> = Schema::new(fork);
         for block_changes in changes_per_block {
+            match Hash::from_hex(block_changes.get_block_id()){
+                Ok(block_hash) => {
+                    schema.add_audited_block(&current_transaction, block_hash);
+                },
+                _ => {println!("ERROR: Should not be here 003");} //Should not get here
+            }
+
             for transaction_changes in block_changes.get_transactions() {
                 match Hash::from_hex(transaction_changes.get_transaction_id()){
                     Ok(transaction_hash) => {
                         match transaction_changes.get_result() {
                             Status::SUCCESS => {
                                 let changes = transaction_changes.get_modifications();
-                                let change_vec: Vec<NodeChange> = generate_database_changes_from_proto(changes, &mut schema);
+                                let change_vec: Vec<NodeChange> = generate_database_changes_from_proto(changes, &mut schema, transaction_changes.get_transaction_id());
                                 for nc in change_vec {
                                     for uuid in nc.get_uuis() {
                                         schema.add_node_history(uuid, &nc)
@@ -196,8 +199,9 @@ impl Transaction for AuditBlocks {
     }
 
     fn execute(&self, fork: &mut Fork) -> ExecutionResult {
+        let hash = self.hash();
         let changes = self.retrieve_changes_from_neo4j(fork);
-        self.add_changes_to_exonum(fork, changes);
+        self.add_changes_to_exonum(fork, changes, hash);
         self.update_last_block(fork);
         Ok(())
     }

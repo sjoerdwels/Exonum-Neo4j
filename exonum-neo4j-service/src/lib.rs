@@ -111,7 +111,8 @@ impl blockchain::Service for Neo4jService {
                 let block_option = core_schema.blocks().get(&block_hash);
                 match block_option {
                     Some(block) => {
-                        let result = self.neo4j.execute_block(block, block_hash.to_hex().as_str(), core_schema, schema);
+
+                        let result = self.neo4j.execute_block(&block, block_hash.to_hex().as_str(), &core_schema, &schema);
                         match result {
                             OkExe(_) => {
                                 let tx_sender = context.transaction_sender();
@@ -123,6 +124,7 @@ impl blockchain::Service for Neo4jService {
                             //NoCommits(_) => println!("Nothing to commit"),
                             _ => {} //No need to do anything
                         }
+                        self.neo4j.remove_audited_changes(block, core_schema, schema);
                     },
                     None => {}
                 }
@@ -153,12 +155,7 @@ impl fabric::ServiceFactory for Neo4jServiceFactory {
             Err(e) => println!("error: {:?}", e),
         };
 
-        let neo4j_config = neo4j::Neo4jConfig{
-            address : String::from("127.0.0.1"),
-            port : 9994
-        };
-
-        let neo4j_rpc = neo4j::Neo4jRpc::new(neo4j_config);
+        let neo4j_rpc = neo4j::get_neo4j_rpc_client();
 
         let service = Neo4jService::new(neo4j_rpc);
 
