@@ -35,6 +35,7 @@ public class ModificationsTest {
     public static final int NODE_NO_LABEL = 4;
 
     @Before
+    @SuppressWarnings( "deprecation" ) // The settings API will be completely rewritten in 4.0
     public void setUp() {
         db = new TestGraphDatabaseFactory()
                 .newImpermanentDatabaseBuilder()
@@ -42,7 +43,7 @@ public class ModificationsTest {
                 .newGraphDatabase();
 
         channel = ManagedChannelBuilder.forAddress("localhost", TEST_GRPC_PORT)
-                .usePlaintext(true)
+                .usePlaintext()
                 .build();
 
         blockingStub = TransactionManagerGrpc.newBlockingStub(channel);
