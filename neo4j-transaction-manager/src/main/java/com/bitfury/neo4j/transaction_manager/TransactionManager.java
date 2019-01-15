@@ -162,7 +162,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
         BlockChangesResponse.Builder builder = BlockChangesResponse.newBuilder();
 
-        userLog.error("method=retrieveBlockChanges message=Retrieving block changes for block " + request.getBlockId());
+        userLog.info("method=retrieveBlockChanges message=Retrieving block changes for block " + request.getBlockId());
 
         try {
             File file = new File(getDatabaseChangesFolder(), request.getBlockId());
@@ -191,7 +191,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
         if (file.exists() && file.isFile()) {
 
-            if(file.delete()) {
+            if (file.delete()) {
                 responseObserver.onNext(DeleteBlockResponse.newBuilder().setSuccess(true).build());
                 userLog.info("method=deleteBlockRequest error=Deleted file for block_id=" + request.getBlockId());
             } else {
@@ -327,6 +327,11 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
     public void afterCommit(TransactionData transactionData) {
 
         switch (TransactionData.get().getStatus()) {
+            case INITIAL:
+
+                userLog.error("method=afterCommit, TmData.status=" + TransactionData.get().getStatus() + ", external transactions should not be allowed.");
+                break;
+
             case READY_TO_COMMIT:
 
                 TransactionData.get().committed();
@@ -334,7 +339,6 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                 storeTransactionModifications(transactionData);
 
                 TransactionData.get().finished();
-
                 break;
             default:
                 userLog.debug("method=afterCommit, TmData.status=" + TransactionData.get().getStatus() + ", transaction data not  processed");

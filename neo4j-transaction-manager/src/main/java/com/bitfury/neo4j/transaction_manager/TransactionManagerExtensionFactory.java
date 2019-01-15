@@ -46,7 +46,9 @@ public class TransactionManagerExtensionFactory extends KernelExtensionFactory<T
             this.dependencies = dependencies;
         }
 
+
         @Override
+        @SuppressWarnings("unchecked")
         public void start() {
 
             // Create TransactionManager
