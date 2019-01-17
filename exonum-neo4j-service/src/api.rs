@@ -12,6 +12,7 @@ use exonum::{
 use structures::{Neo4jTransaction};
 use schema::Schema;
 use transactions::Neo4JTransactions;
+use std::cmp;
 
 use std::io;
 
@@ -50,6 +51,7 @@ encoding_struct! {
     }
 }
 
+///Node history line, includes transaction hash in hex format and description
 encoding_struct! {
     struct NodeHistoryLine {
         ///transaction_id
@@ -105,6 +107,23 @@ impl Neo4JApi {
     }
 
 
+    /// Endpoint for dumping all queries from the storage.
+    pub fn get_last5_queries(state: &ServiceApiState, _query: ()) -> api::Result<Vec<Neo4jTransaction>> {
+        let snapshot = state.snapshot();
+        let schema = Schema::new(snapshot);
+        let idx = schema.neo4j_transactions_ordered();
+        let mut r_vec : Vec<Neo4jTransaction> = Vec::new();
+
+        for hash in idx.iter_from(cmp::max(0, idx.len()-5)) {
+            let trans_option = schema.neo4j_transaction(&hash);
+            match trans_option {
+                Some(trans) => r_vec.push(trans),
+                None => {}
+            }
+        }
+        Ok(r_vec)
+    }
+
     
     /// Common processing for transaction-accepting endpoints.
     pub fn post_transaction(
@@ -130,6 +149,7 @@ impl Neo4JApi {
             .endpoint("v1/transactions", Self::get_queries)
             .endpoint("v1/node_history", Self::get_node_history)
             .endpoint("v1/transaction", Self::get_query)
+            .endpoint("v1/last5_transactions", Self::get_last5_queries)
             .endpoint_mut("v1/insert_transaction", Self::post_transaction);
     }
 }
