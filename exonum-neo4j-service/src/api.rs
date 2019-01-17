@@ -14,7 +14,6 @@ use schema::Schema;
 use transactions::Neo4JTransactions;
 
 use std::io;
-use std::string::String;
 
 /// Describes the query parameters for the `insert_transaction` endpoint.
 encoding_struct! {
@@ -51,6 +50,15 @@ encoding_struct! {
     }
 }
 
+encoding_struct! {
+    struct NodeHistoryLine {
+        ///transaction_id
+        transaction_id: &str,
+        ///description
+        description: &str,
+    }
+}
+
 /// Public service API description.
 #[derive(Debug, Clone)]
 pub struct Neo4JApi;
@@ -84,13 +92,14 @@ impl Neo4JApi {
     }
 
     /// Endpoint for getting a single node's history by providing it's uuid.
-    pub fn get_node_history(state: &ServiceApiState, query: NodeHistoryQuery) -> api::Result<Vec<String>> {
+    pub fn get_node_history(state: &ServiceApiState, query: NodeHistoryQuery) -> api::Result<Vec<NodeHistoryLine>> {
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
         let idx = schema.node_history(query.node_uuid());
         let mut values = Vec::new();
         for val in idx.iter(){
-            values.push(format!("{}", val));
+            let new_line: NodeHistoryLine = NodeHistoryLine::new(val.get_transaction_id(), format!("{}", val).as_str());
+            values.push(new_line);
         }
         Ok(values)
     }
