@@ -3,6 +3,8 @@ package com.bitfury.neo4j.transaction_manager;
 import com.bitfury.neo4j.transaction_manager.exonum.*;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.Status;
+import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.event.LabelEntry;
@@ -12,37 +14,64 @@ import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.Log;
 
-import java.io.IOException;
+import java.io.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
+/**
+ * @version 1.0
+ * @authors Indrek Ermolaev, Silver Vapper, Sjoerd Wels
+ */
 public class TransactionManager extends TransactionManagerGrpc.TransactionManagerImplBase {
 
     private GraphDatabaseAPI db;
 
     private Log userLog;
     private Server gRPCServer;
+    private Config config;
 
-    ThreadLocal<RequestStateMachine> TmData = new ThreadLocal<>();
+    ThreadLocal<TransactionStateMachine> TransactionData = new ThreadLocal<>();
 
     /**
-     * @param db
-     * @param config
-     * @param userLog
+     * @param db      The GraphDatabaseAPI
+     * @param config  The Neo4j config object
+     * @param userLog The log object for this file
      */
     TransactionManager(GraphDatabaseAPI db, Config config, Log userLog) {
 
         this.db = db;
         this.userLog = userLog;
+        this.config = config;
+
+        // Create folder to store block changes if not exists
+        try {
+
+            File f = getDatabaseChangesFolder();
+
+            if (f.exists() && f.isDirectory()) {
+                userLog.info("method=start message=block_changes folder already exists.");
+            } else {
+                if (f.mkdirs()) {
+                    userLog.info("method=start message=block_changes folder created.");
+                } else {
+                    throw new Exception("method=start message=block_changes folder does not exists and could not be created");
+                }
+            }
+        } catch (Exception e) {
+            userLog.error("method=start error=Exception message=could not create block_changes folder result=shutdown database");
+            db.shutdown();
+        }
 
         int port = Properties.GRPC_DEFAULT_PORT;
 
-        Optional<String> portConfig =  config.getRaw(Properties.GRPC_KEY_PORT);
-        if(portConfig.isPresent()) {
+        Optional<String> portConfig = config.getRaw(Properties.GRPC_KEY_PORT);
+        if (portConfig.isPresent()) {
             try {
                 port = Integer.parseInt(portConfig.get());
-            }catch (NumberFormatException ex){
+            } catch (NumberFormatException ex) {
                 userLog.info("method=constructor error=NumberFormatException could not parse gRPC config port = " + portConfig.get());
             }
         }
@@ -50,16 +79,21 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         // Create gRPC server
         gRPCServer = ServerBuilder.forPort(port).addService(this).build();
 
+        // todo
+        TransactionData.set(new TransactionStateMachine(null));
+
         userLog.info("method=constructor gRPCPort=" + port);
+
     }
 
     public void start() {
 
+        // Start gRPC server
         try {
             userLog.info("method=start");
             gRPCServer.start();
         } catch (IOException e) {
-            userLog.error("method=start error=IOException shutdown database");
+            userLog.error("method=start error=IOException message=could not start gRPC server result=shutdown database");
             db.shutdown();
         }
     }
@@ -69,62 +103,133 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         gRPCServer.shutdown();
     }
 
+    /**
+     * @param request
+     * @param responseObserver
+     */
     @Override
-    public void verify(TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
-        userLog.info("method=verifyTransaction request=" + request.toString());
-        processGRPCRequest(RequestStateMachine.TransactionType.VERIFY, request, responseObserver);
-    }
+    public void executeBlock(BlockExecuteRequest request, StreamObserver<BlockExecuteResponse> responseObserver) {
 
-    @Override
-    public void execute(TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
-        userLog.info("method=executeTransaction request=" + request.toString());
-        processGRPCRequest(RequestStateMachine.TransactionType.EXECUTE, request, responseObserver);
+        try {
+
+            BlockChangesResponse.Builder blockChanges = BlockChangesResponse.newBuilder();
+            blockChanges.setBlockId(request.getBlockId());
+
+            if (request.getBlockId().isEmpty()) {
+                userLog.error("method=executeBlock error=Missing block id");
+                throw new Exception("Block ID missing");
+            }
+
+            List<TransactionRequest> transactions = request.getTransactionsList();
+
+            // Execute each transaction
+            for (TransactionRequest transaction : transactions) {
+                TransactionResponse response = processTransaction(transaction);
+                blockChanges.addTransactions(response);
+            }
+
+            // Store block changes in file
+            try {
+
+                File file = new File(getDatabaseChangesFolder(), request.getBlockId());
+                FileOutputStream output = new FileOutputStream(file);
+                blockChanges.build().writeTo(output);
+                output.close();
+
+            } catch (FileNotFoundException e) {
+                userLog.error("method=BlockExecuteRequest error=FileNotFoundException message=could not create file for block_id=" + request.getBlockId());
+                throw new Exception("Could not write changes to file");
+            } catch (IOException e) {
+                userLog.error("method=retrieveBlockChanges error=IOException block_id=" + request.getBlockId());
+                throw new Exception("IOException in writing to file");
+            }
+
+            // Return result
+            responseObserver.onNext(BlockExecuteResponse.newBuilder().setSuccess(true).build());
+            responseObserver.onCompleted();
+
+        } catch (Exception e) {
+            responseObserver.onError(new StatusException(Status.INVALID_ARGUMENT.withDescription("Error = " + e.getMessage())));
+        }
     }
 
     /**
-     * Process a new gRPC request.
-     * <p>
-     * Creates a new thread local TmData object to store all related data to the gRPC request as the
-     * TransactionEventHandler has no reference to the gRPC executor instance. Then processes the
-     * request message and returns the result to the observer.
-     *
-     * @param type             The gRPC method type
-     * @param request          The request message
-     * @param responseObserver The responseObserver
+     * @param request
+     * @param responseObserver
      */
-    private void processGRPCRequest(RequestStateMachine.TransactionType type, TransactionRequest request, StreamObserver<TransactionResponse> responseObserver) {
+    @Override
+    public void retrieveBlockChanges(BlockChangesRequest request, StreamObserver<BlockChangesResponse> responseObserver) {
 
-        TmData.set(new RequestStateMachine(type, request.getUUIDPrefix()));
+        BlockChangesResponse.Builder builder = BlockChangesResponse.newBuilder();
 
-        processRequestMessage(request);
+        userLog.info("method=retrieveBlockChanges message=Retrieving block changes for block " + request.getBlockId());
 
-        responseObserver.onNext(TmData.get().getTransactionResponse());
+        try {
+            File file = new File(getDatabaseChangesFolder(), request.getBlockId());
+            userLog.debug("method=retrieveBlockChanges filePath=" + file.getAbsolutePath());
+            builder.mergeFrom(new FileInputStream(file));
+            responseObserver.onNext(builder.build());
+            responseObserver.onCompleted();
+        } catch (FileNotFoundException e) {
+            userLog.error("method=retrieveBlockChanges error=FileNotFoundException message=could not find block changes block_id=" + request.getBlockId());
+            responseObserver.onError(new StatusException(io.grpc.Status.NOT_FOUND.withDescription("Could not find the changes for this block.")));
+        } catch (IOException e) {
+            userLog.error("method=retrieveBlockChanges error=IOException block_id=" + request.getBlockId());
+            responseObserver.onError(new StatusException(io.grpc.Status.INTERNAL.withDescription("Internal IOException.")));
+        }
+    }
+
+    /**
+     * @param request
+     * @param responseObserver
+     */
+    @Override
+    public void deleteBlockChanges(DeleteBlockRequest request, StreamObserver<DeleteBlockResponse> responseObserver) {
+
+        File file = new File(getDatabaseChangesFolder(), request.getBlockId());
+        userLog.debug("method=deleteBlockChanges filePath=" + file.getAbsolutePath());
+
+        if (file.exists() && file.isFile()) {
+
+            if (file.delete()) {
+                responseObserver.onNext(DeleteBlockResponse.newBuilder().setSuccess(true).build());
+                userLog.info("method=deleteBlockRequest error=Deleted file for block_id=" + request.getBlockId());
+            } else {
+                responseObserver.onNext(DeleteBlockResponse.newBuilder().setSuccess(false).build());
+                userLog.error("method=deleteBlockRequest error=File exists but could not delete file for block_id=" + request.getBlockId());
+            }
+
+        } else {
+            responseObserver.onNext(DeleteBlockResponse.newBuilder().setSuccess(false).build());
+            userLog.error("method=deleteBlockRequest message=File does not exists block_id=" + request.getBlockId());
+
+        }
+
         responseObserver.onCompleted();
     }
 
     /**
-     * Process a new transaction request by executing the provided queries.
+     * Process a new transaction by executing the provided queries and assigning EUUID.
+     * <p>
+     * Creates a new thread local TmData object to store all related data to the transaction as the
+     * TransactionEventHandler has no reference to the Transaction Manager instance. T
      *
-     * @param request The request message
+     * @param request
+     * @return
+     * @throws Exception
      */
-    private void processRequestMessage(TransactionRequest request) {
+    private TransactionResponse processTransaction(TransactionRequest request) throws Exception {
 
-        userLog.info("method=executeRequest type=" + TmData.get().getTransactionType() + "totalQueries=" + request.getQueriesCount()
-                + " threadID=" + Thread.currentThread().getId());
-
-        if (request.getUUIDPrefix().isEmpty() && TmData.get().getTransactionType()==RequestStateMachine.TransactionType.EXECUTE) {
-            TmData.get().failure(
-                    new EError(EError.ErrorType.EMPTY_UUID_PREFIX, "Transaction is missing UUID prefix.")
-            );
-            return;
+        if (request.getTransactionId().isEmpty()) {
+            userLog.error("method=processTransaction error=Missing transaction id");
+            throw new Exception("Transaction ID missing");
         }
 
-        if (request.getQueriesCount() == 0) {
-            TmData.get().failure(
-                    new EError(EError.ErrorType.EMPTY_TRANSACTION, "No queries provided.")
-            );
-            return;
-        }
+        userLog.info("method=processTransaction transactionID=" + request.getTransactionId() + " totalQueries=" + request.getQueriesCount());
+
+        TransactionData.set(new TransactionStateMachine(request.getTransactionId()));
+
+        TransactionData.get().pending();
 
         List<String> queries = request.getQueriesList();
 
@@ -135,7 +240,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                     db.execute(query);
                 } catch (QueryExecutionException ex) {
 
-                    TmData.get().failure(
+                    TransactionData.get().failure(
                             new EError(
                                     new EFailedQuery(
                                             query,
@@ -148,7 +253,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
                 }
             }
 
-            if (!TmData.get().hasError() && TmData.get().getTransactionType() == RequestStateMachine.TransactionType.EXECUTE) {
+            if (!TransactionData.get().hasError()) {
                 tx.success();
             }
 
@@ -156,17 +261,29 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
             /* If the transaction was rolled back in this extension, the error is already provided.
                 Otherwise, an external extension prevented the transaction to be committed.
              */
-            if (!TmData.get().hasError()) {
-                TmData.get().failure(
+
+            if (!TransactionData.get().hasError()) {
+                TransactionData.get().failure(
                         new EError(EError.ErrorType.TRANSACTION_ROLLBACK, "Transaction was ready to be committed but rolled back.")
                 );
             }
+        } catch (ConstraintViolationException ex) {
+
+            TransactionData.get().failure(
+                    new EError(EError.ErrorType.CONSTRAINT_VIOLATION, ex.getMessage())
+            );
 
         } catch (Exception ex) {
-            TmData.get().failure(
+
+            // todo remove
+            System.out.println(ex.getClass() + " - " + ex.getMessage() + "  - " + ex.getCause());
+
+            TransactionData.get().failure(
                     new EError(EError.ErrorType.RUNTIME_EXCEPTION, "Runtime exception:  " + ex.getMessage())
             );
         }
+
+        return TransactionData.get().getTransactionResponse();
     }
 
     /**
@@ -177,12 +294,15 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      */
     public void beforeCommit(TransactionData transactionData) throws Exception {
 
-        switch (TmData.get().getStatus()) {
+        switch (TransactionData.get().getStatus()) {
             case INITIAL:
-// todo d
+                userLog.debug("method=beforeCommit, TmData.status=" + TransactionStateMachine.TransactionStatus.INITIAL + ", no gRPC transaction.");
+                throw new Exception("No gRPC transaction started, external transactions not allowed. ");
+            case PENDING:
+
                 if (hasPropertyChanged(transactionData, Properties.UUID, false)) {
 
-                    TmData.get().failure(
+                    TransactionData.get().failure(
                             new EError(EError.ErrorType.MODIFIED_UUID, "Transaction tried to modify UUID properties.")
                     );
                     throw new Exception("A query tried to modify a UUID, which is not allowed.");
@@ -190,11 +310,11 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
                 assignUUIDS(transactionData);
 
-                TmData.get().readyToCommit();
+                TransactionData.get().readyToCommit();
 
                 break;
             default:
-                userLog.debug("method=afterCommit, TmData.status=" + TmData.get().getStatus() + ", transaction data not  processed");
+                userLog.debug("method=afterCommit, TmData.status=" + TransactionData.get().getStatus() + ", transaction data not  processed");
         }
     }
 
@@ -206,18 +326,22 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      */
     public void afterCommit(TransactionData transactionData) {
 
-        switch (TmData.get().getStatus()) {
+        switch (TransactionData.get().getStatus()) {
+            case INITIAL:
+
+                userLog.error("method=afterCommit, TmData.status=" + TransactionData.get().getStatus() + ", external transactions should not be allowed.");
+                break;
+
             case READY_TO_COMMIT:
 
-                TmData.get().committed();
+                TransactionData.get().committed();
 
-                storeModifications(transactionData);
+                storeTransactionModifications(transactionData);
 
-                TmData.get().finished();
-
+                TransactionData.get().finished();
                 break;
             default:
-                userLog.debug("method=afterCommit, TmData.status=" + TmData.get().getStatus() + ", transaction data not  processed");
+                userLog.debug("method=afterCommit, TmData.status=" + TransactionData.get().getStatus() + ", transaction data not  processed");
         }
     }
 
@@ -227,31 +351,31 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      *
      * @param transactionData The changes that were attempted to be committed in this transaction.
      */
+    @SuppressWarnings("unused")
     public void afterRollback(TransactionData transactionData) {
-        TmData.get().rolledBack();
+        TransactionData.get().rolledBack();
     }
 
     /**
-     * @param transactionData
+     * @param transactionData The transaction data including all transaction changes
      */
     private void assignUUIDS(TransactionData transactionData) {
 
-        String uuid = TmData.get().getUuidPrefix();
-        int counter = 0;
+        String transaction_id = TransactionData.get().getTransactionID();
 
-        for (Node node : transactionData.createdNodes()) {
-            node.setProperty(Properties.UUID, Properties.concatUUID(uuid, counter));
-            counter++;
-        }
+        AtomicInteger atomicCounter = new AtomicInteger(0);
 
-        for (Relationship relationship : transactionData.createdRelationships()) {
-            relationship.setProperty(Properties.UUID, Properties.concatUUID(uuid, counter));
-            counter++;
-        }
+        StreamSupport.stream(transactionData.createdNodes().spliterator(), false).sorted(new NodeComparator()).forEach(node -> {
+            node.setProperty(Properties.UUID, Properties.concatUUID(transaction_id, atomicCounter.getAndIncrement()));
+        });
+
+        StreamSupport.stream(transactionData.createdRelationships().spliterator(), false).sorted(new RelationshipComparator()).forEach(relationship -> {
+            relationship.setProperty(Properties.UUID, Properties.concatUUID(transaction_id, atomicCounter.getAndIncrement()));
+        });
     }
 
     /**
-     * Store the TransactionData modifications in the RequestStateMachine.
+     * Store the TransactionData modifications in the TransactionStateMachine.
      * <p>
      * For removed relationships/nodes, the UUID is only available in the removedNodeProperties and
      * removedRelationshipProperties respectively. To retrieve the UUID based on
@@ -261,14 +385,14 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      * @param transactionData
      */
     // todo
-    private void storeModifications(TransactionData transactionData) {
+    private void storeTransactionModifications(TransactionData transactionData) {
 
-        RequestStateMachine tsm = TmData.get();
+        TransactionStateMachine tsm = TransactionData.get();
 
         EUUID relationUUID = (txData, id) -> {
 
             Optional<PropertyEntry<Relationship>> entity = StreamSupport.stream(txData.removedRelationshipProperties().spliterator(), true)
-                    .filter(p -> p.entity().getId() == id && p.key() == Properties.UUID)
+                    .filter(p -> p.entity().getId() == id && Objects.equals(p.key(), Properties.UUID))
                     .findFirst();
 
             if (entity.isPresent()) {
@@ -281,7 +405,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         EUUID nodeUUID = (txData, id) -> {
 
             Optional<PropertyEntry<Node>> entity = StreamSupport.stream(txData.removedNodeProperties().spliterator(), true)
-                    .filter(p -> p.entity().getId() == id && p.key() == Properties.UUID)
+                    .filter(p -> p.entity().getId() == id && Objects.equals(p.key(), Properties.UUID))
                     .findFirst();
 
             if (entity.isPresent()) {
@@ -344,35 +468,38 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
             }
 
             for (PropertyEntry<Node> property : transactionData.removedNodeProperties()) {
-                tsm.addRemovedNodeProperty(new EProperty(
-                        nodeUUID.getUUID(transactionData, property.entity().getId()),
-                        property.key()
-                ));
+
+                if (!property.key().equals(Properties.UUID)) {
+                    tsm.addRemovedNodeProperty(new EProperty(
+                            nodeUUID.getUUID(transactionData, property.entity().getId()),
+                            property.key()
+                    ));
+                }
             }
 
             for (PropertyEntry<Relationship> property : transactionData.assignedRelationshipProperties()) {
+
                 tsm.addAssignedRelationshipProperty(new EProperty(
                         relationUUID.getUUID(transactionData, property.entity().getId()),
                         property.key(),
                         property.value().toString()
                 ));
+
             }
 
             for (PropertyEntry<Relationship> property : transactionData.removedRelationshipProperties()) {
-                tsm.addRemovedRelationshipProperty(new EProperty(
-                        relationUUID.getUUID(transactionData, property.entity().getId()),
-                        property.key()
-                ));
+                if (!property.key().equals(Properties.UUID)) {
+                    tsm.addRemovedRelationshipProperty(new EProperty(
+                            relationUUID.getUUID(transactionData, property.entity().getId()),
+                            property.key()
+                    ));
+                }
             }
 
             tx.success();
-
-        } catch (Exception ex) {
-            System.out.println("Exception was thrown " + ex.getMessage());
         }
 
-        TmData.set(tsm);
-
+        TransactionData.set(tsm);
     }
 
     /**
@@ -380,41 +507,55 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      * <p>
      * By default, if an entity is removed, all the assigned properties to that entity will be marked as removed.
      * If incEntityRemoved is false, it will not result in an property change if the entity of the property was removed
-     *  as well.
+     * as well.
      *
      * @param txData           The transaction data with changes.
      * @param key              The key of the property
      * @param incEntityRemoved Boolean in case of the property entity is removed should result in a property change.
-     * @return
+     * @return Whether a property key was set or changed
      */
     private boolean hasPropertyChanged(TransactionData txData, String key, boolean incEntityRemoved) {
 
         for (PropertyEntry<Relationship> property : txData.assignedRelationshipProperties()) {
-            if (property.key() == key) {
+            if (Objects.equals(property.key(), key)) {
                 return true;
             }
         }
 
         for (PropertyEntry<Relationship> property : txData.removedRelationshipProperties()) {
-            if (incEntityRemoved || (property.key() == key && !StreamSupport.stream(txData.deletedRelationships().spliterator(), true)
+            if (incEntityRemoved || (Objects.equals(property.key(), key) && !StreamSupport.stream(txData.deletedRelationships().spliterator(), true)
                     .anyMatch(n -> n.getId() == property.entity().getId()))) {
                 return true;
             }
         }
 
         for (PropertyEntry<Node> property : txData.assignedNodeProperties()) {
-            if (property.key() == key) {
+            if (Objects.equals(property.key(), key)) {
                 return true;
             }
         }
 
         for (PropertyEntry<Node> property : txData.removedNodeProperties()) {
-            if (incEntityRemoved || (property.key() == key && !StreamSupport.stream(txData.deletedNodes().spliterator(), true)
+            if (incEntityRemoved || (Objects.equals(property.key(), key) && !StreamSupport.stream(txData.deletedNodes().spliterator(), true)
                     .anyMatch(n -> n.getId() == property.entity().getId()))) {
                 return true;
             }
         }
 
         return false;
+    }
+
+
+    private File getDatabaseChangesFolder() {
+
+        Optional<Object> value = config.getValue("dbms.directories.data");
+
+        if (!value.isPresent()) {
+            userLog.error("method=start error=Exception message=could not determine Neo4j data folder");
+            db.shutdown();
+        }
+
+        return new File(value.get().toString(), Properties.DATABASE_CHANGES_FOLDER);
+
     }
 }

@@ -7,6 +7,7 @@ public class EError {
         EMPTY_UUID_PREFIX,
         FAILED_QUERY,
         MODIFIED_UUID,
+        CONSTRAINT_VIOLATION,
         TRANSACTION_ROLLBACK,
         RUNTIME_EXCEPTION
     }

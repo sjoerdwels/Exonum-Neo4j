@@ -1,61 +1,88 @@
 
-
-
-curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transaction -d $'{
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
   "body": {
-    "queries": "CREATE (n:Person {name:\'Indrek\'})"
+    "queries": "CREATE (n:Person {name:\'Indrek3\', money:100}) RETURN n",
+    "datetime": "12:00:20 13-OCT-2018"
   },
   "protocol_version": 0,
   "service_id": 144,
   "message_id": 0,
-  "signature":"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+  "signature":"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
 }'
 
-curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transaction -d $'{
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
   "body": {
-    "queries": "CR EA TE  (n:Person {name:\'Indrek\'})"
+    "queries": "CREATE (n:Person {name:\'Indrek1\', money:100}) RETURN n",
+    "datetime": "12:00:20 14-OCT-2018"
   },
   "protocol_version": 0,
   "service_id": 144,
   "message_id": 0,
-  "signature":"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+  "signature":"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
 }'
 
-curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transaction -d $'{
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
   "body": {
-    "queries": "CREATE (n:Person {name:\'Indrek Klanberg\'})"
+    "queries": "CREATE (n:Person {name:\'Indrek2\', money:100}) RETURN n",
+    "datetime": "12:00:20 15-OCT-2018"
   },
   "protocol_version": 0,
   "service_id": 144,
   "message_id": 0,
-  "signature":"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+  "signature":"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
 }'
 
-curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transaction -d $'{
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
   "body": {
-    "queries": "MATCH (n:Person {name:\'Indrek\'}) MATCH (m:Person {name:\'Indrek Klanberg\'}) CREATE (n)-[:SAME_PERSON]->(m)"
+    "queries": "CREATE (n:Person {name:\'Indrek4\', money:100})",
+    "datetime": "12:00:20 16-OCT-2018"
   },
   "protocol_version": 0,
   "service_id": 144,
   "message_id": 0,
-  "signature":"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+  "signature":"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
 }'
 
-curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4J_blockchain/v1/insert_transactions -d '{
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
   "body": {
-    "queries": "abort;CREATE (n)"
+    "queries": "CREATE (n:Person {name:\'Indrek5\', money:100}) RETURN n",
+    "datetime": "12:00:20 17-OCT-2018"
   },
   "protocol_version": 0,
   "service_id": 144,
   "message_id": 0,
-  "signature":"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+  "signature":"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
 }'
 
-curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4J_blockchain/v1/transactions
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
+  "body": {
+    "queries": "CREATE (n:Person {name:\'Indrek6\', money:100})",
+    "datetime": "12:00:20 18-OCT-2018"
+  },
+  "protocol_version": 0,
+  "service_id": 144,
+  "message_id": 0,
+  "signature":"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+}'
 
-curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4J_blockchain/v1/node_history?node_name=u1
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
+  "body": {
+    "queries": "MATCH (i) DELETE i",
+    "datetime": "12:00:13 19-OCT-2018"
+  },
+  "protocol_version": 0,
+  "service_id": 144,
+  "message_id": 0,
+  "signature":"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+}'
 
-curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4J_blockchain/v1/node_history?node_name=6bcec96d..._0
 
-curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4J_blockchain/v1/transaction?hash_string=71afce3e6a18a05376fccf766bfba321aa801af0ea6aef1a07b30e521363b3f8
+curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/transactions
+curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/last_five_transactions
+
+curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/node_history?node_uuid=016e85d95cf22775a7d12905116c7676ac728cb2d9e745fa8688da5e3b306912_0
+
+curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/transaction?hash_string=71afce3e6a18a05376fccf766bfba321aa801af0ea6aef1a07b30e521363b3f8
+curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/transaction?hash_string=df0fd94b0d74cde910a909cced00352642e5e96ecf5478df7e906d57ad854fed
+curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/transaction?hash_string=a0b53aed7e16ee159c47cd498204b7452e8be566e39b7f2d8015e17df81cc863
 

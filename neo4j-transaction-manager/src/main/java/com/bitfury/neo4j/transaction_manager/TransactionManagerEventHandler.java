@@ -1,7 +1,6 @@
 package com.bitfury.neo4j.transaction_manager;
 
 import org.neo4j.graphdb.event.TransactionData;
-import org.neo4j.logging.internal.LogService;
 import org.neo4j.graphdb.event.TransactionEventHandler;
 import org.neo4j.logging.Log;
 
@@ -11,7 +10,7 @@ public class TransactionManagerEventHandler implements TransactionEventHandler {
     private Log userLog;
 
     public TransactionManagerEventHandler(TransactionManager transactionManager, Log userLog) {
-        this.manager = transactionManager;
+        manager = transactionManager;
         this.userLog = userLog;
     }
 

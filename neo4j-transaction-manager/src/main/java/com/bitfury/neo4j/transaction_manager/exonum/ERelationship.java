@@ -1,6 +1,8 @@
 package com.bitfury.neo4j.transaction_manager.exonum;
 
-public class ERelationship {
+import java.util.Comparator;
+
+public class ERelationship implements Comparable<ERelationship> {
 
     private String UUID;
     private String type;
@@ -30,4 +32,12 @@ public class ERelationship {
         return this.endNodeUUID;
     }
 
+    @Override
+    public int compareTo(ERelationship o) {
+        return Comparator.comparing(ERelationship::getUUID)
+                .thenComparing(ERelationship::getType)
+                .thenComparing(ERelationship::getStartNodeUUID)
+                .thenComparing(ERelationship::getEndNodeUUID)
+                .compare(this, o);
+    }
 }

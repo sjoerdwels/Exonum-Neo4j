@@ -20,7 +20,9 @@ encoding_struct! {
     ///add node
     struct AddNode {
         ///node uuid, made of transaction hash for prefix and index.
-        node_uuid: &str
+        node_uuid: &str,
+        ///hash value for the the transaction it is part of
+        transaction_id: &str,
     }
 }
 
@@ -29,7 +31,9 @@ encoding_struct! {
     ///remove node
     struct RemoveNode {
         ///node uuid
-        node_uuid: &str
+        node_uuid: &str,
+        ///hash value for the the transaction it is part of
+        transaction_id: &str,
     }
 }
 
@@ -44,7 +48,9 @@ encoding_struct! {
         ///from node uuid
         from_uuid: &str,
         ///to node uuid
-        to_uuid: &str
+        to_uuid: &str,
+        ///hash value for the the transaction it is part of
+        transaction_id: &str,
     }
 }
 
@@ -56,6 +62,8 @@ encoding_struct! {
         node_uuid: &str,
         ///label name
         label_name: &str,
+        ///hash value for the the transaction it is part of
+        transaction_id: &str,
     }
 }
 
@@ -67,6 +75,8 @@ encoding_struct! {
         node_uuid: &str,
         ///label name
         label_name: &str,
+        ///hash value for the the transaction it is part of
+        transaction_id: &str,
     }
 }
 
@@ -80,6 +90,8 @@ encoding_struct! {
         key: &str,
         ///property new value
         value: &str,
+        ///hash value for the the transaction it is part of
+        transaction_id: &str,
     }
 }
 
@@ -91,6 +103,8 @@ encoding_struct! {
         node_uuid: &str,
         ///property key
         key: &str,
+        ///hash value for the the transaction it is part of
+        transaction_id: &str,
     }
 }
 
@@ -107,7 +121,9 @@ encoding_struct! {
         ///from node uuid
         from_uuid: &str,
         ///to node uuid
-        to_uuid: &str
+        to_uuid: &str,
+        ///hash value for the the transaction it is part of
+        transaction_id: &str,
     }
 }
 
@@ -123,7 +139,9 @@ encoding_struct! {
         ///from node uuid
         from_uuid: &str,
         ///to node uuid
-        to_uuid: &str
+        to_uuid: &str,
+        ///hash value for the the transaction it is part of
+        transaction_id: &str,
     }
 }
 
@@ -149,6 +167,7 @@ pub enum NodeChange {
     ///Remove existing relation property. Could be part of modification.
     RRP(RemoveRelationProperty),
 }
+
 
 
 
@@ -288,6 +307,20 @@ impl NodeChange {
             RRP(x) => vec![x.from_uuid(), x.to_uuid()],
         }
     }
+
+    pub fn get_transaction_id(&self) -> &str {
+        match self {
+            AN(x) => x.transaction_id(),
+            RN(x) => x.transaction_id(),
+            ANP(x) => x.transaction_id(),
+            RNP(x) => x.transaction_id(),
+            AL(x) => x.transaction_id(),
+            RL(x) => x.transaction_id(),
+            AR(x) => x.transaction_id(),
+            ARP(x) => x.transaction_id(),
+            RRP(x) => x.transaction_id(),
+        }
+    }
 }
 
 
@@ -299,6 +332,7 @@ encoding_struct! {
         msg: &str,
     }
 }
+
 
 ///Relation struct
 encoding_struct! {
@@ -318,18 +352,10 @@ encoding_struct! {
     struct Neo4jTransaction {
         ///queries themselves
         queries: &str,
-        ///hash for transaction where it is executed
-        transaction_hash: &Hash,
         ///error from the database if any.
         error_msg: &str,
+        ///Result, empty when not processed, otherwise either FAILURE or SUCCESS
+        result: &str,
     }
 }
 
-///Response we get from communicating with neo4j
-#[derive(Clone, Debug)]
-pub enum ExecuteResponse {
-    ///List of changes
-    Changes(Vec<NodeChange>),
-    ///error when something went wrong
-    Error(ErrorMsg),
-}

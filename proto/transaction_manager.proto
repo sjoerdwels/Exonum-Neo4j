@@ -99,6 +99,7 @@ message DatabaseModifications {
 
   message RemovedRelationshipProperty {
     string relationship_UUID = 1;
+    string key  = 2;
   }
 
   message RemovedNodeProperty {
@@ -127,6 +128,7 @@ enum ErrorCode {
   MODIFIED_UUID = 3;
   TRANSACTION_ROLLBACK = 4;
   RUNTIME_EXCEPTION =  5;
+  CONSTRAINT_VIOLATION = 6;
 }
 
 message Error {

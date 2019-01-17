@@ -9,12 +9,11 @@ use exonum::{
     encoding::serialize::FromHex,
 };
 
-use structures::{Queries};
+use structures::{Neo4jTransaction};
 use schema::Schema;
 use transactions::Neo4JTransactions;
 
 use std::io;
-use std::string::String;
 
 /// Describes the query parameters for the `insert_transaction` endpoint.
 encoding_struct! {
@@ -51,6 +50,15 @@ encoding_struct! {
     }
 }
 
+encoding_struct! {
+    struct NodeHistoryLine {
+        ///transaction_id
+        transaction_id: &str,
+        ///description
+        description: &str,
+    }
+}
+
 /// Public service API description.
 #[derive(Debug, Clone)]
 pub struct Neo4JApi;
@@ -59,22 +67,21 @@ pub struct Neo4JApi;
 impl Neo4JApi {
 
     /// Endpoint for dumping all queries from the storage.
-    pub fn get_queries(state: &ServiceApiState, _query: ()) -> api::Result<Vec<Queries>> {
-        print!("Collecting queries");
+    pub fn get_queries(state: &ServiceApiState, _query: ()) -> api::Result<Vec<Neo4jTransaction>> {
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
-        let idx = schema.queries();
+        let idx = schema.neo4j_transactions();
         let values = idx.values().collect();
         Ok(values)
     }
 
     /// Returns query based on provided hash.
-    pub fn get_query(state: &ServiceApiState, query: GetQueryQuery) -> api::Result<Queries> {
+    pub fn get_query(state: &ServiceApiState, query: GetQueryQuery) -> api::Result<Neo4jTransaction> {
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
         match Hash::from_hex(query.hash_string()) {
             Ok(query_hash) => {
-                let query = schema.query(&query_hash);
+                let query = schema.neo4j_transaction(&query_hash);
                 match query {
                     Some(x) => Ok(x),
                     None => Err(api::Error::from(io::Error::new(io::ErrorKind::Other, "No query found"))),
@@ -85,13 +92,14 @@ impl Neo4JApi {
     }
 
     /// Endpoint for getting a single node's history by providing it's uuid.
-    pub fn get_node_history(state: &ServiceApiState, query: NodeHistoryQuery) -> api::Result<Vec<String>> {
+    pub fn get_node_history(state: &ServiceApiState, query: NodeHistoryQuery) -> api::Result<Vec<NodeHistoryLine>> {
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
         let idx = schema.node_history(query.node_uuid());
         let mut values = Vec::new();
         for val in idx.iter(){
-            values.push(format!("{}", val));
+            let new_line: NodeHistoryLine = NodeHistoryLine::new(val.get_transaction_id(), format!("{}", val).as_str());
+            values.push(new_line);
         }
         Ok(values)
     }
@@ -105,7 +113,6 @@ impl Neo4JApi {
     ) -> api::Result<CommitResponse> {
         let transaction: Box<dyn Transaction> = query.into();
         let tx_hash = transaction.hash();
-        println!("tx_hash is {}", tx_hash.to_string());
 
         match state.sender().send(transaction) {
             Ok(()) =>   Ok(CommitResponse { tx_hash: tx_hash, error_msg: format!("") }),

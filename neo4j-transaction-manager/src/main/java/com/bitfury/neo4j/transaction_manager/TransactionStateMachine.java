@@ -5,28 +5,20 @@ import com.bitfury.neo4j.transaction_manager.exonum.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RequestStateMachine {
-
-    public enum TransactionType {
-        VERIFY,
-        EXECUTE
-    }
+public class TransactionStateMachine {
 
     public enum TransactionStatus {
         INITIAL,
+        PENDING,
         READY_TO_COMMIT,
         COMMITTED,
         FAILED,
-        FINISHED,
-        UUID_MODIFIED
+        FINISHED
     }
 
     private TransactionStatus status;
-    private TransactionType transactionType;
     private EError error;
-    private String uuidPrefix;
-
-    private boolean isCommitted = false;
+    private String transactionID;
 
     // Database modifications
     private List<ENode> createdENodes = new ArrayList<>();
@@ -45,11 +37,14 @@ public class RequestStateMachine {
     private List<EProperty> removedRelationshipProperties = new ArrayList<>();
 
 
-    public RequestStateMachine(TransactionType transactionType, String uuid_prefix) {
+    public TransactionStateMachine(String transactionID) {
         this.status = TransactionStatus.INITIAL;
-        this.transactionType = transactionType;
-        this.uuidPrefix = uuid_prefix;
+        this.transactionID = transactionID;
         this.error = null;
+    }
+
+    public void pending() {
+        this.status = TransactionStatus.PENDING;
     }
 
     public void readyToCommit() {
@@ -58,7 +53,6 @@ public class RequestStateMachine {
 
     public void committed() {
         this.status = TransactionStatus.COMMITTED;
-        this.isCommitted = true;
     }
 
     public void rolledBack() {
@@ -78,15 +72,8 @@ public class RequestStateMachine {
         return this.status;
     }
 
-
-    public String getUuidPrefix() {
-        return this.uuidPrefix;
-    }
-
-    public void uuidModified() { this.status = TransactionStatus.UUID_MODIFIED; }
-
-    public TransactionType getTransactionType() {
-        return this.transactionType;
+    public String getTransactionID() {
+        return this.transactionID;
     }
 
     public void addCreatedNode(ENode ENode) {
@@ -136,6 +123,7 @@ public class RequestStateMachine {
     public TransactionResponse getTransactionResponse() {
 
         TransactionResponse.Builder responseBuilder = TransactionResponse.newBuilder();
+        responseBuilder.setTransactionId(this.transactionID);
 
         if (isSuccess()) {
 
@@ -144,6 +132,7 @@ public class RequestStateMachine {
             DatabaseModifications.Builder modificationBuilder = DatabaseModifications.newBuilder();
 
             // Created nodes
+            createdENodes.sort(null);
             for (ENode ENode : createdENodes) {
                 modificationBuilder.addCreatedNodes(
                         DatabaseModifications.CreatedNode
@@ -153,6 +142,7 @@ public class RequestStateMachine {
             }
 
             // Deleted nodes
+            deletedENodes.sort(null);
             for (ENode ENode : deletedENodes) {
                 modificationBuilder.addDeletedNodes(
                         DatabaseModifications.DeletedNode
@@ -162,6 +152,7 @@ public class RequestStateMachine {
             }
 
             // Created relationships
+            createdERelationships.sort(null);
             for (ERelationship ERelationship : createdERelationships) {
                 modificationBuilder.addCreatedRelationships(
                         DatabaseModifications.CreatedRelationShip
@@ -175,6 +166,7 @@ public class RequestStateMachine {
             }
 
             // Deleted relationships
+            deletedERelationships.sort(null);
             for (ERelationship ERelationship : deletedERelationships) {
                 modificationBuilder.addDeletedRelationships(
                         DatabaseModifications.DeletedRelationship
@@ -184,6 +176,7 @@ public class RequestStateMachine {
             }
 
             // Assigned labels
+            assignedELabels.sort(null);
             for (ELabel ELabel : assignedELabels) {
                 modificationBuilder.addAssignedLabels(
                         DatabaseModifications.AssignedLabel
@@ -194,6 +187,7 @@ public class RequestStateMachine {
             }
 
             // Removed labels
+            removedELabels.sort(null);
             for (ELabel ELabel : removedELabels) {
                 modificationBuilder.addRemovedLabels(
                         DatabaseModifications.RemovedLabel
@@ -204,6 +198,7 @@ public class RequestStateMachine {
             }
 
             // Assigned node properties
+            assignedNodeProperties.sort(null);
             for (EProperty EProperty : assignedNodeProperties) {
 
                 DatabaseModifications.AssignedNodeProperty.Builder propertyBuilder =
@@ -218,6 +213,7 @@ public class RequestStateMachine {
             }
 
             // Removed node properties
+            removedNodeProperties.sort(null);
             for (EProperty EProperty : removedNodeProperties) {
 
                 modificationBuilder.addRemovedNodeProperties(
@@ -230,6 +226,7 @@ public class RequestStateMachine {
 
 
             // Assigned relationship properties
+            assignedRelationshipProperties.sort(null);
             for (EProperty EProperty : assignedRelationshipProperties) {
 
                 DatabaseModifications.AssignedRelationshipProperty.Builder propertyBuilder =
@@ -244,11 +241,13 @@ public class RequestStateMachine {
             }
 
             // Removed relationship properties
+            removedRelationshipProperties.sort(null);
             for (EProperty EProperty : removedRelationshipProperties) {
 
                 modificationBuilder.addRemovedRelationProperties(
                         DatabaseModifications.RemovedRelationshipProperty.newBuilder()
                                 .setRelationshipUUID(EProperty.getUUID())
+                                .setKey(EProperty.getKey())
                 );
             }
 
@@ -258,28 +257,43 @@ public class RequestStateMachine {
 
             responseBuilder.setResult(Status.FAILURE);
 
-            if( hasError() ) {
+            if (hasError()) {
                 Error.Builder errorBuilder = Error.newBuilder();
 
-                switch( error.getType() ) {
-                    case FAILED_QUERY:          errorBuilder.setCode(ErrorCode.FAILED_QUERY); break;
-                    case MODIFIED_UUID:         errorBuilder.setCode(ErrorCode.MODIFIED_UUID); break;
-                    case EMPTY_TRANSACTION:     errorBuilder.setCode(ErrorCode.EMPTY_TRANSACTION); break;
-                    case EMPTY_UUID_PREFIX:     errorBuilder.setCode(ErrorCode.EMPTY_UUID_PREFIX); break;
-                    case RUNTIME_EXCEPTION:     errorBuilder.setCode(ErrorCode.RUNTIME_EXCEPTION); break;
-                    case TRANSACTION_ROLLBACK:  errorBuilder.setCode(ErrorCode.FAILED_QUERY); break;
+                switch (error.getType()) {
+                    case FAILED_QUERY:
+                        errorBuilder.setCode(ErrorCode.FAILED_QUERY);
+                        break;
+                    case MODIFIED_UUID:
+                        errorBuilder.setCode(ErrorCode.MODIFIED_UUID);
+                        break;
+                    case EMPTY_TRANSACTION:
+                        errorBuilder.setCode(ErrorCode.EMPTY_TRANSACTION);
+                        break;
+                    case EMPTY_UUID_PREFIX:
+                        errorBuilder.setCode(ErrorCode.EMPTY_UUID_PREFIX);
+                        break;
+                    case RUNTIME_EXCEPTION:
+                        errorBuilder.setCode(ErrorCode.RUNTIME_EXCEPTION);
+                        break;
+                    case TRANSACTION_ROLLBACK:
+                        errorBuilder.setCode(ErrorCode.FAILED_QUERY);
+                        break;
+                    case CONSTRAINT_VIOLATION:
+                        errorBuilder.setCode(ErrorCode.CONSTRAINT_VIOLATION);
+                        break;
                 }
 
                 errorBuilder.setMessage(error.getMessage());
 
-                if( error.hasFailedQuery() ){
+                if (error.hasFailedQuery()) {
 
                     EFailedQuery failedQuery = error.getFailedQuery();
 
-                    FailedQuery.Builder failedQueryBullder = FailedQuery.newBuilder();
-                    failedQueryBullder.setError(failedQuery.getError());
-                    failedQueryBullder.setQuery(failedQuery.getQuery());
-                    errorBuilder.setFailedQuery(failedQueryBullder);
+                    FailedQuery.Builder failedQueryBuilder = FailedQuery.newBuilder();
+                    failedQueryBuilder.setError(failedQuery.getError());
+                    failedQueryBuilder.setQuery(failedQuery.getQuery());
+                    errorBuilder.setFailedQuery(failedQueryBuilder);
                 }
 
                 responseBuilder.setError((errorBuilder));
@@ -290,19 +304,7 @@ public class RequestStateMachine {
     }
 
     private boolean isSuccess() {
-
-        boolean success = false;
-
-        switch (this.transactionType) {
-            case VERIFY:
-                success = this.status == TransactionStatus.INITIAL;
-                break;
-            case EXECUTE:
-                success = this.status == TransactionStatus.FINISHED;
-                break;
-        }
-
-        return success;
+        return this.status == TransactionStatus.FINISHED;
     }
 
 

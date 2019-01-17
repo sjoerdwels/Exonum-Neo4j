@@ -15,6 +15,6 @@ fn main() {
 
     let node = NodeBuilder::new()
         .with_service(Box::new(configuration::ServiceFactory))
-        .with_service(Box::new(neo4j_service::ServiceFactory));
+        .with_service(Box::new(neo4j_service::Neo4jServiceFactory));
     node.run();
 }

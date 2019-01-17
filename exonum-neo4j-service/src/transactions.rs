@@ -2,17 +2,21 @@
 #![allow(warnings)]
 /// Transaction documentation
 use exonum::{
-    blockchain::{ExecutionResult, Transaction, ExecutionError},
+    blockchain::{Schema as CoreSchema, ExecutionResult, Transaction, ExecutionError},
     storage::{Fork},
-    crypto::{CryptoHash},
+    crypto::{CryptoHash, Hash},
+    encoding::serialize::FromHex,
+    helpers::Height,
 };
 
 use schema::Schema;
-use structures::{NodeChange, Queries, ExecuteResponse, ErrorMsg};
+use structures::{NodeChange, Neo4jTransaction, ErrorMsg};
+use neo4j::{get_neo4j_rpc_client, ExecuteResponse, generate_database_changes_from_proto};
+use neo4j::transaction_manager::{Status, BlockChangesResponse};
+use neo4j::ExecuteResponse::{ChangeResponse, Error as DBError};
+
 use NEO4J_SERVICE_ID;
 
-use proto::transaction_manager::Status;
-use proto::transaction_manager_grpc::TransactionManager;
 use grpc::RequestOptions;
 
 //use std::io::{self, Write};
@@ -26,6 +30,13 @@ transactions! {
         struct CommitQueries {
             ///Queries for the transaction
             queries: &str,
+            ///Date and time, it is to separate same queries, which is plausible thing to happen
+            datetime: &str,
+        }
+
+        ///Retrieves all changes from Neo4j that are supposed to be executed.
+        struct AuditBlocks {
+            block_id: &str,
         }
     }
 }
@@ -58,83 +69,158 @@ impl From<Error> for ExecutionError {
     }
 }
 
-impl Transaction for CommitQueries {
-    fn verify(&self) -> bool {
-        /*let hash = self.hash();
-        println!("Verifying!");
-        let req = get_commit_transaction_request(self.queries(), "hahshashhash");
-        //TODO implement getting neo4J server info from conf somehow.
-        let client = getClient(9994);
-        let resp = client.verify(RequestOptions::new(), req);
-        let answer = resp.wait();
-        let mut verified = false;
+impl From<ErrorMsg> for ExecutionError {
+    fn from(error: ErrorMsg) -> ExecutionError {
+        let description = format!("{}", error.msg());
+        ExecutionError::with_description(1 as u8, description)
+    }
+}
 
-        let result = match answer {
-            Ok(x) => {
-                match x.1.get_result() {
-                    Status::SUCCESS => {verified = true; Ok(())},
-                    Status::FAILURE => {
-                        //let error = x.1.get_error();
-                        verified = false;
-                        Err(Error::DataBaseError(error.get_message()))
+
+
+impl AuditBlocks {
+    pub fn retrieve_changes_from_neo4j(&self, fork: &Fork) -> Vec<BlockChangesResponse>{
+        let schema: Schema<&Fork> = Schema::new(fork);
+        let core_schema : CoreSchema<&Fork> = CoreSchema::new(&fork);
+        let all_blocks_by_height = core_schema.block_hashes_by_height();
+        let all_blocks = core_schema.blocks();
+
+
+        let mut returnVector : Vec<BlockChangesResponse> = Vec::new();
+
+
+        let neo4j_rpc = get_neo4j_rpc_client();
+
+        let last_block_option = schema.get_last_confirmed_block();
+        let mut last_block_index = 0;
+        match last_block_option {
+            Some(block_hash) => {
+                let block_option = all_blocks.get(&block_hash);
+                match block_option {
+                    Some(block) => {
+                        last_block_index = block.height().0+1;
+                    },
+                    None => {
+                        println!("ERROR: Should not be here 001");//shouldn't get here
                     }
                 }
+
             },
-            Err(_) => {
-                verified = false;
-                Err(Error::PossibleConnectionError(format!("{:?}", e)))
+            None => {}
+        }
+        for x in last_block_index..all_blocks_by_height.len() {
+            let block_hash_option = all_blocks_by_height.get(x);
+            match block_hash_option {
+                Some(block_hash) => {
+                    let mut ignore = true;
+                    let h = Height(x);
+                    let transactions = core_schema.block_transactions(h);
+                    for trans in transactions.iter() {
+                        match schema.neo4j_transaction(&trans) {
+                            Some(_) => ignore = false,
+                            None => {}
+                        }
+                    }
+                    if ignore {
+                        continue
+                    }
+
+                    match neo4j_rpc.retrieve_block_changes(block_hash) {
+                        ChangeResponse(changes) => { returnVector.push(changes) },
+                        DBError(e) => {println!("{:?}", e.msg())},//TODO error handling
+                        _ => {}
+                    }
+                },
+                None => {println!("ERROR: Should not be here 002");} //shouldn't get here
             }
-        };
-        match result {
-            Ok(_) => {},
-            Err(e) => {
+
+        }
+        returnVector
+    }
+
+    pub fn add_changes_to_exonum(&self, fork: &mut Fork, changes_per_block : Vec<BlockChangesResponse>, current_transaction: Hash){
+        let mut schema: Schema<&mut Fork> = Schema::new(fork);
+        for block_changes in changes_per_block {
+            match Hash::from_hex(block_changes.get_block_id()){
+                Ok(block_hash) => {
+                    schema.add_audited_block(&current_transaction, block_hash);
+                },
+                _ => {println!("ERROR: Should not be here 003");} //Should not get here
+            }
+
+            for transaction_changes in block_changes.get_transactions() {
+                match Hash::from_hex(transaction_changes.get_transaction_id()){
+                    Ok(transaction_hash) => {
+                        match transaction_changes.get_result() {
+                            Status::SUCCESS => {
+                                let changes = transaction_changes.get_modifications();
+                                let change_vec: Vec<NodeChange> = generate_database_changes_from_proto(changes, &mut schema, transaction_changes.get_transaction_id());
+                                for nc in change_vec {
+                                    for uuid in nc.get_uuis() {
+                                        schema.add_node_history(uuid, &nc)
+                                    }
+                                }
+                                schema.update_neo4j_transaction(&transaction_hash, "", "SUCCESS");
+                            }
+                            Status::FAILURE => {
+                                let error = transaction_changes.get_error();
+                                let failed_query = error.get_failed_query();
+                                let error_msg = format!("{}\nHappened in query: {}\n{}", error.get_message(), failed_query.get_query(), failed_query.get_error());
+                                schema.update_neo4j_transaction(&transaction_hash, error_msg.as_str(), "ERROR");
+                            }
+                        }
+                    },
+                    _ => {},
+                }
 
             }
         }
-        println!("Verified value is {}", verified);
-        verified*/
-        true //TODO maybe implement the signature checking since it is mandatory for .9, if we stay in this version.
+    }
+
+    pub fn update_last_block(&self, fork: &mut Fork){
+        let last_block = {
+            CoreSchema::new(&fork).block_hashes_by_height().last()
+        };
+
+        let mut schema: Schema<&mut Fork> = Schema::new(fork);
+        match last_block {
+            Some(hash) => {
+
+                schema.set_last_confirmed_block(hash)
+            },
+            None => {}
+        }
+    }
+}
+
+impl Transaction for AuditBlocks {
+    fn verify(&self) -> bool {
+        true
+    }
+
+    fn execute(&self, fork: &mut Fork) -> ExecutionResult {
+        let hash = self.hash();
+        let changes = self.retrieve_changes_from_neo4j(fork);
+        self.add_changes_to_exonum(fork, changes, hash);
+        self.update_last_block(fork);
+        Ok(())
+    }
+}
+
+impl Transaction for CommitQueries {
+    fn verify(&self) -> bool {
+        true
     }
 
     fn execute(&self, fork: &mut Fork) -> ExecutionResult {
 
         let hash = self.hash();
 
-        // todo : Why are queries proviced via a string???
-        let queries = queries.split(";");
-        let queries : Vec<::std::string::String> = split.map(|s| s.to_string()).collect();
-
-        // Get RPC object
-        let neo4j_config = neo4j::Neo4jConfig{
-            address : String::from("127.0.0.1"),
-            port : 9994
-        };
-
-        let neo4j_rpc = neo4j::Neo4jRpc::new(neo4j_config);
-
         let mut schema: Schema<&mut Fork> = Schema::new(fork);
 
-        let q = Queries::new(self.queries(), &hash, "");
+        let q = Neo4jTransaction::new(self.queries(), "", "PENDING");
 
-        let node_changes : ExecuteResponse = q.execute(&mut schema);
-        let result : ExecutionResult = match node_changes {
-            ExecuteResponse::Changes(node_changes) => {
-                for nc in node_changes{
-                    for uuid in nc.get_uuis(){
-                        schema.add_node_history(uuid, &nc)
-                    }
-                }
-                schema.add_query(q);
-                Ok(())
-            },
-            ExecuteResponse::Error(e) => {
-                println!("We got error {}", e.msg());
-                let q = Queries::new(self.queries(), &hash, format!("We got error: {}", e.msg()).as_str());
-                schema.add_query(q);
-                Ok(())
-            }
-        };
-
-        result
+        schema.add_neo4j_transaction(q, &hash);
+        Ok(())
     }
 }

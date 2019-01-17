@@ -1,6 +1,8 @@
 package com.bitfury.neo4j.transaction_manager.exonum;
 
-public class EProperty {
+import java.util.Comparator;
+
+public class EProperty implements Comparable<EProperty> {
 
     private String UUID;
     private String key;
@@ -28,5 +30,13 @@ public class EProperty {
 
     public String getValue() {
         return value;
+    }
+
+    @Override
+    public int compareTo(EProperty o) {
+        return Comparator.comparing(EProperty::getUUID)
+                .thenComparing(EProperty::getKey)
+                .thenComparing(EProperty::getValue)
+                .compare(this, o);
     }
 }

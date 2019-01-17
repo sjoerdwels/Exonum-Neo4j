@@ -39,7 +39,6 @@ extern crate toml;
 pub use schema::Schema;
 
 pub mod api;
-pub mod proto;
 pub mod neo4j;
 pub mod schema;
 pub mod transactions;
@@ -47,13 +46,16 @@ pub mod structures;
 pub mod util;
 
 use transactions::Neo4JTransactions;
+use transactions::AuditBlocks;
 
 use exonum::{
     api::ServiceApiBuilder,
-    blockchain::{self, Transaction, TransactionSet}, crypto::Hash,
+    blockchain::{self, Schema as CoreSchema, ServiceContext, Transaction, TransactionSet}, crypto::Hash,
     encoding::Error as EncodingError, helpers::fabric::{self, Context}, messages::RawTransaction,
     storage::Snapshot,
 };
+
+use neo4j::ExecuteResponse::*;
 
 /// Unique service ID.
 const NEO4J_SERVICE_ID: u16 = 144;
@@ -97,6 +99,39 @@ impl blockchain::Service for Neo4jService {
     }
 
     fn after_commit(&self, context: &ServiceContext) {
+        let snapshot = context.snapshot();
+
+
+        let core_schema = CoreSchema::new(snapshot);
+        let schema = Schema::new(snapshot);
+        let last_block = core_schema.block_hashes_by_height().last();
+
+        match last_block {
+            Some(block_hash) => {
+                let block_option = core_schema.blocks().get(&block_hash);
+                match block_option {
+                    Some(block) => {
+
+                        let result = self.neo4j.execute_block(&block, block_hash.to_hex().as_str(), &core_schema, &schema);
+                        match result {
+                            OkExe(_) => {
+                                let tx_sender = context.transaction_sender();
+                                let new_tx = AuditBlocks::new(block_hash.to_hex().as_str(), context.secret_key());
+                                match tx_sender.send(Box::new(new_tx)) {
+                                    _ => {}
+                                };
+                            },
+                            //NoCommits(_) => println!("Nothing to commit"),
+                            _ => {} //No need to do anything
+                        }
+                        self.neo4j.remove_audited_changes(block, core_schema, schema);
+                    },
+                    None => {}
+                }
+
+            },
+            None => {} //TODO Error, should never get here though, as we always have a last block in an after_commit
+        }
 
     }
 
@@ -120,16 +155,9 @@ impl fabric::ServiceFactory for Neo4jServiceFactory {
             Err(e) => println!("error: {:?}", e),
         };
 
-        let neo4j_config = neo4j::Neo4jConfig{
-            address : String::from("127.0.0.1"),
-            port : 9994
-        };
+        let neo4j_rpc = neo4j::get_neo4j_rpc_client();
 
-        let neo4j_rpc = neo4j::Neo4jRpc::new(neo4j_config);
-
-        let service = Neo4jService::new(
-           neo4j_rpc
-        );
+        let service = Neo4jService::new(neo4j_rpc);
 
         Box::new(service)
     }

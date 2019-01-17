@@ -15,10 +15,12 @@
 //! Cryptocurrency database schema.
 
 use exonum::{
-    crypto::{hash, Hash}, storage::{Fork, ProofListIndex, ProofMapIndex, Snapshot,},
+    crypto::{hash, Hash}, storage::{Fork, MapIndex, ListIndex, ProofListIndex, ProofMapIndex, Snapshot,},
 };
 
-use structures::{Queries, NodeChange, Relation};
+use std::string::String;
+
+use structures::{Neo4jTransaction, NodeChange, Relation};
 
 
 /// Database schema for the cryptocurrency.
@@ -43,13 +45,18 @@ where
     }
 
     /// Returns `ProofMapIndex` with queries.
-    pub fn queries(&self) -> ProofMapIndex<&T, Hash, Queries> {
+    pub fn neo4j_transactions(&self) -> ProofMapIndex<&T, Hash, Neo4jTransaction> {
         ProofMapIndex::new("neo4j.queries", &self.view)
     }
 
+    pub fn get_last_confirmed_block(&self) -> Option<Hash> {
+        let index : MapIndex<&T, String, Hash> = MapIndex::new("neo4j.values", &self.view);
+        index.get(&String::from("lastConfirmedBlock"))
+    }
+
     ///Get a single query, by giving transaction hash as key
-    pub fn query(&self, q_hash: &Hash) -> Option<Queries> {
-        self.queries().get(q_hash)
+    pub fn neo4j_transaction(&self, hash: &Hash) -> Option<Neo4jTransaction> {
+        self.neo4j_transactions().get(hash)
     }
 
     ///Get relations ProofMapIndex
@@ -68,24 +75,47 @@ where
 
     }
 
+    ///Get blocks that were audited by a Audit transaction.
+    pub fn audited_blocks(&self, transaction_hash: &Hash) -> ListIndex<&T, Hash> {
+        ListIndex::new(format!("neo4j.audited_block_{}", transaction_hash.to_hex().as_str()), &self.view)
+    }
+
     ///Get state hash
     pub fn state_hash(&self) -> Vec<Hash> {
-        vec![self.queries().merkle_root()]
+        vec![self.neo4j_transactions().merkle_root()]
     }
 }
 
 /// Implementation of mutable methods.
 impl<'a> Schema<&'a mut Fork> {
     ///Get all queries from database.
-    pub fn queries_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, Queries> {
+    pub fn neo4j_transactions_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, Neo4jTransaction> {
         ProofMapIndex::new("neo4j.queries", &mut self.view)
     }
 
     ///Add a new variable to the table.
-    pub fn add_query(&mut self, q: Queries) {
-        let hash = q.transaction_hash().clone();
-        self.queries_mut().put(&hash, q);
+    pub fn add_neo4j_transaction(&mut self, q: Neo4jTransaction, hash : &Hash) {
+        self.neo4j_transactions_mut().put(hash, q);
+    }
 
+    pub fn update_neo4j_transaction(&mut self, hash: &Hash, error_msg: &str, result: &str) {
+        match self.neo4j_transaction(hash) {
+            Some(neo4j_transaction) => {
+                let updated_transaction = Neo4jTransaction::new(neo4j_transaction.queries(), error_msg, result);
+                self.neo4j_transactions_mut().put(hash, updated_transaction);
+            },
+            None => {}
+        }
+    }
+
+    ///Sets last confirmed block, so that we will not try to retrieve changes for that and before anymore.
+    pub fn set_last_confirmed_block(&mut self, block_hash : Hash) {
+        let mut index : MapIndex<&mut Fork, String, Hash> = MapIndex::new("neo4j.values", &mut self.view);
+        let i_str = String::from("lastConfirmedBlock");
+        if index.contains(&i_str) {
+            index.remove(&i_str);
+        }
+        index.put(&i_str, block_hash);
     }
 
     ///Get mutable relations proofmapindex
@@ -108,5 +138,10 @@ impl<'a> Schema<&'a mut Fork> {
     ///Add to node history
     pub fn add_node_history(&mut self, uuid: &str, node_change: &NodeChange){
         self.node_history_mut(uuid).push(node_change.clone())
+    }
+
+    pub fn add_audited_block(&mut self, transaction_hash: &Hash, block_hash: Hash) {
+        let mut index : ListIndex<&mut Fork, Hash> = ListIndex::new(format!("neo4j.audited_block_{}", transaction_hash.to_hex().as_str()), &mut self.view);
+        index.push(block_hash);
     }
 }
