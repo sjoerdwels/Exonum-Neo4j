@@ -307,6 +307,20 @@ impl NodeChange {
             RRP(x) => vec![x.from_uuid(), x.to_uuid()],
         }
     }
+
+    pub fn get_transaction_id(&self) -> &str {
+        match self {
+            AN(x) => x.transaction_id(),
+            RN(x) => x.transaction_id(),
+            ANP(x) => x.transaction_id(),
+            RNP(x) => x.transaction_id(),
+            AL(x) => x.transaction_id(),
+            RL(x) => x.transaction_id(),
+            AR(x) => x.transaction_id(),
+            ARP(x) => x.transaction_id(),
+            RRP(x) => x.transaction_id(),
+        }
+    }
 }
 
 
