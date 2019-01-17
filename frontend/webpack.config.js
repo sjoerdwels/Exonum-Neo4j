@@ -1,50 +1,60 @@
 'use strict';
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const path = require('path');
+const Dotenv = require('dotenv-webpack');
 
-var webpack = require('webpack');
-var HtmlWebpackPlugin = require('html-webpack-plugin');
-
-/**
- * Get configuration for Webpack
- *
- * @see http://webpack.github.io/docs/configuration
- *      https://github.com/petehunt/webpack-howto
- *
- * @param {boolean} release True if configuration is intended to be used in
- * a release mode, false otherwise
- * @return {object} Webpack configuration
- */
 module.exports = {
-  entry: {
-    app: './src/app.js'
-  },
-
+  entry: './src/app.js',
   output: {
-    filename: 'app.js',
-    path: './build/',
-    publicPatch: './build/'
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'bundle.js'
   },
 
-  debug: true,
   devtool: false,
-
+  mode: 'development',
   stats: {
     colors: true,
     reasons: true
   },
 
   plugins: [
-    new HtmlWebpackPlugin({template: 'src/assets/index.html'})
+    new HtmlWebpackPlugin({template: 'src/assets/index.html'}),
+    new Dotenv()
   ],
 
   resolve: {
-    extensions: ['', '.webpack.js', '.web.js', '.js', '.jsx']
+    extensions: ['.webpack.js', '.web.js', '.js', '.jsx']
   },
 
   module: {
-    loaders: [
+    rules: [
       {
-        test: /\.css$/,
-        loader: 'style!css'
+        test: /\.(scss)$/,
+        use: [
+          {
+            // Adds CSS to the DOM by injecting a `<style>` tag
+            loader: 'style-loader'
+          },
+          {
+            // Interprets `@import` and `url()` like `import/require()` and will resolve them
+            loader: 'css-loader'
+          },
+          {
+            // Loader for webpack to process CSS with PostCSS
+            loader: 'postcss-loader',
+            options: {
+              plugins: function () {
+                return [
+                  require('autoprefixer')
+                ];
+              }
+            }
+          },
+          {
+            // Loads a SASS/SCSS file and compiles it to CSS
+            loader: 'sass-loader'
+          }
+        ]
       },
       {
         test:  /\.(jpe?g|png|gif|svg)$/i,
@@ -53,7 +63,7 @@ module.exports = {
       {
         test: /\.js|\.jsx/,
         exclude: /node_modules|bower_components/,
-        loader: 'babel'
+        loader: 'babel-loader'
       }
     ]
   }
