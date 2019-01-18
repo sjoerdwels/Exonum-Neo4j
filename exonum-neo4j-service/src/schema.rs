@@ -49,6 +49,11 @@ where
         ProofMapIndex::new("neo4j.queries", &self.view)
     }
 
+    /// Return queries in an ordered list
+    pub fn neo4j_transactions_ordered(&self) -> ProofListIndex<&T,Hash> {
+        ProofListIndex::new("neo4j.queries_ordered", &self.view)
+    }
+
     pub fn get_last_confirmed_block(&self) -> Option<Hash> {
         let index : MapIndex<&T, String, Hash> = MapIndex::new("neo4j.values", &self.view);
         index.get(&String::from("lastConfirmedBlock"))
@@ -93,9 +98,15 @@ impl<'a> Schema<&'a mut Fork> {
         ProofMapIndex::new("neo4j.queries", &mut self.view)
     }
 
+        ///Get a mutable prooflistindex for a node's history
+    pub fn neo4j_transaction_ordered_mut(&mut self) -> ProofListIndex<&mut Fork, Hash> {
+        ProofListIndex::new("neo4j.queries_ordered", &mut self.view)
+    }
+
     ///Add a new variable to the table.
     pub fn add_neo4j_transaction(&mut self, q: Neo4jTransaction, hash : &Hash) {
         self.neo4j_transactions_mut().put(hash, q);
+        self.neo4j_transaction_ordered_mut().push(hash.clone());
     }
 
     pub fn update_neo4j_transaction(&mut self, hash: &Hash, error_msg: &str, result: &str) {

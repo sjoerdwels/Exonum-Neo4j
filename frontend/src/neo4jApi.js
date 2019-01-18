@@ -1,14 +1,19 @@
-require('file?name=[name].[ext]!../node_modules/neo4j-driver/lib/browser/neo4j-web.min.js');
-var Movie = require('./models/Movie');
-var MovieCast = require('./models/MovieCast');
-var LabelStats = require('./models/LabelStats');
-var _ = require('lodash');
 
-var neo4j = window.neo4j.v1;
-var driver = neo4j.driver("bolt://localhost", neo4j.auth.basic("neo4j", "1234"));
+const neo4j = require('neo4j-driver').v1;
+const Movie = require('./models/Movie');
+const MovieCast = require('./models/MovieCast');
+const LabelStats = require('./models/LabelStats');
+const _ = require('lodash');
+
+const driver = neo4j.driver("bolt://" + process.env.NEO4J_BOLT_ADDRESS + ":" + + process.env.NEO4J_BOLT_PORT, neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD));
+
+driver.onError = function() {
+    console.log("Could not connect to Neo4j.");
+};
+
+const session = driver.session();
 
 function searchMovies(queryString) {
-  var session = driver.session();
   return session
     .run(
       'MATCH (movie:Movie) \
@@ -17,19 +22,16 @@ function searchMovies(queryString) {
       {title: '(?i).*' + queryString + '.*'}
     )
     .then(result => {
-      session.close();
       return result.records.map(record => {
         return new Movie(record.get('movie'));
       });
     })
     .catch(error => {
-      session.close();
       throw error;
     });
 }
 
 function getMovie(title) {
-  var session = driver.session();
   return session
     .run(
       "MATCH (movie:Movie {title:{title}}) \
@@ -42,7 +44,6 @@ function getMovie(title) {
            head(split(lower(type(r)), '_')), r.roles]) AS cast \
       LIMIT 1", {title})
     .then(result => {
-      session.close();
 
       if (_.isEmpty(result.records))
         return null;
@@ -51,29 +52,27 @@ function getMovie(title) {
       return new MovieCast(record.get('title'), record.get('uuid'), record.get('cast'));
     })
     .catch(error => {
-      session.close();
       throw error;
     });
 }
 
 function getGraph() {
-  var session = driver.session();
+
   return session.run(
-    'MATCH (m:Movie)<-[:ACTED_IN]-(a:Person) \
-    RETURN m.title AS movie, collect(a.name) AS cast \
+    'MATCH (m)<-[:ACTED_IN]-(a:Person) \
+    RETURN m.title AS movie, m.uuid AS uuid, collect([a.name, a.uuid]) AS cast \
     LIMIT {limit}', {limit: 100})
     .then(results => {
-      session.close();
-      var nodes = [], rels = [], i = 0;
+      let nodes = [], rels = [], i = 0;
       results.records.forEach(res => {
-        nodes.push({title: res.get('movie'), label: 'movie'});
-        var target = i;
+        nodes.push({title: res.get('movie'), uuid: res.get('uuid'), label: 'movie'});
+        let target = i;
         i++;
 
         res.get('cast').forEach(name => {
-          var actor = {title: name, label: 'actor'};
-          var source = _.findIndex(nodes, actor);
-          if (source == -1) {
+          let actor = {title: name[0], uuid: name[1], label: 'actor'};
+          let source = _.findIndex(nodes, actor);
+          if (source === -1) {
             nodes.push(actor);
             source = i;
             i++;
@@ -87,7 +86,7 @@ function getGraph() {
 }
 
 function getStats() {
-    var session = driver.session();
+
     return session
         .run("MATCH (n)\n" +
             "RETURN\n" +
@@ -101,9 +100,6 @@ function getStats() {
             "    max(size((n)-[]-())) AS MaxNumOfRelationships")
 
         .then(result => {
-            session.close();
-
-            console.log(result);
 
             return result.records.map(record => {
                 return new LabelStats(
@@ -119,7 +115,6 @@ function getStats() {
             });
         })
         .catch(error => {
-            session.close();
             throw error;
         });
 }

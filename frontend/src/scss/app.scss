@@ -1,0 +1,71 @@
+@import "~bootstrap/scss/bootstrap";
+
+.exonun-navbar {
+  background: rgb(56, 56, 56);
+  color: white;
+}
+
+.exonum-spinner {
+  background-color: #adda00;
+}
+
+.tooltip-inner {
+  background-color: rgb(56, 56, 56);
+}
+
+.exonum-card {
+  .card-header {
+    background-color: rgb(56, 56, 56);
+    color: white;
+  }
+}
+
+.movie-card {
+  .card-header {
+    background-color: rgba(173, 218, 0, 0.75);
+    color: rgb(56, 56, 56);;
+  }
+}
+
+#graph-reload {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+#graph {
+  height: 600px;
+
+  .node {
+    stroke: #222;
+    stroke-width: 1.5px;
+    cursor: pointer;
+  }
+
+  .node.actor {
+    fill: rgba(173, 218, 0, .75);
+  }
+
+  .node.movie {
+    fill: rgb(56, 56, 56);;
+  }
+
+  .link {
+    stroke: #999;
+    stroke-opacity: .6;
+    stroke-width: 1px;
+  }
+}
+
+.exonum-clickable {
+  color: #adda00;
+  cursor: pointer;
+}
+
+.exonum-clickable:hover {
+  color: rgba(173, 218, 0, .75);
+}
+
+table#results tbody tr {
+  cursor: pointer;
+}
