@@ -6,6 +6,12 @@ const api = require('./neo4jApi');
 const exonum = require('./exonumApi');
 const d3 = require("d3");
 
+const historyCard = $('#node-history-card');
+const transactionCard = $('#transaction-card');
+const movieCard = $('#movie-card');
+const graphCard = $('#graph');
+const searchCard = $('#search-card');
+
 $(function () {
     renderGraph();
     search();
@@ -28,12 +34,14 @@ $(function () {
 });
 
 function showMovie(title) {
+
+    removeEventHandlers(movieCard);
+
     api
         .getMovie(title)
         .then(movie => {
             if (!movie) return;
-            $("#title").html(movie.title + "<span style='float:right;' title=\"" + movie.uuid + "\">[" + shortUUID(movie.uuid) + "]</span>");
-            $("#poster").attr("src", "http://neo4j-contrib.github.io/developer-resources/language-guides/assets/posters/" + movie.title + ".jpg");
+            $("#title").html(movie.title + "<span class='uuid exonum-clickable float-right' data-toggle=\"tooltip\" data-placement=\"right\" data-uuid=\"" + movie.uuid + "\" title=\"" + movie.uuid + "\">" + shortUUID(movie.uuid) + "</span>");
 
             const t = $("table#crew tbody").empty();
 
@@ -47,14 +55,7 @@ function showMovie(title) {
                         + "</tr>").appendTo(t);
                 });
 
-                $('.uuid').click(function () {
-                    showNodeHistory($(this).attr('data-uuid'));
-                });
-
-
-                $(function () {
-                    $('[data-toggle="tooltip"]').tooltip()
-                });
+                initEventHandlers(movieCard);
 
             } else {
                 $("<tr><td colspan='4'>No crew found</td></tr>").appendTo(t);
@@ -63,6 +64,9 @@ function showMovie(title) {
 }
 
 function search() {
+
+    removeEventHandlers(searchCard);
+
     const query = $("#search").find("input[name=search]").val();
     api
         .searchMovies(query)
@@ -81,15 +85,7 @@ function search() {
                             });
                     });
 
-                    $('.uuid').click(function () {
-                        console.log($(this));
-                        showNodeHistory($(this).attr('data-uuid'));
-                    });
-
-
-                    $(function () {
-                        $('[data-toggle="tooltip"]').tooltip()
-                    });
+                    initEventHandlers(searchCard);
 
                     let first = movies[0];
                     if (first) {
@@ -104,29 +100,83 @@ function search() {
 
 
 function sendQuery() {
+
+    const form = $("#execute_query");
+
+    form.find(":input").prop("disabled", true);
+    form.find(":input[name=send]").html("" +
+        "<span class=\"spinner-grow spinner-grow-sm\" role=\"status\" aria-hidden=\"true\"></span>" +
+        "<span> Waiting for confirmation</span>"
+    );
+
     const query = $("#execute_query").find("input[name=query]").val();
-    try {
-        $.when(exonum.sendTransaction(query)).then(data => {
-            console.log(data);
+
+    $.when(exonum.sendTransaction(query)).then(data => {
+        waitForAcceptance(data.tx_hash).then(() => {
+
+            if (data) {
+                showTransaction(data.tx_hash);
+            }
+            $("#execute_query").find("input[name=query]").val("");
+            $("#execute_query").find(":input").prop("disabled", false);
+            $("#execute_query").find(":input[name=send]").html("Send Query");
         });
-    } catch (error) {
-        console.log(error);
-    }
+    });
+
 }
 
-function showTransaction(transaction) {
-    $.when(exonum.getTransaction(this.hash)).then( data => {
-        console.log(data);
-    })
+function waitForAcceptance(hash) {
 
-    // this.transaction = data.content
-    // this.location = data.location
-    // this.status = data.status
-    // this.type = data.type
-    // this.isSpinnerVisible = false
+    let attempt = 10;
+
+    return (function makeAttempt() {
+        return exonum.getTransaction(hash).then(data => {
+
+            if (typeof data.result === "undefined") {
+                if (--attempt > 0) {
+                    return new Promise(resolve => {
+                        setTimeout(resolve, 100)
+                    }).then(makeAttempt);
+                } else {
+                    throw new Error('Transaction has not been found');
+                }
+            } else {
+                return data;
+            }
+        });
+    })()
+}
+
+
+function showTransaction(hash) {
+
+    removeEventHandlers(transactionCard);
+
+    $.when(exonum.getTransaction(hash)).then(data => {
+        if (data) {
+
+            $("table#transactions-table tbody").empty().append(
+                "<tr><th>Hash</th><td data-toggle=\"tooltip\" data-tx='" + hash + "' title='" + hash + "' class='transaction exonum-clickable'>" + hash + "</td></tr>" +
+                "<tr><th>Status</th><td>" + data.result + "</td></tr>" +
+                "<tr><th>Queries</th><td>" + data.queries + "</td></tr>" +
+                "<tr><th>Error</th><td>" + data.error_msg + "</td></tr>"
+            );
+
+            $('html,body').animate({
+                scrollTop: $("#transactions-table").offset().top
+            });
+
+            initEventHandlers(transactionCard);
+        }
+    })
 }
 
 function showNodeHistory(uuid) {
+
+    removeEventHandlers(historyCard)
+
+    $("#node-history-uuid").html("<span class='uuid exonum-clickable float-right' data-toggle=\"tooltip\" " +
+        "data-placement=\"right\" data-uuid=\"" + uuid + "\" title=\"" + uuid + "\">" + shortUUID(uuid) + "</span>");
 
     $.when(exonum.getNodeHistory(uuid)).then(data => {
 
@@ -135,14 +185,16 @@ function showNodeHistory(uuid) {
         if (data) {
             data.forEach(change => {
                 $("<tr>" +
-                    "<td class='tx'> TX </td>" +
-                    "<td >" + change + "</td>" +
+                    "<td  data-toggle=\"tooltip\" title='" + change.transaction_id + "' data-tx='" + change.transaction_id + "' class='transaction exonum-clickable'>" + shortTX(change.transaction_id) + "</td>" +
+                    "<td >" + change.description + "</td>" +
                     "</tr>").appendTo(t)
             });
 
             $('html,body').animate({
                 scrollTop: $("#node-history").offset().top
-            })
+            });
+
+            initEventHandlers(historyCard)
         }
     });
 }
@@ -172,17 +224,6 @@ function showStats() {
         });
 }
 
-function shortUUID(uuid) {
-
-    if (uuid) {
-        let uuid_parts = uuid.split('_');
-        if (uuid_parts.length === 2) {
-            return uuid_parts[0].substr(0, 3) + "..." + uuid_parts[0].substr(-3, 3) + "_" + uuid_parts[1];
-        }
-    }
-    return uuid;
-}
-
 function renderGraph() {
     const width = 600, height = 600;
     const force = d3.layout.force()
@@ -197,15 +238,15 @@ function renderGraph() {
         .then(graph => {
             force.nodes(graph.nodes).links(graph.links).start();
 
-            var link = svg.selectAll(".link")
+            let link = svg.selectAll(".link")
                 .data(graph.links).enter()
                 .append("line").attr("class", "link");
 
-            var node = svg.selectAll(".node")
+            let node = svg.selectAll(".node")
                 .data(graph.nodes).enter()
                 .append("circle")
                 .attr("class", d => {
-                    return "node " + d.label
+                    return "node uuid " + d.label
                 })
                 .attr("r", 10)
                 .call(force.drag);
@@ -217,11 +258,7 @@ function renderGraph() {
                 });
 
             // UUID onclick
-            node.attr("uuid", d => d.uuid)
-                .on("click", function () {
-                    showNodeHistory(d3.select(this).attr("uuid"));
-                    d3.event.stopPropagation();
-                });
+            node.attr("data-uuid", d => d.uuid);
 
             // force feed algo ticks
             force.on("tick", () => {
@@ -241,9 +278,44 @@ function renderGraph() {
                     return d.y;
                 });
             });
+
+            initEventHandlers(graphCard);
+
         });
 
+
+}
+
+function removeEventHandlers(container) {
+    container.find('[data-toggle="tooltip"]').tooltip('dispose');
+    container.find('.transaction').off();
+    container.find('.uuid').off();
+}
+
+function initEventHandlers(container) {
+
     $(function () {
-        $('[data-toggle="tooltip"]').tooltip()
+        container.find('[data-toggle="tooltip"]').tooltip();
+        container.find('.transaction').click(function () {
+            showTransaction($(this).attr('data-tx'));
+        });
+        container.find('.uuid').click(function () {
+            showNodeHistory($(this).attr('data-uuid'));
+        });
     });
+}
+
+function shortUUID(uuid) {
+
+    if (uuid) {
+        let uuid_parts = uuid.split('_');
+        if (uuid_parts.length === 2) {
+            return uuid_parts[0].substr(0, 3) + "..." + uuid_parts[0].substr(-3, 3) + "_" + uuid_parts[1];
+        }
+    }
+    return uuid;
+}
+
+function shortTX(tx) {
+    return tx.substr(0, 5) + "..." + tx.substr(-5, 5);
 }
