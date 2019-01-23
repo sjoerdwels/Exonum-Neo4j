@@ -49,11 +49,6 @@ where
         ProofMapIndex::new("neo4j.queries", &self.view)
     }
 
-    /// Return queries in an ordered list
-    pub fn neo4j_transactions_ordered(&self) -> ProofListIndex<&T,Hash> {
-        ProofListIndex::new("neo4j.queries_ordered", &self.view)
-    }
-
     pub fn get_last_confirmed_block(&self) -> Option<Hash> {
         let index : MapIndex<&T, String, Hash> = MapIndex::new("neo4j.values", &self.view);
         index.get(&String::from("lastConfirmedBlock"))
