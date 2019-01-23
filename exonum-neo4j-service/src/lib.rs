@@ -108,6 +108,7 @@ impl blockchain::Service for Neo4jService {
 
         match last_block {
             Some(block_hash) => {
+                println!("Last block: {:?}", &block_hash);
                 let block_option = core_schema.blocks().get(&block_hash);
                 match block_option {
                     Some(block) => {

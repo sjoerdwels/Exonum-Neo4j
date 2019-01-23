@@ -218,6 +218,8 @@ impl Transaction for CommitQueries {
 
         let mut schema: Schema<&mut Fork> = Schema::new(fork);
 
+        println!("Adding transaction: {}", self.queries());
+
         let q = Neo4jTransaction::new(self.queries(), "", "PENDING");
 
         schema.add_neo4j_transaction(q, &hash);
