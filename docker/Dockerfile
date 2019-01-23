@@ -60,5 +60,8 @@ RUN npm install npm@latest -g &&\
 RUN cd /Exonum-Neo4j/frontend/ &&\
 	npm install
 
+#Add nano as useful program for debugging
+RUN apt-get install nano
+
 
 EXPOSE 8200 8080 7474 7473

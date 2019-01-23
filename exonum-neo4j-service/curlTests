@@ -86,3 +86,16 @@ curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/n
 curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/transaction?hash_string=df0fd94b0d74cde910a909cced00352642e5e96ecf5478df7e906d57ad854fed
 curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/transaction?hash_string=a0b53aed7e16ee159c47cd498204b7452e8be566e39b7f2d8015e17df81cc863
 
+
+curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8201/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
+  "body": {
+    "queries": "CREATE (n:Person {name:\'Indrek3\', money:100}) RETURN n",
+    "datetime": "12:00:31 13-OCT-2018"
+  },
+  "protocol_version": 0,
+  "service_id": 144,
+  "message_id": 0,
+  "signature":"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
+}'
+
+curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8201/api/services/neo4j_blockchain/v1/transactions
