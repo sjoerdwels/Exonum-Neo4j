@@ -1,4 +1,6 @@
-FROM ubuntu 
+FROM ubuntu
+
+ARG branch=development
 
 #Install Git and pull project
 RUN apt-get update && \
@@ -6,7 +8,7 @@ RUN apt-get update && \
     apt-get install -y git	
 RUN git clone https://github.com/sjoerdwels/Exonum-Neo4j.git
 RUN cd Exonum-Neo4j &&\
-		git checkout env_test
+		git checkout $branch
 
 #Install Rust
 RUN apt-get install curl -y &&\
@@ -45,7 +47,7 @@ RUN apt-get install wget &&\
 #Install maven
 RUN apt-get install maven -y
 
-# Package the Neo4j extention IMPORTANT!!!!! check if given paths are correct
+# Package the Neo4j extention
 RUN cd Exonum-Neo4j/neo4j-transaction-manager &&\ 
 		mvn package
 RUN cp Exonum-Neo4j/neo4j-transaction-manager/target/transaction-manager-0.1.0-shaded.jar /var/lib/neo4j/plugins/
