@@ -11,15 +11,23 @@ const transactionCard = $('#transaction-card');
 const movieCard = $('#movie-card');
 const graphCard = $('#graph');
 const searchCard = $('#search-card');
+const blocksCard = $('#blocks-card');
+const blockCard = $('#block-card');
 
 $(function () {
     renderGraph();
     search();
     showStats();
+    getBlocks();
 
-    $("#search").submit(e => {
+    $("#movie-form").submit(e => {
         e.preventDefault();
         search();
+    });
+
+    $("#blocks-form").submit(e => {
+        e.preventDefault();
+        getBlocks();
     });
 
     $("#execute_query").submit(e => {
@@ -41,7 +49,7 @@ function showMovie(title) {
         .getMovie(title)
         .then(movie => {
             if (!movie) return;
-            $("#title").html(movie.title + "<span class='uuid exonum-clickable float-right' data-toggle=\"tooltip\" data-placement=\"right\" data-uuid=\"" + movie.uuid + "\" title=\"" + movie.uuid + "\">" + shortUUID(movie.uuid) + "</span>");
+            $("#title").html(movie.title + "<span class='block exonum-clickable float-right' data-toggle=\"tooltip\" data-placement=\"right\" data-uuid=\"" + movie.uuid + "\" title=\"" + movie.uuid + "\">" + shortUUID(movie.uuid) + "</span>");
 
             const t = $("table#crew tbody").empty();
 
@@ -67,7 +75,7 @@ function search() {
 
     removeEventHandlers(searchCard);
 
-    const query = $("#search").find("input[name=search]").val();
+    const query = $("#movie-form").find("input[name=search]").val();
     api
         .searchMovies(query)
         .then(movies => {
@@ -96,6 +104,75 @@ function search() {
                 }
             }
         });
+}
+
+function getBlocks() {
+
+    removeEventHandlers(blocksCard);
+
+    const numberOfBlocks = $("#blocks-form").find("select[name=amount]").val();
+    const skipEmpty = $("#blocks-form").find("input[name=skip]").is(':checked');
+
+    $.when(exonum.getBlocks(numberOfBlocks, false, skipEmpty)).then(data => {
+
+        if (data) {
+
+            const t = $("table#blocks-table tbody").empty();
+
+            if (data.blocks.length > 0) {
+
+                data.blocks.forEach(block => {
+                    $("<tr>" +
+                        "<td>" + block.height + "</td>" +
+                        "<td class='exonum-clickable' data-toggle=\"tooltip\" data-placement=\"right\"  title=\"" + block.state_hash + "\">" + shortTX(block.state_hash, 8) + "</td>" +
+                        "<td>" + block.tx_count + "</td>" +
+                        "</tr>").appendTo(t)
+                        .click(function () {
+                            showBlock(block.height);
+                        });
+                });
+
+                let first = data.blocks[0];
+                if (first) {
+                    showBlock(first.height);
+                }
+
+                initEventHandlers(blocksCard);
+            } else {
+                $("<tr><td colspan='3'>No blocks found.</td></tr>").appendTo(t)
+            }
+        }
+    })
+}
+
+function showBlock(height) {
+
+    removeEventHandlers(blockCard);
+
+    $("#block-card-header").html("Block" + "<span class='float-right'>" + height + "</span>");
+
+    $.when(exonum.getBlock(height)).then(data => {
+
+        const t = $("table#block-table tbody").empty();
+
+        if (data.txs) {
+
+            data.txs.forEach(tx => {
+                $("<tr>" +
+                    "<th>TX</th>" +
+                    "<td class='transaction exonum-clickable' data-tx=\"" + tx + "\" data-toggle=\"tooltip\" data-placement=\"right\"  title=\"" + tx + "\">" + shortTX(tx, 20) + "</td>" +
+                    "</tr>").appendTo(t)
+            });
+
+            initEventHandlers(blockCard);
+        } else {
+            $("<tr><td>No transactions</td></tr>").appendTo(t)
+        }
+
+        $('html,body').animate({
+            scrollTop: blockCard.offset().top
+        });
+    });
 }
 
 
@@ -158,7 +235,7 @@ function showTransaction(hash) {
             $("table#transactions-table tbody").empty().append(
                 "<tr><th>Hash</th><td data-toggle=\"tooltip\" data-tx='" + hash + "' title='" + hash + "' class='transaction exonum-clickable'>" + hash + "</td></tr>" +
                 "<tr><th>Status</th><td>" + data.result + "</td></tr>" +
-                "<tr><th>Queries</th><td>" + data.queries + "</td></tr>" +
+                "<tr><th>Content</th><td>" + data.queries + "</td></tr>" +
                 "<tr><th>Error</th><td>" + data.error_msg + "</td></tr>"
             );
 
@@ -316,6 +393,6 @@ function shortUUID(uuid) {
     return uuid;
 }
 
-function shortTX(tx) {
-    return tx.substr(0, 5) + "..." + tx.substr(-5, 5);
+function shortTX(tx, numberOfChars) {
+    return tx.substr(0, numberOfChars) + "..." + tx.substr(-numberOfChars, numberOfChars);
 }

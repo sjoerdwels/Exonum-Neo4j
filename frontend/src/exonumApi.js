@@ -1,8 +1,9 @@
 const Exonum = require('exonum-client');
 const axios = require('axios');
 
-const TX_URL = '/api/services/neo4j_blockchain/v1/';
-const TX_EXPLORER_URL = 'api/services/neo4j_blockchain/v1/transaction?hash_string=';
+const API_URL = '/api/services/neo4j_blockchain/v1/';
+const EXPLORER_URL = '/api/explorer/v1/';
+
 const PROTOCOL_VERSION = 0;
 const SERVICE_ID = 144;
 const TX_INSERT_QUERIES_ID = 0;
@@ -37,19 +38,39 @@ function sendTransaction(query) {
 
     let hash = insertQueries.hash(data);
 
-    return insertQueries.send(TX_URL  + "insert_transaction", TX_EXPLORER_URL, data, signature, ATTEMPTS, ATTEMPT_TIMEOUT).then(() => {
+    return insertQueries.send(API_URL  + "insert_transaction", EXPLORER_URL  +`transactions?hash=`, data, signature, ATTEMPTS, ATTEMPT_TIMEOUT).then(() => {
         return { tx_hash : hash }
     })
 }
 
 function getNodeHistory(uuid) {
-    return axios.get(TX_URL  + `node_history?node_uuid=${uuid}`).then(response => response.data)
+    return axios.get(API_URL  + `node_history?node_uuid=${uuid}`).then(response => response.data)
 }
 
 function getTransaction(hash) {
-    return axios.get(TX_URL  +`transaction?hash_string=${hash}`).then(response => response.data);
+    return axios.get(API_URL +`transaction?hash_string=${hash}`).then(response => response.data);
+}
+
+function getBlocks(count, latest, skipEmpty) {
+
+    let suffix = ''
+    if (!isNaN(parseInt(latest))) {
+        suffix += '&latest=' + latest
+    }
+
+    if (skipEmpty) {
+        suffix += '&skip_empty_blocks=true'
+    }
+
+    return axios.get(EXPLORER_URL +  `blocks?count=${count}${suffix}` ).then(response => response.data);
+}
+
+function getBlock(height) {
+    return axios.get(EXPLORER_URL + `block?height=${height}`).then(response => response.data);
 }
 
 exports.sendTransaction = sendTransaction;
 exports.getNodeHistory = getNodeHistory;
 exports.getTransaction = getTransaction;
+exports.getBlocks = getBlocks;
+exports.getBlock = getBlock;

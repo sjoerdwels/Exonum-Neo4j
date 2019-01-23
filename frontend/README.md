@@ -13,26 +13,23 @@
 ## Quickstart
 
 ### Setup
+Install NodeJS and run the following command:
 
 ```bash
-$ npm install
+$ npm install 
 ```
 
 ### Run locally
 
 * Start the Exonum service and Neo4j database
-* Setup settings
-* Run the App inside the Webpack Dev Server:
+* Create you own .ENV file
+* Run the App with the following command.
 
 ```bash
-# run in developement mode (refreshes the app on source code changes)
-$ npm run dev
-
-# builds the release version with client assets in "build" directory
-$ npm run build
+$ npm run start
 ```
 
-Test query:
+Insert your first query:
 ```cypher
 CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})
 CREATE (Keanu:Person {name:'Keanu Reeves', born:1964})
@@ -51,6 +48,5 @@ CREATE
   (LanaW)-[:DIRECTED]->(TheMatrix),
   (JoelS)-[:PRODUCED]->(TheMatrix)
 ```
-When running in "dev" mode navigate to [http://localhost:8080/webpack-dev-server/](http://localhost:8080/webpack-dev-server/) to see the application.
-
-After executing the `npm run build` command,  open local file "build/index.html" in your browser.
+This will create a new movie 'The Matrix'. Now you can make changes to the created nodes with new queries and these changes will be
+  reflected in the node history.

@@ -26,15 +26,15 @@
                aria-controls="nav-graph" aria-selected="false">Neo4j Movies Graph</a>
             <a class="nav-item nav-link" id="nav-stats-tab" data-toggle="tab" href="#nav-stats" role="tab"
                aria-controls="nav-stats" aria-selected="false">Neo4j Statistics</a>
-            <a class="nav-item nav-link" id="nav-transaction-tab" data-toggle="tab" href="#nav-transaction" role="tab"
-               aria-controls="nav-transaction" aria-selected="false">Transactions</a>
+            <a class="nav-item nav-link" id="nav-blocks-tab" data-toggle="tab" href="#nav-blocks" role="tab"
+               aria-controls="nav-blocks" aria-selected="false">Blocks</a>
         </div>
     </nav>
 
     <div id="alert">
     </div>
 
-    <div class="tab-content pt-3" id="nav-tabContent">
+    <div class="tab-content py-3" id="nav-tabContent">
 
         <div class="tab-pane fade show active" id="nav-movies" role="tabpanel" aria-labelledby="nav-movies-tab">
             <div class="row">
@@ -42,7 +42,7 @@
 
                     <div class="card" id="search-card">
                         <div class="card-body">
-                            <form class="form-inline mb-0" id="search">
+                            <form class="form-inline mb-0" id="movie-form">
                                 <input type="text" value="Matrix" placeholder="Search for Movie Title"
                                        class="form-control mr-sm-2" name="search">
                                 <button class="btn btn-secondary" type="submit">Search</button>
@@ -112,55 +112,104 @@
             </div>
         </div>
 
-        <div class="tab-pane fade" id="nav-transaction" role="tabpanel" aria-labelledby="nav-transaction-tab">
-        </div>
-    </div>
-</div>
+        <div class="tab-pane fade" id="nav-blocks" role="tabpanel" aria-labelledby="nav-blocks-tab">
+            <div class="row">
+                <div class="col-md-6">
 
-<div class="album py-5 bg-light">
-    <div class="container">
+                    <div class="card" id="blocks-card">
+                        <div class="card-body">
+                            <form class="form-inline mb-0" id="blocks-form">
+                                <select class="form-control mr-sm-2" name="amount">
+                                    <option selected>10</option>
+                                    <option>20</option>
+                                    <option>50</option>
+                                    <option>100</option>
+                                    <option>200</option>
+                                </select>
 
-        <div class="row pt-2">
+                                <input type="checkbox" class="form-check-input" id="skipEmpty" name="skip"
+                                       checked="checked">
+                                <label class="form-check-label  mr-sm-2" for="skipEmpty">Skip empty</label>
 
-            <div class="col-md-12">
+                                <button class="btn btn-secondary" type="submit">Get Blocks</button>
 
-                <div id="node-history-card" class="card exonum-card">
-                    <div class="card-header">Node History
-                        <div id="node-history-uuid" class="float-right"></div>
+                            </form>
+                        </div>
+                        <table id="blocks-table" class="table table-borderless table-striped table-hover">
+                            <thead>
+                            <tr>
+                                <th>Height</th>
+                                <th>Blockchain state hash</th>
+                                <th>#Transactions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
                     </div>
-                    <table id="node-history" class="table table-borderless table-striped table-hover">
-                        <thead>
-                        <tr>
-                            <th>TX</th>
-                            <th>Modification</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr>
-                            <td colspan="2">Retrieve node history by clicking on a a node UUID.</td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
-            <div class="col-md-12 pt-3">
-                <div id="transaction-card" class="card exonum-card">
-                    <div class="card-header">Transaction Information</div>
-                    <table id="transactions-table" class="table table-striped table-hover">
-                        <tbody>
-                        <tr>
-                            <td colspan="2">Retrieve transaction information by clicking on a transaction hash</td>
-                        </tr>
-                        </tbody>
-                    </table>
                 </div>
-            </div>
 
+                <div class="col-md-6">
+                    <div class="card" id="block-card">
+                        <div class="card-header" id="block-card-header">Block</div>
+                        <table id="block-table" class="table ">
+                            <thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 
-</div>
+    <div class="album py-5 bg-light">
+        <div class="container">
+
+            <div class="row pt-2">
+
+                <div class="col-md-12">
+
+                    <div id="node-history-card" class="card exonum-card">
+                        <div class="card-header">Node History
+                            <div id="node-history-uuid" class="float-right"></div>
+                        </div>
+                        <table id="node-history" class="table table-borderless table-striped table-hover">
+                            <thead>
+                            <tr>
+                                <th>TX</th>
+                                <th>Modification</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td colspan="2">Retrieve node history by clicking on a a node UUID.</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="col-md-12 pt-3">
+                    <div id="transaction-card" class="card exonum-card">
+                        <div class="card-header">Transaction Information</div>
+                        <table id="transactions-table" class="table table-striped table-hover">
+                            <tbody>
+                            <tr>
+                                <td colspan="2">Retrieve transaction information by clicking on a transaction hash</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
 
 </body>
 </html>
