@@ -130,8 +130,10 @@ impl Neo4JApi {
         state: &ServiceApiState,
         query: Neo4JTransactions,
     ) -> api::Result<CommitResponse> {
+        println!("Processing transaction {:?}", &query);
         let transaction: Box<dyn Transaction> = query.into();
         let tx_hash = transaction.hash();
+
 
         match state.sender().send(transaction) {
             Ok(()) =>   Ok(CommitResponse { tx_hash: tx_hash, error_msg: format!("") }),
