@@ -1,3 +1,5 @@
+echo 'WEBSERVER_PORT=3005' >> .env
+
 printf 'EXONUM_PRIVATE_KEY=' >> .env
 grep -Po 'service_secret_key = "\K[^"]*' ../../shared-config/sec_1.toml >> .env
 printf 'EXONUM_PUBLIC_KEY=' >> .env
