@@ -48,5 +48,29 @@ CREATE
   (LanaW)-[:DIRECTED]->(TheMatrix),
   (JoelS)-[:PRODUCED]->(TheMatrix)
 ```
+```cypher
+MATCH (Keanu:Person {name:'Keanu Reeves'}),
+    (Carrie:Person {name:'Carrie-Anne Moss'}),
+    (Laurence:Person {name:'Laurence Fishburne'}),
+    (Hugo:Person {name:'Hugo Weaving'}),
+    (LillyW:Person {name:'Lilly Wachowski'}),
+    (LanaW:Person {name:'Lana Wachowski'}),
+    (JoelS:Person {name:'Joel Silver'})
+CREATE (TheMatrix:Movie {title:'The Matrix2', released:2000, tagline:'Boring sequel'})
+CREATE
+  (Keanu)-[:ACTED_IN {roles:['Neo']}]->(TheMatrix),
+  (Carrie)-[:ACTED_IN {roles:['Trinity']}]->(TheMatrix),
+  (Laurence)-[:ACTED_IN {roles:['Morpheus']}]->(TheMatrix),
+  (Hugo)-[:ACTED_IN {roles:['Agent Smith']}]->(TheMatrix),
+  (LillyW)-[:DIRECTED]->(TheMatrix),
+  (LanaW)-[:DIRECTED]->(TheMatrix),
+  (JoelS)-[:PRODUCED]->(TheMatrix)
+```
+```cypher
+MATCH (Keanu:Person {name:'Keanu Reeves'})
+CREATE (TheMatrix:Movie {title:'The Matrix2', released:2000, tagline:'Boring sequel'})
+CREATE
+  (Keanu)-[:ACTED_IN {roles:['Neo']}]->(TheMatrix)
+```
 This will create a new movie 'The Matrix'. Now you can make changes to the created nodes with new queries and these changes will be
   reflected in the node history.

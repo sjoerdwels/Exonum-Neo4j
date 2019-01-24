@@ -40,6 +40,8 @@ do
     docker exec -d -w /Exonum-Neo4j/backend/ node$i ./runTestNode.sh $i
 done
 
+#Wait so that neo4j has properly started
+sleep 5
 
 #Setup frontend
 for i in $(seq 1 $((node_count)))
