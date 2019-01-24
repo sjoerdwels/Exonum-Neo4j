@@ -1,3 +1,5 @@
+#!/bin/bash
+
 node=$1
 ip=$2
 
