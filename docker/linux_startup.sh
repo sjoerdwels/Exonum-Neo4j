@@ -40,11 +40,9 @@ do
 done
 
 
-#Setup frontend node 1
-docker exec -d -w /Exonum-Neo4j/frontend/ node1 printf 'EXONUM_PRIVATE_KEY=' >> .env
-docker exec -d -w /Exonum-Neo4j/frontend/ node1 grep -Po 'service_secret_key = "\K[^"]*' ../../shared-config/sec_1.toml >> .env
-docker exec -d -w /Exonum-Neo4j/frontend/ node1 printf 'EXONUM_PUBLIC_KEY=' >> .env
-docker exec -d -w /Exonum-Neo4j/frontend/ node1 grep -Po 'public_key = "\K[^"]*' ../../shared-config/sec_1.toml >> .env
-docker exec -w /Exonum-Neo4j/frontend/ node1 sed -i "s|NEO4J_BOLT_PORT=7687|NEO4J_BOLT_PORT=7681|g" .env
-docker exec -w /Exonum-Neo4j/frontend/ node1 sed -i "s|EXONUM_PORT=8200|EXONUM_PORT=8201|g" .env
-docker exec	-d -w /Exonum-Neo4j/frontend/ node1 npm start
+#Setup frontend
+for i in $(seq 1 $((node_count)))
+do
+    docker exec -w /Exonum-Neo4j/frontend/ node$i ./genEnv.sh $i localhost
+    docker exec -d -w /Exonum-Neo4j/frontend/ node$i npm start
+done
