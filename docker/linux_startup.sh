@@ -19,7 +19,7 @@ do
     docker exec node$i neo4j start
 done
 
-docker exec node1 rm -r /shard-config/*
+docker exec node1 rm -r /shared-config/*
 docker exec -w /Exonum-Neo4j/backend/ node1 chmod +x genCommonConfigTesting.sh
 docker exec -w /Exonum-Neo4j/backend/ node1 ./genCommonConfigTesting.sh $node_count
 
@@ -38,7 +38,7 @@ done
 for i in $(seq 1 $((node_count)))
 do
     docker exec -w /Exonum-Neo4j/backend/ node$i chmod +x runTestNode.sh
-    docker exec -w /Exonum-Neo4j/backend/ node$i ./runTestNode.sh $i
+    docker exec -d -w /Exonum-Neo4j/backend/ node$i ./runTestNode.sh $i
 done
 
 
