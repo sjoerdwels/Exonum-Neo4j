@@ -9,7 +9,7 @@ bolt_port=7680
 frontend_port=3000
 
 
-
+#Starting nodes and neo4j
 for i in $(seq 1 $((node_count)))
 do
     echo docker run -t -d -i --name node$i -p 820$i:8200 -p 747$i:7474 -p 768$i:7687 -p 300$i:3005 -v $volume_name:/shared-config $image_name
@@ -19,22 +19,25 @@ do
     docker exec node$i neo4j start
 done
 
-docker exec node1 rm -r /shared-config/*
+#cleaning shared_config folder and making common conf
 docker exec -w /Exonum-Neo4j/backend/ node1 chmod +x genCommonConfigTesting.sh
 docker exec -w /Exonum-Neo4j/backend/ node1 ./genCommonConfigTesting.sh $node_count
 
+#Generating conf for each node
 for i in $(seq 1 $((node_count)))
 do
     docker exec -w /Exonum-Neo4j/backend/ node$i chmod +x reConfTestNode.sh
     docker exec -w /Exonum-Neo4j/backend/ node$i ./reConfTestNode.sh $i
 done
 
+#Finalizing conf for each node
 for i in $(seq 1 $((node_count)))
 do
     docker exec -w /Exonum-Neo4j/backend/ node$i chmod +x finalizeTesting.sh
     docker exec -w /Exonum-Neo4j/backend/ node$i ./finalizeTesting.sh $i $node_count
 done
 
+#Run all the nodes
 for i in $(seq 1 $((node_count)))
 do
     docker exec -w /Exonum-Neo4j/backend/ node$i chmod +x runTestNode.sh
@@ -42,7 +45,7 @@ do
 done
 
 
-::Setup frontend node 1
+#Setup frontend node 1
 docker exec -d -w /Exonum-Neo4j/frontend/ node1 printf 'EXONUM_PRIVATE_KEY=' >> .env
 docker exec -d -w /Exonum-Neo4j/frontend/ node1 grep -Po 'service_secret_key = "\K[^"]*' ../../shared-config/sec_1.toml >> .env
 docker exec -d -w /Exonum-Neo4j/frontend/ node1 printf 'EXONUM_PUBLIC_KEY=' >> .env
