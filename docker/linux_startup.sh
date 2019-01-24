@@ -49,5 +49,4 @@ docker exec -d -w /Exonum-Neo4j/frontend/ node1 printf 'EXONUM_PUBLIC_KEY=' >> .
 docker exec -d -w /Exonum-Neo4j/frontend/ node1 grep -Po 'public_key = "\K[^"]*' ../../shared-config/sec_1.toml >> .env
 docker exec -w /Exonum-Neo4j/frontend/ node1 sed -i "s|NEO4J_BOLT_PORT=7687|NEO4J_BOLT_PORT=7681|g" .env
 docker exec -w /Exonum-Neo4j/frontend/ node1 sed -i "s|EXONUM_PORT=8200|EXONUM_PORT=8201|g" .env
-::docker exec -w /Exonum-Neo4j/frontend/ node1 npm install
-docker exec	-w /Exonum-Neo4j/frontend/ node1 npm start
+docker exec	-w -d /Exonum-Neo4j/frontend/ node1 npm start
