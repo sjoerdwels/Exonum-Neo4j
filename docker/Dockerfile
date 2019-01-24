@@ -29,7 +29,7 @@ RUN curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.6.
 	rm -f protoc-3.6.1-linux-x86_64.zip
 
 #Start Exonum service
-RUN cd Exonum-Neo4j/exonum-neo4j-service &&\
+RUN cd Exonum-Neo4j/backend &&\
 		. ~/.cargo/env &&\
 		cargo build
 		
@@ -64,6 +64,5 @@ RUN cd /Exonum-Neo4j/frontend/ &&\
 
 #Add nano as useful program for debugging
 RUN apt-get install nano
-
 
 EXPOSE 8200 8080 7474 7473
