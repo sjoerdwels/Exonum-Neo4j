@@ -1,6 +1,7 @@
 #!/bin/bash
 node=$1
 node_count=$2
+node_cfg=$node"_cfg"
 num=$((node+1))
 pubNodes=""
 for i in $(seq 1 $((node_count)))
