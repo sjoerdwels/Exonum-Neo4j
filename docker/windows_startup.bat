@@ -30,6 +30,12 @@ for /l %%i in (1, 1, %node_count%) do (
     docker exec -d -w /Exonum-Neo4j/backend/ node%%i ./runTestNode.sh %%i
 )
 
-::echo "Setup finisehd"
-::echo "Navigate to 198.168.99.100:3001 to access the demo application"
+::Setup frontend
+for /l %%i in (1, 1, %node_count%) do (
+    docker exec -w /Exonum-Neo4j/frontend/ node%%i ./genEnv.sh %%i 192.168.99.100
+    docker exec -d -w /Exonum-Neo4j/frontend/ node%%i npm start
+)
+
+echo "Setup finisehd"
+echo "Navigate to 198.168.99.100:3001 to access the demo application"
 pause
