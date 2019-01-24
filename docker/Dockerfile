@@ -48,9 +48,9 @@ RUN apt-get install wget &&\
 RUN apt-get install maven -y
 
 # Package the Neo4j extention
-RUN cd Exonum-Neo4j/neo4j-transaction-manager &&\ 
+RUN cd Exonum-Neo4j/plugin &&\
 		mvn package
-RUN cp Exonum-Neo4j/neo4j-transaction-manager/target/transaction-manager-0.1.0-shaded.jar /var/lib/neo4j/plugins/
+RUN cp Exonum-Neo4j/plugin/target/transaction-manager-0.1.0-shaded.jar /var/lib/neo4j/plugins/
 
 
 #Setup frontend
@@ -66,3 +66,6 @@ RUN cd /Exonum-Neo4j/frontend/ &&\
 RUN apt-get install nano
 
 EXPOSE 8200 8080 7474 7473
+
+RUN cd Exonum-Neo4j/backend && git pull &&\
+    . ~/.cargo/env && cargo build
