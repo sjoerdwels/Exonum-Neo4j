@@ -12,7 +12,7 @@ use exonum::{
 use schema::Schema;
 use structures::{NodeChange, Neo4jTransaction, ErrorMsg};
 use neo4j::{get_neo4j_rpc_client, ExecuteResponse, generate_database_changes_from_proto};
-use neo4j::transaction_manager::{Status, BlockChangesResponse};
+use neo4j::proto::transaction_manager::{Status, BlockChangesResponse};
 use neo4j::ExecuteResponse::{ChangeResponse, Error as DBError};
 
 use NEO4J_SERVICE_ID;

@@ -49,7 +49,7 @@ impl TransactionManager for TransactionTestServerImpl {
     fn execute_block(&self, _o: RequestOptions, _p: BlockExecuteRequest)
         -> SingleResponse<BlockExecuteResponse> {
         let mut r = BlockExecuteResponse::new();
-
+        println!("Executing block");
         r.set_success(true);
         SingleResponse::completed(r)
     }

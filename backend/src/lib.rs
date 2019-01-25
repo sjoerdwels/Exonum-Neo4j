@@ -15,7 +15,7 @@
 //! Cryptocurrency implementation example using [exonum](http://exonum.com/).
 
 // TODO FIX LINTER
-#![allow(
+#![warn(
     missing_debug_implementations,
     missing_docs,
     unsafe_code,
@@ -39,6 +39,7 @@ extern crate toml;
 pub use schema::Schema;
 
 pub mod api;
+///Module for communicating with Neo4j
 pub mod neo4j;
 pub mod schema;
 pub mod transactions;
