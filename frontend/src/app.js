@@ -262,7 +262,7 @@ function showNodeHistory(uuid) {
         if (data) {
             data.forEach(change => {
                 $("<tr>" +
-                    "<td  data-toggle=\"tooltip\" title='" + change.transaction_id + "' data-tx='" + change.transaction_id + "' class='transaction exonum-clickable'>" + shortTX(change.transaction_id) + "</td>" +
+                    "<td  data-toggle=\"tooltip\" title='" + change.transaction_id + "' data-tx='" + change.transaction_id + "' class='transaction exonum-clickable'>" + shortTX(change.transaction_id, 3) + "</td>" +
                     "<td >" + change.description + "</td>" +
                     "</tr>").appendTo(t)
             });
