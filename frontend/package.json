@@ -1,0 +1,43 @@
+{
+  "name": "movies-neo4j-exonum-javascript",
+  "version": "0.0.1",
+  "description": "Demo application using Neo4j and Exonum",
+  "repository": "https://github.com/sjoerdwels/Exonum-Neo4j",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "bootstrap": "^4.2.1",
+    "d3": "3.5.17",
+    "dotenv": "^6.2.0",
+    "dotenv-webpack": "^1.6.0",
+    "exonum-client": "0.13.0",
+    "jquery": "^3.3.1",
+    "neo4j-driver": "^1.0.4",
+    "popper.js": "^1.14.6"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.2.2",
+    "autoprefixer": "^9.4.5",
+    "babel-core": "^6.26.3",
+    "babel-loader": "^8.0.5",
+    "babel-preset-env": "^1.7.0",
+    "css-loader": "^2.1.0",
+    "eslint": "^5.12.0",
+    "exports-loader": "^0.7.0",
+    "html-webpack-plugin": "^3.2.0",
+    "lodash": "^4.15.0",
+    "node-sass": "^4.11.0",
+    "postcss-loader": "^3.0.0",
+    "sass-loader": "^7.1.0",
+    "style-loader": "^0.23.1",
+    "webpack": "^4.28.4",
+    "webpack-cli": "^3.2.1",
+    "webpack-dev-middleware": "^3.5.0",
+    "webpack-dev-server": "^3.1.14"
+  },
+  "scripts": {
+    "clean": "rimraf build && rimraf build",
+    "compile": "webpack",
+    "start": "node server.js"
+  }
+}

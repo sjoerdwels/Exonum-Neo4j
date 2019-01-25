@@ -1,40 +1,148 @@
 syntax = "proto3";
 
-package protobuf;
+package exonum.neo4j.transaction_manager;
 
 option java_multiple_files = true;
 option java_package = "com.bitfury.neo4j.transaction_manager";
 option java_outer_classname = "TransactionManagerProto";
 
 service TransactionManager {
-  rpc VerifyTransaction (TransactionRequest) returns (TransactionResponse) {}
-  rpc ExecuteTransaction (TransactionRequest) returns (TransactionResponse) {}
-}
-
-message TransactionRequest {
-  repeated string queries = 1;
-}
-
-message TransactionResponse {
-  Status result = 1;
-  repeated Node nodes = 2;
-  repeated Relationship relationships = 3;
-}
-
-message Node {
-  int32 id = 1;
-  string name = 2;
-  string value = 3;
-}
-
-message Relationship {
-  int32 id = 1;
-  string name = 2;
-  int32 start_node_id = 3;
-  int32 end_node_id = 4;
+  rpc ExecuteBlock (BlockExecuteRequest) returns (BlockExecuteResponse) {}
+  rpc RetrieveBlockChanges (BlockChangesRequest) returns (BlockChangesResponse) {}
+  rpc DeleteBlockChanges (DeleteBlockRequest) returns (DeleteBlockResponse) {}
 }
 
 enum Status {
   FAILURE = 0;
   SUCCESS = 1;
 }
+
+message DeleteBlockRequest {
+  string block_id = 1;
+}
+
+message DeleteBlockResponse {
+  bool success = 1;
+}
+
+message BlockExecuteResponse {
+  bool success = 1;
+}
+
+message BlockExecuteRequest {
+  string block_id = 1;
+  repeated TransactionRequest transactions = 2;
+}
+
+message BlockChangesRequest {
+  string block_id = 1;
+}
+
+message BlockChangesResponse {
+  string block_id = 1;
+  repeated TransactionResponse transactions= 2;
+}
+
+message TransactionRequest {
+  string transaction_id = 1;
+  repeated string queries = 2;
+}
+
+message TransactionResponse {
+  string transaction_id = 1;
+  Status result = 2;
+  Error error = 3;
+  DatabaseModifications modifications =  4;
+}
+
+message DatabaseModifications {
+
+  repeated CreatedNode created_nodes= 1;
+  repeated CreatedRelationShip created_relationships = 2;
+  repeated AssignedLabel assigned_labels = 3;
+  repeated AssignedNodeProperty assigned_node_properties = 4;
+  repeated AssignedRelationshipProperty assigned_relationship_properties = 5;
+  repeated RemovedRelationshipProperty removed_relation_properties = 6;
+  repeated RemovedNodeProperty removed_node_properties = 7;
+  repeated RemovedLabel removed_labels = 8;
+  repeated DeletedRelationship deleted_relationships = 9;
+  repeated DeletedNode deleted_nodes = 10;
+
+  message CreatedNode {
+    string node_UUID = 1;
+  }
+
+  message CreatedRelationShip {
+    string relationship_UUID = 1;
+    string type = 2;
+    string start_node_UUID =  3;
+    string end_node_UUID = 4;
+  }
+
+  message AssignedLabel {
+    string node_UUID = 1;
+    string name = 2;
+  }
+
+  message AssignedNodeProperty {
+    string node_UUID = 1;
+    string key = 2;
+    string previous_value = 3;
+    string value = 4;
+  }
+
+  message AssignedRelationshipProperty {
+    string relationship_UUID = 1;
+    string key = 2;
+    string value = 3;
+  }
+
+  message RemovedRelationshipProperty {
+    string relationship_UUID = 1;
+    string key  = 2;
+  }
+
+  message RemovedNodeProperty {
+    string node_UUID = 1;
+    string key  = 2;
+  }
+
+  message RemovedLabel {
+    string node_UUID = 1;
+    string name = 2;
+  }
+
+  message DeletedRelationship {
+    string relationship_UUID = 1;
+  }
+
+  message DeletedNode {
+    string node_UUID = 1;
+  }
+}
+
+enum ErrorCode {
+  EMPTY_TRANSACTION = 0;
+  EMPTY_UUID_PREFIX = 1;
+  FAILED_QUERY = 2;
+  MODIFIED_UUID = 3;
+  TRANSACTION_ROLLBACK = 4;
+  RUNTIME_EXCEPTION =  5;
+  CONSTRAINT_VIOLATION = 6;
+}
+
+message Error {
+  string message = 1;
+  ErrorCode code = 2;
+  FailedQuery failed_query = 3;
+}
+
+message FailedQuery {
+  string query = 1;
+  string error = 2;
+  string error_code = 3;
+}
+
+
+
+

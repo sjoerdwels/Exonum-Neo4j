@@ -1,0 +1,215 @@
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neo4j-Exonum Movies Demo</title>
+</head>
+
+<body>
+
+<nav class="navbar navbar-light navbar-dark exonun-navbar">
+    <div class="container">
+        <form class="form-inline my-2 my-lg-0" id="execute_query">
+            <input type="text" style="width:30vw;"
+                   placeholder="CREATE (m:Movie {m.movie:'', m.tagline:'', m.released:''})"
+                   class="form-control mr-sm-2" name="query">
+            <button class="btn btn-secondary my-2 my-sm-0" name="send" type="submit">Send Query</button>
+        </form>
+    </div>
+</nav>
+
+<div class="container pt-3 pb-5">
+    <nav>
+        <div class="nav nav-tabs" id="nav-tab" role="tablist">
+            <a class="nav-item nav-link active" id="nav-movies-tab" data-toggle="tab" href="#nav-movies" role="tab"
+               aria-controls="nav-movies" aria-selected="true">Neo4j Movies Example</a>
+            <a class="nav-item nav-link" id="nav-graph-tab" data-toggle="tab" href="#nav-graph" role="tab"
+               aria-controls="nav-graph" aria-selected="false">Neo4j Movies Graph</a>
+            <a class="nav-item nav-link" id="nav-stats-tab" data-toggle="tab" href="#nav-stats" role="tab"
+               aria-controls="nav-stats" aria-selected="false">Neo4j Statistics</a>
+            <a class="nav-item nav-link" id="nav-blocks-tab" data-toggle="tab" href="#nav-blocks" role="tab"
+               aria-controls="nav-blocks" aria-selected="false">Blocks</a>
+        </div>
+    </nav>
+
+    <div id="alert">
+    </div>
+
+    <div class="tab-content py-3" id="nav-tabContent">
+
+        <div class="tab-pane fade show active" id="nav-movies" role="tabpanel" aria-labelledby="nav-movies-tab">
+            <div class="row">
+                <div class="col-md-6">
+
+                    <div class="card" id="search-card">
+                        <div class="card-body">
+                            <form class="form-inline mb-0" id="movie-form">
+                                <input type="text" value="Matrix" placeholder="Search for Movie Title"
+                                       class="form-control mr-sm-2" name="search">
+                                <button class="btn btn-secondary" type="submit">Search</button>
+                            </form>
+                        </div>
+                        <table id="results" class="table table-borderless table-striped table-hover">
+                            <thead>
+                            <tr>
+                                <th>Movie</th>
+                                <th>Released</th>
+                                <th>Tagline</th>
+                                <th>UUID</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card" id="movie-card">
+                        <div class="card-header" id="title">Details</div>
+                        <table id="crew" class="table  ">
+                            <thead>
+                            <tr>
+                                <th>Crew</th>
+                                <th>Crew UUID</th>
+                                <th>Relation</th>
+                                <th>Relation UUID</th>
+                            </tr>
+                            <tbody>
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="nav-graph" role="tabpanel" aria-labelledby="nav-graph-tab">
+            <div class="card">
+                <button class="btn btn-secondary" id="graph-reload">Reload Graph</button>
+                <div id="graph">
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="nav-stats" role="tabpanel" aria-labelledby="nav-stats-tab">
+            <div class="card p-4">
+                <table id="stats" class="table table-borderless table-striped table-hover">
+                    <thead>
+                    <tr>
+                        <th>Labels</th>
+                        <th># Nodes</th>
+                        <th>avg # Node Properties</th>
+                        <th>min # Node Properties</th>
+                        <th>max # Node Properties</th>
+                        <th>avg # Relationships</th>
+                        <th>min # Relationships</th>
+                        <th>max # Relationships</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="nav-blocks" role="tabpanel" aria-labelledby="nav-blocks-tab">
+            <div class="row">
+                <div class="col-md-6">
+
+                    <div class="card" id="blocks-card">
+                        <div class="card-body">
+                            <form class="form-inline mb-0" id="blocks-form">
+                                <select class="form-control mr-sm-2" name="amount">
+                                    <option selected>10</option>
+                                    <option>20</option>
+                                    <option>50</option>
+                                    <option>100</option>
+                                    <option>200</option>
+                                </select>
+
+                                <input type="checkbox" class="form-check-input" id="skipEmpty" name="skip"
+                                       checked="checked">
+                                <label class="form-check-label  mr-sm-2" for="skipEmpty">Skip empty</label>
+
+                                <button class="btn btn-secondary" type="submit">Get Blocks</button>
+
+                            </form>
+                        </div>
+                        <table id="blocks-table" class="table table-borderless table-striped table-hover">
+                            <thead>
+                            <tr>
+                                <th>Height</th>
+                                <th>Blockchain state hash</th>
+                                <th>#Transactions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card" id="block-card">
+                        <div class="card-header" id="block-card-header">Block</div>
+                        <table id="block-table" class="table ">
+                            <thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="album py-5 bg-light">
+        <div class="container">
+
+            <div class="row pt-2">
+
+                <div class="col-md-12">
+
+                    <div id="node-history-card" class="card exonum-card">
+                        <div class="card-header">Node History
+                            <div id="node-history-uuid" class="float-right"></div>
+                        </div>
+                        <table id="node-history" class="table table-borderless table-striped table-hover">
+                            <thead>
+                            <tr>
+                                <th>TX</th>
+                                <th>Modification</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td colspan="2">Retrieve node history by clicking on a a node UUID.</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="col-md-12 pt-3">
+                    <div id="transaction-card" class="card exonum-card">
+                        <div class="card-header">Transaction Information</div>
+                        <table id="transactions-table" class="table table-striped table-hover">
+                            <tbody>
+                            <tr>
+                                <td colspan="2">Retrieve transaction information by clicking on a transaction hash</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
