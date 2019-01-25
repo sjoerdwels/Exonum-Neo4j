@@ -1,17 +1,14 @@
+///Module for communicating with neo4j.
 
-//! Module of the rust-protobuf generated files.
-#![allow(bare_trait_objects)]
-#![allow(renamed_and_removed_lints)]
+pub mod proto;
 
-pub use self::transaction_manager::*;
-pub use self::transaction_manager_grpc::*;
-
-// Include generated protobuf files
-include!(concat!(env!("OUT_DIR"), "/protobuf_mod.rs"));
+pub use neo4j::proto::transaction_manager::*;
+pub use neo4j::proto::transaction_manager_grpc::*;
 
 // todo: fix imports
 use std::sync::Arc;
 use std::vec::Vec;
+use std::fmt;
 use std::string::String;
 use grpc::{Client, ClientStub, RequestOptions};
 use exonum::{crypto::Hash, storage::{Fork, Snapshot}, blockchain::{Schema as CoreSchema, Block}};
@@ -23,14 +20,28 @@ use self::ExecuteResponse::*;
 
 use schema::Schema;
 
+
+///Neo4j Config structure.
+#[derive(Debug)]
 pub struct Neo4jConfig {
+    ///neo4j address
     pub address : String,
+    ///neo4j port
     pub port : u16
 }
 
+///Neo4j RPC struct, has the transaction_manager which is able to call gRPC to Neo4j, and implements wrapper functionality
 pub struct Neo4jRpc {
+    ///generated transaction manager which is able to make gRPC calls to Neo4j
     transaction_manager : TransactionManagerClient
 }
+
+impl fmt::Debug for Neo4jRpc {
+    fn fmt(&self, f: &mut fmt::Formatter) ->fmt::Result {
+        f.debug_struct("Neo4j RPC").finish()
+    }
+}
+
 
 impl Neo4jRpc {
 
@@ -44,7 +55,8 @@ impl Neo4jRpc {
         }
     }
 
-    pub fn execute_block(&self, block: &Block, block_hash: &str, core_schema : &CoreSchema<&Snapshot>, schema : &Schema<&Snapshot>) -> ExecuteResponse {
+    ///Function that asks neo4j to execute the whole block. It retrieves block transactions from Schema. If there are no transactions returns NoCommit(())
+    pub fn execute_block(&self, block: &Block, block_hash: &str, core_schema : &CoreSchema<&dyn Snapshot>, schema : &Schema<&dyn Snapshot>) -> ExecuteResponse {
 
         let transactions = core_schema.block_transactions(block.height());
 
@@ -85,7 +97,10 @@ impl Neo4jRpc {
         }
     }
 
-    pub fn remove_audited_changes(&self, block: Block, core_schema : CoreSchema<&Snapshot>, schema : Schema<&Snapshot>){
+    ///Ask Neo4j to remove audited changes. These are changes that were audited during the given block.
+    /// Meaning there had to have been an AuditBlocks transaction, which saved changes for certain blocks.
+    /// These blocks are stored in schema.audited_blocks
+    pub fn remove_audited_changes(&self, block: Block, core_schema : CoreSchema<&dyn Snapshot>, schema : Schema<&dyn Snapshot>){
         let transactions = core_schema.block_transactions(block.height());
         for trans_hash in transactions.iter() {
             let audited_blocks = schema.audited_blocks(&trans_hash);
@@ -108,6 +123,7 @@ impl Neo4jRpc {
         }
     }
 
+    ///Retrieves block changes, given block_hash.
     pub fn retrieve_block_changes(&self, block_hash: Hash) -> ExecuteResponse {
         let mut request = BlockChangesRequest::new();
         request.set_block_id(block_hash.to_hex().as_str().to_string());
@@ -183,6 +199,7 @@ pub fn generate_database_changes_from_proto(modifs : &DatabaseModifications, sch
     changes
 }
 
+///Gets an neo4j rpc client, with the port defined in neo4j.toml
 pub fn get_neo4j_rpc_client() -> Neo4jRpc {
     let mut port = 9994;
     match parse_port() {

@@ -43,15 +43,16 @@ encoding_struct! {
 
 ///Query query
 encoding_struct! {
-    ///Node history query
+    ///Query query
     struct GetQueryQuery {
-        ///node's uuid
+        ///transaction hash
         hash_string: &str,
     }
 }
 
 ///Node history line, includes transaction hash in hex format and description
 encoding_struct! {
+    ///Node history line, includes transaction hash in hex format and description
     struct NodeHistoryLine {
         ///transaction_id
         transaction_id: &str,

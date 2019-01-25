@@ -49,6 +49,8 @@ where
         ProofMapIndex::new("neo4j.queries", &self.view)
     }
 
+    ///Gets hash value in hex for the last block that was audited.
+    /// This is used to avoid auditing same blocks twice.
     pub fn get_last_confirmed_block(&self) -> Option<Hash> {
         let index : MapIndex<&T, String, Hash> = MapIndex::new("neo4j.values", &self.view);
         index.get(&String::from("lastConfirmedBlock"))
@@ -93,7 +95,7 @@ impl<'a> Schema<&'a mut Fork> {
         ProofMapIndex::new("neo4j.queries", &mut self.view)
     }
 
-        ///Get a mutable prooflistindex for a node's history
+    ///Get a mutable prooflistindex for a node's history
     pub fn neo4j_transaction_ordered_mut(&mut self) -> ProofListIndex<&mut Fork, Hash> {
         ProofListIndex::new("neo4j.queries_ordered", &mut self.view)
     }
@@ -104,6 +106,8 @@ impl<'a> Schema<&'a mut Fork> {
         self.neo4j_transaction_ordered_mut().push(hash.clone());
     }
 
+    ///Update neo4j transaction. Only result and error_msg fields can be updated.
+    /// This is called when we retrieve changes from Neo4j.
     pub fn update_neo4j_transaction(&mut self, hash: &Hash, error_msg: &str, result: &str) {
         match self.neo4j_transaction(hash) {
             Some(neo4j_transaction) => {
@@ -145,6 +149,7 @@ impl<'a> Schema<&'a mut Fork> {
         self.node_history_mut(uuid).push(node_change.clone())
     }
 
+    ///Adds a block that was audited and the hash for the AuditBlocks transaction that did the auditing.
     pub fn add_audited_block(&mut self, transaction_hash: &Hash, block_hash: Hash) {
         let mut index : ListIndex<&mut Fork, Hash> = ListIndex::new(format!("neo4j.audited_block_{}", transaction_hash.to_hex().as_str()), &mut self.view);
         index.push(block_hash);
