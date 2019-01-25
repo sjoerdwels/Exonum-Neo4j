@@ -133,7 +133,6 @@ impl<'a> Schema<&'a mut Fork> {
     pub fn add_relation(&mut self, r: Relation, relation_uuid : &str) {
         let hash = hash(relation_uuid.as_bytes());
         self.relations_mut().put(&hash, r);
-
     }
 
     ///Get a mutable prooflistindex for a node's history

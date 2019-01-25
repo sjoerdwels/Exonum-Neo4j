@@ -2,7 +2,7 @@
 #![allow(warnings)]
 /// Transaction documentation
 use exonum::{
-    blockchain::{Schema as CoreSchema, ExecutionResult, Transaction, ExecutionError},
+    blockchain::{Schema as CoreSchema, ExecutionResult, Transaction},
     storage::{Fork},
     crypto::{CryptoHash, Hash},
     encoding::serialize::FromHex,
@@ -51,29 +51,6 @@ pub enum Error {
     ///Database error
     #[fail(display = "Possible connection error with database")]
     PossibleConnectionError(ErrorMsg),
-}
-
-impl From<Error> for ExecutionError {
-    fn from(value: Error) -> ExecutionError {
-        match value {
-            Error::DataBaseError(error) => {
-                let description = format!("Database error: {}", error.msg());
-                ExecutionError::with_description(1 as u8, description)
-            },
-            Error::PossibleConnectionError(error) => {
-                let description = format!("Possible connection error: {}", error.msg());
-                ExecutionError::with_description(2 as u8, description)
-            }
-        }
-
-    }
-}
-
-impl From<ErrorMsg> for ExecutionError {
-    fn from(error: ErrorMsg) -> ExecutionError {
-        let description = format!("{}", error.msg());
-        ExecutionError::with_description(1 as u8, description)
-    }
 }
 
 
@@ -185,7 +162,6 @@ impl AuditBlocks {
         let mut schema: Schema<&mut Fork> = Schema::new(fork);
         match last_block {
             Some(hash) => {
-
                 schema.set_last_confirmed_block(hash)
             },
             None => {}
