@@ -1,5 +1,5 @@
-SET image_name=stable6
-SET volume_name=TestVolume
+SET image_name=exonum_neo4j
+SET volume_name=ExonumConfVolume
 SET node_count=4
 SET api_port=8200
 SET neo4j_front_port=7470

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-image_name="stable2"
-volume_name="TestVolume"
+image_name="exonum_neo4j"
+volume_name="ExonumConfVolume"
 node_count=4
 api_port=8200
 neo4j_front_port=7470
