@@ -187,7 +187,7 @@ impl Transaction for AuditBlocks {
 
 impl Transaction for CommitQueries {
     fn verify(&self) -> bool {
-        self.verify_signature(self.pub_key())
+        true
 }
 
     fn execute(&self, fork: &mut Fork) -> ExecutionResult {
