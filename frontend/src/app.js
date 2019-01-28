@@ -204,7 +204,7 @@ function sendQuery() {
 
 function waitForAcceptance(hash) {
 
-    let attempt = 10;
+    let attempt = 100;
 
     return (function makeAttempt() {
         return exonum.getTransaction(hash).then(data => {
