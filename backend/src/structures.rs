@@ -279,15 +279,15 @@ impl CryptoHash for NodeChange {
 impl fmt::Display for NodeChange {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            AN(x) => write!(f, "Node with UUID {} created", x.node_uuid()),
-            RN(x) => write!(f, "Node with UUID {} deleted", x.node_uuid()),
-            AL(x) => write!(f, "Label, {}, added to node", x.label_name()),
-            RL(x) => write!(f, "Label, {}, removed from node", x.label_name()),
-            ANP(x) => write!(f, "Added new property, key {}, value {}", x.key(), x.value()),
-            RNP(x) => write!(f, "Removed property, key {}", x.key()),
-            AR(x) => write!(f, "Relationship with UUID {} added. Starting from {}, and going to {}", x.rel_uuid(), x.from_uuid(), x.to_uuid()),
-            ARP(x) => write!(f, "Property, {}, with value {}, added to relation with uuid {}", x.key(), x.value(), x.relation_uuid()),
-            RRP(x) => write!(f, "Property, {}, removed to relation with uuid {}", x.key(), x.relation_uuid()),
+            AN(x) => write!(f, "Node with UUID <b>{}</b> created", x.node_uuid()),
+            RN(x) => write!(f, "Node with UUID <b>{}</b> deleted", x.node_uuid()),
+            AL(x) => write!(f, "Label, <b>{}</b>, added to node", x.label_name()),
+            RL(x) => write!(f, "Label, <b>{}</b>, removed from node", x.label_name()),
+            ANP(x) => write!(f, "Added new property, key <b>{}</b>, value <b>{}</b>", x.key(), x.value()),
+            RNP(x) => write!(f, "Removed property, key <b>{}</b>", x.key()),
+            AR(x) => write!(f, "Relationship with UUID <b>{}</b> added. Starting from<b>{}</b>, and going to<b>{}</b>", x.rel_uuid(), x.from_uuid(), x.to_uuid()),
+            ARP(x) => write!(f, "Property,<b>{}</b>, with value<b>{}</b>, added to relation with uuid<b>{}</b>", x.key(), x.value(), x.relation_uuid()),
+            RRP(x) => write!(f, "Property,<b>{}</b>, removed to relation with uuid<b>{}</b>", x.key(), x.relation_uuid()),
         }
     }
 }
