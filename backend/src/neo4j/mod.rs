@@ -182,7 +182,7 @@ pub fn generate_database_changes_from_proto(modifs : &DatabaseModifications, sch
                      new_relation_property.get_key(), new_relation_property.get_value(), relation.start_node_uuid(), relation.end_node_uuid(), transaction_id);
                 changes.push(ARP(new_change));
             },
-            _ => {} //TODO what if relationship is not found?
+            _ => {println!("ERROR: Should not be here 004");}
         }
     }
 
@@ -193,7 +193,7 @@ pub fn generate_database_changes_from_proto(modifs : &DatabaseModifications, sch
                         relation.start_node_uuid(), relation.end_node_uuid(), transaction_id);
                 changes.push(RRP(new_change));
             },
-            _ => {} //TODO what if relationship is not found?
+            _ => {println!("ERROR: Should not be here 005");}
         }
     }
     changes

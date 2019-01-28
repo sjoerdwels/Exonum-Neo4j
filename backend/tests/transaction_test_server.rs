@@ -6,11 +6,11 @@ extern crate exonum_neo4j;
 use self::grpc::{ServerBuilder, RequestOptions, SingleResponse};
 use self::protobuf::RepeatedField;
 use self::tls_api_native_tls::TlsAcceptor;
-use exonum_neo4j::neo4j::transaction_manager::
+use exonum_neo4j::neo4j::proto::transaction_manager::
     {DatabaseModifications, DeleteBlockResponse, DeleteBlockRequest,
      TransactionResponse, Status, DatabaseModifications_CreatedNode, BlockChangesRequest,
      BlockExecuteRequest, BlockChangesResponse, BlockExecuteResponse};
-use exonum_neo4j::neo4j::transaction_manager_grpc::{
+use exonum_neo4j::neo4j::proto::transaction_manager_grpc::{
     TransactionManagerServer, TransactionManager
 };
 use std::thread;
@@ -27,8 +27,11 @@ impl TransactionManager for TransactionTestServerImpl {
         let mut r = TransactionResponse::new();
         let block_id = p.get_block_id();
 
+        println!("Retrieving block changes");
+
 
         r.set_result(Status::SUCCESS);
+        r.set_transaction_id("71afce3e6a18a05376fccf766bfba321aa801af0ea6aef1a07b30e521363b3f8".to_string());
         let mut modifications : DatabaseModifications = DatabaseModifications::new();
         let mut new_nodes : RepeatedField<DatabaseModifications_CreatedNode> = RepeatedField::new();
         let mut node_a = DatabaseModifications_CreatedNode::new();
@@ -43,6 +46,7 @@ impl TransactionManager for TransactionTestServerImpl {
         r.set_modifications(modifications);
         let mut transaction_changes : RepeatedField<TransactionResponse> = RepeatedField::new();
         transaction_changes.push(r);
+        ar.set_transactions(transaction_changes);
         SingleResponse::completed(ar)
     }
 

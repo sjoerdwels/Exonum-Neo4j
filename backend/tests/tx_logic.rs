@@ -6,9 +6,10 @@ use exonum::crypto::{self};
 use exonum_testkit::{TestKit, TestKitBuilder};
 // Import datatypes used in tests from the crate where the service is defined.
 use exonum_neo4j::schema::Schema;
-use exonum_neo4j::transactions::{CommitQueries};
+use exonum_neo4j::transactions::{CommitQueries, AuditBlocks};
 use exonum_neo4j::Neo4jService;
 use exonum_neo4j::neo4j;
+use exonum_neo4j::structures::NodeChange;
 
 pub mod transaction_test_server;
 
@@ -64,4 +65,34 @@ fn test_commit_query() {
         None => panic!("Null query found")
     }
     assert_eq!(queries.values().count(), 1);
+}
+
+#[test]
+fn test_get_changes_query() {
+    let _server = transaction_test_server::TestServer::new(9994);
+
+    let mut testkit = init_testkit(9994);
+    let (_pubkey, key) = crypto::gen_keypair();
+    testkit.create_block_with_transactions(txvec![
+        CommitQueries::new("INSERT something", "15-OCT", &key),
+    ]);
+    testkit.create_block_with_transactions(txvec![
+        AuditBlocks::new("43827394273", &key),
+    ]);
+    let snapshot = testkit.snapshot();
+    let schema = Schema::new(&snapshot);
+    let node_changes = schema.node_history("u1");
+    assert_eq!(node_changes.len(), 1);
+    println!("{:?}", node_changes.get(0));
+    match node_changes.get(0) {
+        Some(node_change) =>{
+            match node_change {
+                NodeChange::AN(x) => assert_eq!(x.transaction_id(), "71afce3e6a18a05376fccf766bfba321aa801af0ea6aef1a07b30e521363b3f8".to_string()),
+                 _ => assert_eq!(true, false),
+            }
+        },
+        _ => assert_eq!(true, false),
+    }
+
+
 }

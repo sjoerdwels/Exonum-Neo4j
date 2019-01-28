@@ -4,7 +4,7 @@
 
 extern crate protobuf;
 
-use exonum::{crypto::{CryptoHash, Hash, hash}, storage::Fork};
+use exonum::{crypto::{CryptoHash, Hash, hash, PublicKey}, storage::Fork};
 use exonum::storage::StorageValue;
 use std::borrow::Cow;
 use std::fmt;
@@ -356,6 +356,8 @@ encoding_struct! {
         error_msg: &str,
         ///Result, empty when not processed, otherwise either FAILURE or SUCCESS
         result: &str,
+        ///Public key of the transaction initiator
+        pub_key: &PublicKey
     }
 }
 

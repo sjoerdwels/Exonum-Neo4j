@@ -14,7 +14,6 @@
 
 //! Cryptocurrency implementation example using [exonum](http://exonum.com/).
 
-// TODO FIX LINTER
 #![warn(
     missing_debug_implementations,
     missing_docs,
@@ -109,7 +108,6 @@ impl blockchain::Service for Neo4jService {
 
         match last_block {
             Some(block_hash) => {
-                println!("Last block: {:?}", &block_hash);
                 let block_option = core_schema.blocks().get(&block_hash);
                 match block_option {
                     Some(block) => {
@@ -132,7 +130,7 @@ impl blockchain::Service for Neo4jService {
                 }
 
             },
-            None => {} //TODO Error, should never get here though, as we always have a last block in an after_commit
+            None => {println!("ERROR: Should not be here 006");}
         }
 
     }

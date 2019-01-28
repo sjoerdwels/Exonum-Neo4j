@@ -2,9 +2,10 @@
 #![allow(warnings)]
 /// Transaction documentation
 use exonum::{
+    messages::Message,
     blockchain::{Schema as CoreSchema, ExecutionResult, Transaction},
     storage::{Fork},
-    crypto::{CryptoHash, Hash},
+    crypto::{CryptoHash, Hash, PublicKey},
     encoding::serialize::FromHex,
     helpers::Height,
 };
@@ -32,6 +33,8 @@ transactions! {
             queries: &str,
             ///Date and time, it is to separate same queries, which is plausible thing to happen
             datetime: &str,
+            ///Pub key
+            pub_key: &PublicKey
         }
 
         ///Retrieves all changes from Neo4j that are supposed to be executed.
@@ -124,7 +127,6 @@ impl AuditBlocks {
                 },
                 _ => {println!("ERROR: Should not be here 003");} //Should not get here
             }
-
             for transaction_changes in block_changes.get_transactions() {
                 match Hash::from_hex(transaction_changes.get_transaction_id()){
                     Ok(transaction_hash) => {
@@ -185,18 +187,19 @@ impl Transaction for AuditBlocks {
 
 impl Transaction for CommitQueries {
     fn verify(&self) -> bool {
-        true
-    }
+        self.verify_signature(self.pub_key())
+}
 
     fn execute(&self, fork: &mut Fork) -> ExecutionResult {
 
         let hash = self.hash();
 
         let mut schema: Schema<&mut Fork> = Schema::new(fork);
+        let pub_key =
 
         println!("Adding transaction: {}", self.queries());
 
-        let q = Neo4jTransaction::new(self.queries(), "", "PENDING");
+        let q = Neo4jTransaction::new(self.queries(), "", "PENDING", self.pub_key());
 
         schema.add_neo4j_transaction(q, &hash);
         Ok(())
