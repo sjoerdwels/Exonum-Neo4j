@@ -285,9 +285,9 @@ impl fmt::Display for NodeChange {
             RL(x) => write!(f, "Label, <b>{}</b>, removed from node", x.label_name()),
             ANP(x) => write!(f, "Added new property, key <b>{}</b>, value <b>{}</b>", x.key(), x.value()),
             RNP(x) => write!(f, "Removed property, key <b>{}</b>", x.key()),
-            AR(x) => write!(f, "Relationship with UUID <b>{}</b> added. Starting from<b>{}</b>, and going to<b>{}</b>", x.rel_uuid(), x.from_uuid(), x.to_uuid()),
-            ARP(x) => write!(f, "Property,<b>{}</b>, with value<b>{}</b>, added to relation with uuid<b>{}</b>", x.key(), x.value(), x.relation_uuid()),
-            RRP(x) => write!(f, "Property,<b>{}</b>, removed to relation with uuid<b>{}</b>", x.key(), x.relation_uuid()),
+            AR(x) => write!(f, "Relationship with UUID <b>{}</b> added. Starting from <b>{}</b>, and going to <b>{}</b>", x.rel_uuid(), x.from_uuid(), x.to_uuid()),
+            ARP(x) => write!(f, "Property, <b>{}</b>, with value <b>{}</b>, added to relation with uuid <b>{}</b>", x.key(), x.value(), x.relation_uuid()),
+            RRP(x) => write!(f, "Property, <b>{}</b>, removed to relation with uuid <b>{}</b>", x.key(), x.relation_uuid()),
         }
     }
 }
