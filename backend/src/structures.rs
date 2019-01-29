@@ -4,16 +4,17 @@
 
 extern crate protobuf;
 
-use exonum::{crypto::{CryptoHash, Hash, hash, PublicKey}, storage::Fork};
 use exonum::storage::StorageValue;
+use exonum::{
+    crypto::{hash, CryptoHash, Hash, PublicKey},
+    storage::Fork,
+};
+use grpc::RequestOptions;
+use schema::Schema;
 use std::borrow::Cow;
 use std::fmt;
-use grpc::RequestOptions;
+use structures::NodeChange::{AL, AN, ANP, AR, ARP, RL, RN, RNP, RRP};
 use util;
-use schema::Schema;
-use structures::NodeChange::{AN, RN, ANP, RNP, AL, RL, AR, ARP, RRP};
-
-
 
 ///add node
 encoding_struct! {
@@ -127,7 +128,6 @@ encoding_struct! {
     }
 }
 
-
 ///Remove relation property
 encoding_struct! {
     ///Remove relation property
@@ -168,9 +168,6 @@ pub enum NodeChange {
     RRP(RemoveRelationProperty),
 }
 
-
-
-
 impl StorageValue for NodeChange {
     fn into_bytes(self) -> Vec<u8> {
         match self {
@@ -178,32 +175,32 @@ impl StorageValue for NodeChange {
                 let mut bytes = x.raw;
                 bytes.push(1);
                 bytes
-            },
+            }
             RN(x) => {
                 let mut bytes = x.raw;
                 bytes.push(2);
                 bytes
-            },
+            }
             ANP(x) => {
                 let mut bytes = x.raw;
                 bytes.push(3);
                 bytes
-            },
+            }
             RNP(x) => {
                 let mut bytes = x.raw;
                 bytes.push(4);
                 bytes
-            },
+            }
             AL(x) => {
                 let mut bytes = x.raw;
                 bytes.push(5);
                 bytes
-            },
+            }
             RL(x) => {
                 let mut bytes = x.raw;
                 bytes.push(6);
                 bytes
-            },
+            }
             AR(x) => {
                 let mut bytes = x.raw;
                 bytes.push(7);
@@ -223,10 +220,10 @@ impl StorageValue for NodeChange {
     }
 
     fn from_bytes(v: ::std::borrow::Cow<[u8]>) -> Self {
-        let mut data =  v.into_owned();
+        let mut data = v.into_owned();
         let i = data.pop();
 
-        let nc : NodeChange = match i {
+        let nc: NodeChange = match i {
             Some(1) => AN(AddNode::from_bytes(Cow::Borrowed(&data))),
             Some(2) => RN(RemoveNode::from_bytes(Cow::Borrowed(&data))),
             Some(3) => ANP(AddNodeProperty::from_bytes(Cow::Borrowed(&data))),
@@ -235,7 +232,7 @@ impl StorageValue for NodeChange {
             Some(6) => RL(RemoveLabel::from_bytes(Cow::Borrowed(&data))),
             Some(8) => ARP(AddRelationProperty::from_bytes(Cow::Borrowed(&data))),
             Some(9) => RRP(RemoveRelationProperty::from_bytes(Cow::Borrowed(&data))),
-            _ => AR(AddRelation::from_bytes(Cow::Borrowed(&data)))
+            _ => AR(AddRelation::from_bytes(Cow::Borrowed(&data))),
         };
         nc
     }
@@ -244,34 +241,16 @@ impl StorageValue for NodeChange {
 impl CryptoHash for NodeChange {
     fn hash(&self) -> Hash {
         match self {
-            AN(x) => {
-                hash(x.raw.as_ref())
-            },
-            RN(x) => {
-                hash(x.raw.as_ref())
-            },
-            ANP(x) => {
-                hash(x.raw.as_ref())
-            },
-            RNP(x) => {
-                hash(x.raw.as_ref())
-            },
-            AL(x) => {
-                hash(x.raw.as_ref())
-            },
-            RL(x) => {
-                hash(x.raw.as_ref())
-            },
+            AN(x) => hash(x.raw.as_ref()),
+            RN(x) => hash(x.raw.as_ref()),
+            ANP(x) => hash(x.raw.as_ref()),
+            RNP(x) => hash(x.raw.as_ref()),
+            AL(x) => hash(x.raw.as_ref()),
+            RL(x) => hash(x.raw.as_ref()),
 
-            AR(x) => {
-                hash(x.raw.as_ref())
-            }
-            ARP(x) => {
-                hash(x.raw.as_ref())
-            }
-            RRP(x) => {
-                hash(x.raw.as_ref())
-            }
+            AR(x) => hash(x.raw.as_ref()),
+            ARP(x) => hash(x.raw.as_ref()),
+            RRP(x) => hash(x.raw.as_ref()),
         }
     }
 }
@@ -294,7 +273,7 @@ impl fmt::Display for NodeChange {
 
 impl NodeChange {
     ///This defines the logic of which nodes we add specific changes. Some changes, related to relations we have to add to both end points.
-    pub fn get_uuis(&self) -> Vec<&str>{
+    pub fn get_uuis(&self) -> Vec<&str> {
         match self {
             AN(x) => vec![x.node_uuid()],
             RN(x) => vec![x.node_uuid()],
@@ -323,7 +302,6 @@ impl NodeChange {
     }
 }
 
-
 ///Error msg
 encoding_struct! {
     ///Error msg
@@ -332,7 +310,6 @@ encoding_struct! {
         msg: &str,
     }
 }
-
 
 ///Relation struct
 encoding_struct! {
@@ -360,4 +337,3 @@ encoding_struct! {
         pub_key: &PublicKey
     }
 }
-

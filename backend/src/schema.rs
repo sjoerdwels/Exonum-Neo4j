@@ -15,13 +15,13 @@
 //! Cryptocurrency database schema.
 
 use exonum::{
-    crypto::{hash, Hash}, storage::{Fork, MapIndex, ListIndex, ProofListIndex, ProofMapIndex, Snapshot,},
+    crypto::{hash, Hash},
+    storage::{Fork, ListIndex, MapIndex, ProofListIndex, ProofMapIndex, Snapshot},
 };
 
 use std::string::String;
 
 use structures::{Neo4jTransaction, NodeChange, Relation};
-
 
 /// Database schema for the cryptocurrency.
 #[derive(Debug)]
@@ -52,7 +52,7 @@ where
     ///Gets hash value in hex for the last block that was audited.
     /// This is used to avoid auditing same blocks twice.
     pub fn get_last_confirmed_block(&self) -> Option<Hash> {
-        let index : MapIndex<&T, String, Hash> = MapIndex::new("neo4j.values", &self.view);
+        let index: MapIndex<&T, String, Hash> = MapIndex::new("neo4j.values", &self.view);
         index.get(&String::from("lastConfirmedBlock"))
     }
 
@@ -74,12 +74,14 @@ where
     ///Get a node's history proofListIndex by giving that node's uuid.
     pub fn node_history(&self, node_name: &str) -> ProofListIndex<&T, NodeChange> {
         ProofListIndex::new(format!("neo4j.node_changes_{}", node_name), &self.view)
-
     }
 
     ///Get blocks that were audited by a Audit transaction.
     pub fn audited_blocks(&self, transaction_hash: &Hash) -> ListIndex<&T, Hash> {
-        ListIndex::new(format!("neo4j.audited_block_{}", transaction_hash.to_hex().as_str()), &self.view)
+        ListIndex::new(
+            format!("neo4j.audited_block_{}", transaction_hash.to_hex().as_str()),
+            &self.view,
+        )
     }
 
     ///Get state hash
@@ -101,7 +103,7 @@ impl<'a> Schema<&'a mut Fork> {
     }
 
     ///Add a new variable to the table.
-    pub fn add_neo4j_transaction(&mut self, q: Neo4jTransaction, hash : &Hash) {
+    pub fn add_neo4j_transaction(&mut self, q: Neo4jTransaction, hash: &Hash) {
         self.neo4j_transactions_mut().put(hash, q);
         self.neo4j_transaction_ordered_mut().push(hash.clone());
     }
@@ -109,16 +111,21 @@ impl<'a> Schema<&'a mut Fork> {
     ///Update neo4j transaction. Only result and error_msg fields can be updated.
     /// This is called when we retrieve changes from Neo4j.
     pub fn update_neo4j_transaction(&mut self, hash: &Hash, error_msg: &str, result: &str) {
-        if let Some(neo4j_transaction) =  self.neo4j_transaction(hash) {
-            let updated_transaction = Neo4jTransaction::new(neo4j_transaction.queries(),
-                                        error_msg, result, neo4j_transaction.pub_key());
+        if let Some(neo4j_transaction) = self.neo4j_transaction(hash) {
+            let updated_transaction = Neo4jTransaction::new(
+                neo4j_transaction.queries(),
+                error_msg,
+                result,
+                neo4j_transaction.pub_key(),
+            );
             self.neo4j_transactions_mut().put(hash, updated_transaction);
         }
     }
 
     ///Sets last confirmed block, so that we will not try to retrieve changes for that and before anymore.
-    pub fn set_last_confirmed_block(&mut self, block_hash : Hash) {
-        let mut index : MapIndex<&mut Fork, String, Hash> = MapIndex::new("neo4j.values", &mut self.view);
+    pub fn set_last_confirmed_block(&mut self, block_hash: Hash) {
+        let mut index: MapIndex<&mut Fork, String, Hash> =
+            MapIndex::new("neo4j.values", &mut self.view);
         let i_str = String::from("lastConfirmedBlock");
         if index.contains(&i_str) {
             index.remove(&i_str);
@@ -132,7 +139,7 @@ impl<'a> Schema<&'a mut Fork> {
     }
 
     ///Add a new variable to the table.
-    pub fn add_relation(&mut self, r: Relation, relation_uuid : &str) {
+    pub fn add_relation(&mut self, r: Relation, relation_uuid: &str) {
         let hash = hash(relation_uuid.as_bytes());
         self.relations_mut().put(&hash, r);
     }
@@ -143,13 +150,16 @@ impl<'a> Schema<&'a mut Fork> {
     }
 
     ///Add to node history
-    pub fn add_node_history(&mut self, uuid: &str, node_change: &NodeChange){
+    pub fn add_node_history(&mut self, uuid: &str, node_change: &NodeChange) {
         self.node_history_mut(uuid).push(node_change.clone())
     }
 
     ///Adds a block that was audited and the hash for the AuditBlocks transaction that did the auditing.
     pub fn add_audited_block(&mut self, transaction_hash: &Hash, block_hash: Hash) {
-        let mut index : ListIndex<&mut Fork, Hash> = ListIndex::new(format!("neo4j.audited_block_{}", transaction_hash.to_hex().as_str()), &mut self.view);
+        let mut index: ListIndex<&mut Fork, Hash> = ListIndex::new(
+            format!("neo4j.audited_block_{}", transaction_hash.to_hex().as_str()),
+            &mut self.view,
+        );
         index.push(block_hash);
     }
 }
