@@ -1,12 +1,12 @@
 extern crate exonum_build;
 extern crate protoc_rust_grpc;
 
-use exonum_build::{get_exonum_protobuf_files_path, protobuf_generate};
+use exonum_build::protobuf_generate;
 use std::{env, fs::OpenOptions, io::Write, path::PathBuf};
 
 fn main() {
     // v0.10.0
-    // todo: enable when exonum is updated to v0.10.0
+    // todo: enable when exonum is updated to v0.10.0, then use exonum_build::get_exonum_protobuf_files_path
     //    let exonum_protos = get_exonum_protobuf_files_path();
     //    protobuf_generate(
     //        "../proto",
