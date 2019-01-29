@@ -1,16 +1,15 @@
-
 //! neo4j exonum integration API. Provides us with necessary endpoints.
 
 use exonum::{
     api::{self, ServiceApiBuilder, ServiceApiState},
-    crypto::{Hash},
-    blockchain::{Transaction},
-    node::TransactionSend,
+    blockchain::Transaction,
+    crypto::Hash,
     encoding::serialize::FromHex,
+    node::TransactionSend,
 };
 
-use structures::{Neo4jTransaction};
 use schema::Schema;
+use structures::Neo4jTransaction;
 use transactions::Neo4JTransactions;
 
 use std::io;
@@ -65,9 +64,7 @@ encoding_struct! {
 #[derive(Debug, Clone)]
 pub struct Neo4JApi;
 
-
 impl Neo4JApi {
-
     /// Endpoint for dumping all queries from the storage.
     pub fn get_queries(state: &ServiceApiState, _query: ()) -> api::Result<Vec<Neo4jTransaction>> {
         let snapshot = state.snapshot();
@@ -78,7 +75,10 @@ impl Neo4JApi {
     }
 
     /// Returns transaction based on provided hash.
-    pub fn get_transaction(state: &ServiceApiState, query: GetQueryQuery) -> api::Result<Neo4jTransaction> {
+    pub fn get_transaction(
+        state: &ServiceApiState,
+        query: GetQueryQuery,
+    ) -> api::Result<Neo4jTransaction> {
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
         match Hash::from_hex(query.hash_string()) {
@@ -86,21 +86,31 @@ impl Neo4JApi {
                 let query = schema.neo4j_transaction(&query_hash);
                 match query {
                     Some(x) => Ok(x),
-                    None => Err(api::Error::from(io::Error::new(io::ErrorKind::Other, "No query found"))),
+                    None => Err(api::Error::from(io::Error::new(
+                        io::ErrorKind::Other,
+                        "No query found",
+                    ))),
                 }
-            },
-            Err(e) => Err(api::Error::from(io::Error::new(io::ErrorKind::Other, format!("Error unpacking hash: {:?}", e)))),
+            }
+            Err(e) => Err(api::Error::from(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Error unpacking hash: {:?}", e),
+            ))),
         }
     }
 
     /// Endpoint for getting a single node's history by providing it's uuid.
-    pub fn get_node_history(state: &ServiceApiState, query: NodeHistoryQuery) -> api::Result<Vec<NodeHistoryLine>> {
+    pub fn get_node_history(
+        state: &ServiceApiState,
+        query: NodeHistoryQuery,
+    ) -> api::Result<Vec<NodeHistoryLine>> {
         let snapshot = state.snapshot();
         let schema = Schema::new(snapshot);
         let idx = schema.node_history(query.node_uuid());
         let mut values = Vec::new();
-        for val in idx.iter(){
-            let new_line: NodeHistoryLine = NodeHistoryLine::new(val.get_transaction_id(), format!("{}", val).as_str());
+        for val in idx.iter() {
+            let new_line: NodeHistoryLine =
+                NodeHistoryLine::new(val.get_transaction_id(), format!("{}", val).as_str());
             values.push(new_line);
         }
         Ok(values)
@@ -115,10 +125,15 @@ impl Neo4JApi {
         let transaction: Box<dyn Transaction> = query.into();
         let tx_hash = transaction.hash();
 
-
         match state.sender().send(transaction) {
-            Ok(()) =>   Ok(CommitResponse { tx_hash: tx_hash, error_msg: format!("") }),
-            Err(err) => Ok(CommitResponse { tx_hash: tx_hash, error_msg: format!("got error: {:?}", err) })
+            Ok(()) => Ok(CommitResponse {
+                tx_hash,
+                error_msg: "".to_string(),
+            }),
+            Err(err) => Ok(CommitResponse {
+                tx_hash,
+                error_msg: format!("got error: {:?}", err),
+            }),
         }
     }
 
