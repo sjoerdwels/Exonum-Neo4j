@@ -67,5 +67,6 @@ RUN apt-get install nano
 
 EXPOSE 8200 8080 7474 7473
 
+#Remove from final Dockerfile
 RUN cd Exonum-Neo4j/backend && git pull &&\
     . ~/.cargo/env && cargo build
