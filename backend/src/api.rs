@@ -117,8 +117,8 @@ impl Neo4JApi {
 
 
         match state.sender().send(transaction) {
-            Ok(()) =>   Ok(CommitResponse { tx_hash: tx_hash, error_msg: format!("") }),
-            Err(err) => Ok(CommitResponse { tx_hash: tx_hash, error_msg: format!("got error: {:?}", err) })
+            Ok(()) =>   Ok(CommitResponse { tx_hash, error_msg: "".to_string() }),
+            Err(err) => Ok(CommitResponse { tx_hash, error_msg: format!("got error: {:?}", err) })
         }
     }
 

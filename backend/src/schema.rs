@@ -109,13 +109,10 @@ impl<'a> Schema<&'a mut Fork> {
     ///Update neo4j transaction. Only result and error_msg fields can be updated.
     /// This is called when we retrieve changes from Neo4j.
     pub fn update_neo4j_transaction(&mut self, hash: &Hash, error_msg: &str, result: &str) {
-        match self.neo4j_transaction(hash) {
-            Some(neo4j_transaction) => {
-                let updated_transaction = Neo4jTransaction::new(neo4j_transaction.queries(),
-                                            error_msg, result, neo4j_transaction.pub_key());
-                self.neo4j_transactions_mut().put(hash, updated_transaction);
-            },
-            None => {}
+        if let Some(neo4j_transaction) =  self.neo4j_transaction(hash) {
+            let updated_transaction = Neo4jTransaction::new(neo4j_transaction.queries(),
+                                        error_msg, result, neo4j_transaction.pub_key());
+            self.neo4j_transactions_mut().put(hash, updated_transaction);
         }
     }
 

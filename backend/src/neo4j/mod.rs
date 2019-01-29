@@ -60,26 +60,24 @@ impl Neo4jRpc {
 
         let transactions = core_schema.block_transactions(block.height());
 
-        let mut request = BlockExecuteRequest::new();
-        request.set_block_id(block_hash.to_string());
+
         let mut trans_vector : Vec<TransactionRequest> = Vec::new();
         for trans_hash in transactions.iter() {
             let potential_trans = schema.neo4j_transaction(&trans_hash);
-            match potential_trans {
-                Some(neo4j_transaction) => {
-                    let queries = neo4j_transaction.queries().split(";");
-                    let query_vector: Vec<::std::string::String> = queries.map(|s| s.to_string()).collect();
-                    let proto_vec = protobuf::RepeatedField::from_vec(query_vector);
-                    let mut trans_req = TransactionRequest::new();
-                    trans_req.set_transaction_id(trans_hash.to_hex().as_str().to_string());
-                    trans_req.set_queries(proto_vec);
-                    trans_vector.push(trans_req);
-                },
-                None => {}
+            if let Some(neo4j_transaction) = potential_trans {
+                let queries = neo4j_transaction.queries().split(';');
+                let query_vector: Vec<::std::string::String> = queries.map(|s| s.to_string()).collect();
+                let proto_vec = protobuf::RepeatedField::from_vec(query_vector);
+                let mut trans_req = TransactionRequest::new();
+                trans_req.set_transaction_id(trans_hash.to_hex().as_str().to_string());
+                trans_req.set_queries(proto_vec);
+                trans_vector.push(trans_req);
             }
 
         }
-        if trans_vector.len() > 0 {
+        if !trans_vector.is_empty() {
+            let mut request = BlockExecuteRequest::new();
+            request.set_block_id(block_hash.to_string());
             request.set_transactions(protobuf::RepeatedField::from_vec(trans_vector));
             let resp = self.transaction_manager.execute_block(RequestOptions::new(), request);
 
@@ -110,9 +108,10 @@ impl Neo4jRpc {
                 let resp = self.transaction_manager.delete_block_changes(RequestOptions::new(), request);
                 match resp.wait() {
                     Ok(x) => {
-                        match x.1.get_success() {
-                            true => println!("Succesfully deleted changes in neo4j for {}",block.to_hex().as_str() ),
-                            false => println!("Failed to deleted changes in neo4j for {}",block.to_hex().as_str() ),
+                        if x.1.get_success() {
+                            println!("Succesfully deleted changes in neo4j for {}",block.to_hex().as_str());
+                        } else {
+                            println!("Failed to deleted changes in neo4j for {}",block.to_hex().as_str());
                         }
                     },
                     Err(e) => {
@@ -202,16 +201,14 @@ pub fn generate_database_changes_from_proto(modifs : &DatabaseModifications, sch
 ///Gets an neo4j rpc client, with the port defined in neo4j.toml
 pub fn get_neo4j_rpc_client() -> Neo4jRpc {
     let mut port = 9994;
-    match parse_port() {
-        Ok(p) => port = p,
-        _ => {}
+    if let Ok(p) = parse_port() {
+        port = p
     }
     let neo4j_config = Neo4jConfig{
         address : String::from("127.0.0.1"),
-        port : port
+        port
     };
-    let neo4j_rpc = Neo4jRpc::new(neo4j_config);
-    neo4j_rpc
+    Neo4jRpc::new(neo4j_config)
 }
 
 ///Response we get from communicating with neo4j

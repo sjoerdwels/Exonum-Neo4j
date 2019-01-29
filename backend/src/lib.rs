@@ -109,24 +109,16 @@ impl blockchain::Service for Neo4jService {
         match last_block {
             Some(block_hash) => {
                 let block_option = core_schema.blocks().get(&block_hash);
-                match block_option {
-                    Some(block) => {
-
-                        let result = self.neo4j.execute_block(&block, block_hash.to_hex().as_str(), &core_schema, &schema);
-                        match result {
-                            OkExe(_) => {
-                                let tx_sender = context.transaction_sender();
-                                let new_tx = AuditBlocks::new(block_hash.to_hex().as_str(), context.secret_key());
-                                match tx_sender.send(Box::new(new_tx)) {
-                                    _ => {}
-                                };
-                            },
-                            //NoCommits(_) => println!("Nothing to commit"),
-                            _ => {} //No need to do anything
-                        }
-                        self.neo4j.remove_audited_changes(block, core_schema, schema);
-                    },
-                    None => {}
+                if let Some(block) = block_option {
+                    let result = self.neo4j.execute_block(&block, block_hash.to_hex().as_str(), &core_schema, &schema);
+                    if let OkExe(_) = result {
+                        let tx_sender = context.transaction_sender();
+                        let new_tx = AuditBlocks::new(block_hash.to_hex().as_str(), context.secret_key());
+                        match tx_sender.send(Box::new(new_tx)) {
+                            _ => {}
+                        };
+                    }
+                    self.neo4j.remove_audited_changes(block, core_schema, schema);
                 }
 
             },
