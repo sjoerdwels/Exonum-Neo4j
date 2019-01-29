@@ -13,7 +13,6 @@ import java.util.HashMap;
 
 import static org.junit.Assert.*;
 
-@Ignore
 public class ModificationsTest {
 
     private GraphDatabaseService db;

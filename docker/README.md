@@ -62,7 +62,6 @@ With the dockerfile a fully functional node running our solution can be created.
 To regenerate the created docker image, simply open the docker directory in the repository and execute
 ```bash
 docker build --tag exonum_neo4j . --no-cache
-
 ``` 
 The __--no-cache__ parameter will ensure that a clean image will be created, such that the lasted version of the repository will be cloned.
 
