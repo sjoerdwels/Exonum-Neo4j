@@ -1,4 +1,4 @@
-#Exonum Neo4j service
+# Exonum Neo4j service
 
 #### Requirements
 
@@ -18,7 +18,7 @@ Go to backend folder:
 cargo build
 cargo install
 
-####Setup overview
+#### Setup overview
 
 * You first have to generate common.toml using, and provide number of nodes as X
     * exonum-neo4j generate-template path.../common.toml --validators-count $X
@@ -37,10 +37,10 @@ reConfSingle.sh and runSingle.sh is an example to setup a single node.
 
 genCommonConfigTesting.sh, reConfTestNode.sh, finalizeTesting.sh and runTestNode.sh are used by the docker example to setup N docker containers which each act as a single node.
 
-####Fast testing
+#### Fast testing
 To fast test that your single node is working, you can use these curl calls as a base (unix only)
 
-#####Example for inserting transactions.
+##### Example for inserting transactions.
 curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services/neo4j_blockchain/v1/insert_transaction -d $'{
   "body": {
     "queries": "CREATE (n:Person {name:\'John\', money:100}) RETURN n",
@@ -52,7 +52,7 @@ curl -i -X POST -H "Content-Type: application/json"  127.0.0.1:8200/api/services
   "message_id": 0,
   "signature":"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b"
 }'
-#####Example requests for different Get calls. You need to change the values if you want to use them though.
+##### Example requests for different Get calls. You need to change the values if you want to use them though.
 curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/transactions
 
 curl -i -H "Content-Type: application/json" -X GET 127.0.0.1:8200/api/services/neo4j_blockchain/v1/last5_transactions
