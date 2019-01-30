@@ -234,6 +234,7 @@ function showTransaction(hash) {
 
             $("table#transactions-table tbody").empty().append(
                 "<tr><th>Hash</th><td data-toggle=\"tooltip\" data-tx='" + hash + "' title='" + hash + "' class='transaction exonum-clickable'>" + hash + "</td></tr>" +
+                "<tr><th>Sender public key</th><td>" + data.pub_key + "</td></tr>" +
                 "<tr><th>Status</th><td>" + data.result + "</td></tr>" +
                 "<tr><th>Content</th><td>" + data.queries + "</td></tr>" +
                 "<tr><th>Error</th><td>" + data.error_msg + "</td></tr>"
