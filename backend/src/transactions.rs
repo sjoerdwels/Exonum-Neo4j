@@ -152,10 +152,7 @@ impl AuditBlocks {
                             let failed_query = error.get_failed_query();
 
                             let error_msg = if failed_query.get_query().is_empty() {
-                                format!(
-                                        "{}",
-                                        error.get_message()
-                                    )
+                                format!("{}", error.get_message())
                             } else {
                                 format!(
                                     "{}\n|||Happened in query: {}\n|||Error: {}",

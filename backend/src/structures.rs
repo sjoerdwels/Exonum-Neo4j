@@ -13,7 +13,7 @@ use grpc::RequestOptions;
 use schema::Schema;
 use std::borrow::Cow;
 use std::fmt;
-use structures::NodeChange::{AL, AN, ANP, AR, RR, ARP, RL, RN, RNP, RRP};
+use structures::NodeChange::{AL, AN, ANP, AR, ARP, RL, RN, RNP, RR, RRP};
 use util;
 
 ///add node
@@ -54,7 +54,6 @@ encoding_struct! {
         transaction_id: &str,
     }
 }
-
 
 ///remove relation
 encoding_struct! {

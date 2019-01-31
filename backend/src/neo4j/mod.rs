@@ -18,7 +18,7 @@ use std::vec::Vec;
 use util::parse_port;
 
 use self::ExecuteResponse::*;
-use structures::NodeChange::{AL, AN, ANP, AR, RR, ARP, RL, RN, RNP, RRP};
+use structures::NodeChange::{AL, AN, ANP, AR, ARP, RL, RN, RNP, RR, RRP};
 use structures::*;
 
 use schema::Schema;
@@ -215,7 +215,6 @@ pub fn generate_database_changes_from_proto(
         );
         schema.add_relation(r, new_relation.get_relationship_UUID());
     }
-
 
     for remove_relation in modifs.get_deleted_relationships() {
         match schema.relation(remove_relation.get_relationship_UUID()) {
