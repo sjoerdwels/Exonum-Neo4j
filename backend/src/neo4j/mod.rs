@@ -18,7 +18,7 @@ use std::vec::Vec;
 use util::parse_port;
 
 use self::ExecuteResponse::*;
-use structures::NodeChange::{AL, AN, ANP, AR, ARP, RL, RN, RNP, RRP};
+use structures::NodeChange::{AL, AN, ANP, AR, RR, ARP, RL, RN, RNP, RRP};
 use structures::*;
 
 use schema::Schema;
@@ -214,6 +214,24 @@ pub fn generate_database_changes_from_proto(
             new_relation.get_end_node_UUID(),
         );
         schema.add_relation(r, new_relation.get_relationship_UUID());
+    }
+
+
+    for remove_relation in modifs.get_deleted_relationships() {
+        match schema.relation(remove_relation.get_relationship_UUID()) {
+            Some(relation) => {
+                let new_change = RemoveRelation::new(
+                    remove_relation.get_relationship_UUID(),
+                    relation.start_node_uuid(),
+                    relation.end_node_uuid(),
+                    transaction_id,
+                );
+                changes.push(RR(new_change));
+            }
+            _ => {
+                println!("ERROR: Should not be here 004");
+            }
+        }
     }
 
     for new_relation_property in modifs.get_assigned_relationship_properties() {

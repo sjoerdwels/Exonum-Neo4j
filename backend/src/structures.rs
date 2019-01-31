@@ -13,7 +13,7 @@ use grpc::RequestOptions;
 use schema::Schema;
 use std::borrow::Cow;
 use std::fmt;
-use structures::NodeChange::{AL, AN, ANP, AR, ARP, RL, RN, RNP, RRP};
+use structures::NodeChange::{AL, AN, ANP, AR, RR, ARP, RL, RN, RNP, RRP};
 use util;
 
 ///add node
@@ -46,6 +46,22 @@ encoding_struct! {
         rel_uuid: &str,
         ///relationship type
         field_type: &str,
+        ///from node uuid
+        from_uuid: &str,
+        ///to node uuid
+        to_uuid: &str,
+        ///hash value for the the transaction it is part of
+        transaction_id: &str,
+    }
+}
+
+
+///remove relation
+encoding_struct! {
+    ///add relation
+    struct RemoveRelation {
+        ///relation uuid, needed since we add to our own database
+        rel_uuid: &str,
         ///from node uuid
         from_uuid: &str,
         ///to node uuid
@@ -154,6 +170,8 @@ pub enum NodeChange {
     RN(RemoveNode),
     ///Add new relation
     AR(AddRelation),
+    ///Remove existing relation
+    RR(RemoveRelation),
     ///Add new label
     AL(AddLabel),
     ///Remove existing label
@@ -206,14 +224,19 @@ impl StorageValue for NodeChange {
                 bytes.push(7);
                 bytes
             }
-            ARP(x) => {
+            RR(x) => {
                 let mut bytes = x.raw;
                 bytes.push(8);
                 bytes
             }
-            RRP(x) => {
+            ARP(x) => {
                 let mut bytes = x.raw;
                 bytes.push(9);
+                bytes
+            }
+            RRP(x) => {
+                let mut bytes = x.raw;
+                bytes.push(10);
                 bytes
             }
         }
@@ -230,9 +253,10 @@ impl StorageValue for NodeChange {
             Some(4) => RNP(RemoveNodeProperty::from_bytes(Cow::Borrowed(&data))),
             Some(5) => AL(AddLabel::from_bytes(Cow::Borrowed(&data))),
             Some(6) => RL(RemoveLabel::from_bytes(Cow::Borrowed(&data))),
-            Some(8) => ARP(AddRelationProperty::from_bytes(Cow::Borrowed(&data))),
-            Some(9) => RRP(RemoveRelationProperty::from_bytes(Cow::Borrowed(&data))),
-            _ => AR(AddRelation::from_bytes(Cow::Borrowed(&data))),
+            Some(7) => AR(AddRelation::from_bytes(Cow::Borrowed(&data))),
+            Some(8) => RR(RemoveRelation::from_bytes(Cow::Borrowed(&data))),
+            Some(9) => ARP(AddRelationProperty::from_bytes(Cow::Borrowed(&data))),
+            _ => RRP(RemoveRelationProperty::from_bytes(Cow::Borrowed(&data))),
         };
         nc
     }
@@ -247,8 +271,8 @@ impl CryptoHash for NodeChange {
             RNP(x) => hash(x.raw.as_ref()),
             AL(x) => hash(x.raw.as_ref()),
             RL(x) => hash(x.raw.as_ref()),
-
             AR(x) => hash(x.raw.as_ref()),
+            RR(x) => hash(x.raw.as_ref()),
             ARP(x) => hash(x.raw.as_ref()),
             RRP(x) => hash(x.raw.as_ref()),
         }
@@ -265,6 +289,7 @@ impl fmt::Display for NodeChange {
             ANP(x) => write!(f, "Added new property, key <b>{}</b>, value <b>{}</b>", x.key(), x.value()),
             RNP(x) => write!(f, "Removed property, key <b>{}</b>", x.key()),
             AR(x) => write!(f, "Relationship of type <b>{}</b> with UUID <b>{}</b> added. Starting from <b>{}</b>, and going to <b>{}</b>", x.field_type(), x.rel_uuid(), x.from_uuid(), x.to_uuid()),
+            RR(x) => write!(f, "Relationship with UUID <b>{}</b> removed. Starting from <b>{}</b>, and going to <b>{}</b>", x.rel_uuid(), x.from_uuid(), x.to_uuid()),
             ARP(x) => write!(f, "Property, <b>{}</b>, with value <b>{}</b>, added to relation with uuid <b>{}</b>", x.key(), x.value(), x.relation_uuid()),
             RRP(x) => write!(f, "Property, <b>{}</b>, removed to relation with uuid <b>{}</b>", x.key(), x.relation_uuid()),
         }
@@ -282,6 +307,7 @@ impl NodeChange {
             AL(x) => vec![x.node_uuid()],
             RL(x) => vec![x.node_uuid()],
             AR(x) => vec![x.from_uuid(), x.to_uuid()],
+            RR(x) => vec![x.from_uuid(), x.to_uuid()],
             ARP(x) => vec![x.from_uuid(), x.to_uuid()],
             RRP(x) => vec![x.from_uuid(), x.to_uuid()],
         }
@@ -296,6 +322,7 @@ impl NodeChange {
             AL(x) => x.transaction_id(),
             RL(x) => x.transaction_id(),
             AR(x) => x.transaction_id(),
+            RR(x) => x.transaction_id(),
             ARP(x) => x.transaction_id(),
             RRP(x) => x.transaction_id(),
         }

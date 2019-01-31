@@ -1,10 +1,10 @@
 # Exonum Neo4j service
 
-#### Requirements
+This is an exonum service, which enables block-chain on neo4j database. For each validator node, there has to be a local neo4j database instance running, if it is not accessible from port 9994, then you have to make changes to the neo4j.toml file, and make sure it is in the root of where you run your service.
 
-- Cargo 
-- Screen
-- Protobuf (protoc in $PATH)
+In here we go through the setup of this service in ubuntu-linux system.
+
+#### Requirements
 
 Exonum service installation:
 
@@ -14,6 +14,7 @@ apt-get install
 	pkg-config
 	libssl-dev
 	curl
+	protoc
 Go to backend folder:
 cargo build
 cargo install

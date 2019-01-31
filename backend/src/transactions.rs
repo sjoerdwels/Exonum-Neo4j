@@ -150,12 +150,20 @@ impl AuditBlocks {
                         Status::FAILURE => {
                             let error = transaction_changes.get_error();
                             let failed_query = error.get_failed_query();
-                            let error_msg = format!(
-                                "{}\nHappened in query: {}\n{}",
-                                error.get_message(),
-                                failed_query.get_query(),
-                                failed_query.get_error()
-                            );
+
+                            let error_msg = if failed_query.get_query().is_empty() {
+                                format!(
+                                        "{}",
+                                        error.get_message()
+                                    )
+                            } else {
+                                format!(
+                                    "{}\n|||Happened in query: {}\n|||Error: {}",
+                                    error.get_message(),
+                                    failed_query.get_query(),
+                                    failed_query.get_error()
+                                )
+                            };
                             schema.update_neo4j_transaction(
                                 &transaction_hash,
                                 error_msg.as_str(),
