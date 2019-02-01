@@ -14,8 +14,7 @@
 
 //! Cryptocurrency implementation example using [exonum](http://exonum.com/).
 
-// TODO FIX LINTER
-#![allow(
+#![warn(
     missing_debug_implementations,
     missing_docs,
     unsafe_code,
@@ -39,19 +38,23 @@ extern crate toml;
 pub use schema::Schema;
 
 pub mod api;
+///Module for communicating with Neo4j
 pub mod neo4j;
 pub mod schema;
-pub mod transactions;
 pub mod structures;
+pub mod transactions;
 pub mod util;
 
-use transactions::Neo4JTransactions;
 use transactions::AuditBlocks;
+use transactions::Neo4JTransactions;
 
 use exonum::{
     api::ServiceApiBuilder,
-    blockchain::{self, Schema as CoreSchema, ServiceContext, Transaction, TransactionSet}, crypto::Hash,
-    encoding::Error as EncodingError, helpers::fabric::{self, Context}, messages::RawTransaction,
+    blockchain::{self, Schema as CoreSchema, ServiceContext, Transaction, TransactionSet},
+    crypto::Hash,
+    encoding::Error as EncodingError,
+    helpers::fabric::{self, Context},
+    messages::RawTransaction,
     storage::Snapshot,
 };
 
@@ -64,7 +67,7 @@ const SERVICE_NAME: &str = "neo4j_blockchain";
 
 /// Exonum `Neo4jService` implementation.
 pub struct Neo4jService {
-    neo4j : neo4j::Neo4jRpc
+    neo4j: neo4j::Neo4jRpc,
 }
 
 impl ::std::fmt::Debug for Neo4jService {
@@ -75,8 +78,8 @@ impl ::std::fmt::Debug for Neo4jService {
 
 impl Neo4jService {
     /// Creates  a Neo4j RPC service
-    pub fn new( neo4j : neo4j::Neo4jRpc) -> Self {
-        Self {neo4j}
+    pub fn new(neo4j: neo4j::Neo4jRpc) -> Self {
+        Self { neo4j }
     }
 }
 
@@ -101,39 +104,36 @@ impl blockchain::Service for Neo4jService {
     fn after_commit(&self, context: &ServiceContext) {
         let snapshot = context.snapshot();
 
-
         let core_schema = CoreSchema::new(snapshot);
         let schema = Schema::new(snapshot);
         let last_block = core_schema.block_hashes_by_height().last();
 
         match last_block {
             Some(block_hash) => {
-                println!("Last block: {:?}", &block_hash);
                 let block_option = core_schema.blocks().get(&block_hash);
-                match block_option {
-                    Some(block) => {
-
-                        let result = self.neo4j.execute_block(&block, block_hash.to_hex().as_str(), &core_schema, &schema);
-                        match result {
-                            OkExe(_) => {
-                                let tx_sender = context.transaction_sender();
-                                let new_tx = AuditBlocks::new(block_hash.to_hex().as_str(), context.secret_key());
-                                match tx_sender.send(Box::new(new_tx)) {
-                                    _ => {}
-                                };
-                            },
-                            //NoCommits(_) => println!("Nothing to commit"),
-                            _ => {} //No need to do anything
-                        }
-                        self.neo4j.remove_audited_changes(block, core_schema, schema);
-                    },
-                    None => {}
+                if let Some(block) = block_option {
+                    let result = self.neo4j.execute_block(
+                        &block,
+                        block_hash.to_hex().as_str(),
+                        &core_schema,
+                        &schema,
+                    );
+                    if let OkExe(_) = result {
+                        let tx_sender = context.transaction_sender();
+                        let new_tx =
+                            AuditBlocks::new(block_hash.to_hex().as_str(), context.secret_key());
+                        match tx_sender.send(Box::new(new_tx)) {
+                            _ => {}
+                        };
+                    }
+                    self.neo4j
+                        .remove_audited_changes(block, core_schema, schema);
                 }
-
-            },
-            None => {} //TODO Error, should never get here though, as we always have a last block in an after_commit
+            }
+            None => {
+                println!("ERROR: Should not be here 006");
+            }
         }
-
     }
 
     fn wire_api(&self, builder: &mut ServiceApiBuilder) {

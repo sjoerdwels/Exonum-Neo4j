@@ -6,14 +6,26 @@ commits the transaction such that the changes are final. In both cases, a list o
 
 Please note that the transaction manager does work with other Neo4j Transaction Event Handlers.
 
+#### Requirements
+- Apache Maven
 
-### Setup
+#### Compilation
+Compilation of the Neo4j unmanaged extension ```mvn compile``` and ```mvn test-compile```
 
-1. Create a read only user
-CALL dbms.security.createUser('readOnly', 'readonly', false)
+The compiled artefacts can be found in the **target/**  folder.
 
-2. Set user role to reader
-CALL dbms.security.addRoleToUser('reader', 'readOnly')
+#### Neo4j installation
 
-3. List all users
-CALL dbms.security.listUsers()
+https://neo4j.com/docs/operations-manual/current/installation/
+
+You can see an example of how we installed neo4j in the ../docker/DockerFile for ubuntu.
+
+#### Extension building:
+- Install Maven with "sudo apt-get install maven"
+- In project repository root directory run "mvn package"
+- Add created extension .jar file (in traget directory) to  ./var/lib/neo4j/plugins directory
+- Start Neo4j by "sudo neo4j console"
+
+#### Notes
+The plugin will prevent external access to make changes to the neo4j database. Changes can only be made using the gRPC calls implemented in the plugin. Read requests can be done as usual.
+

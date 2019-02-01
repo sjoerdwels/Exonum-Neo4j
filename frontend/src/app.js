@@ -204,7 +204,7 @@ function sendQuery() {
 
 function waitForAcceptance(hash) {
 
-    let attempt = 10;
+    let attempt = 100;
 
     return (function makeAttempt() {
         return exonum.getTransaction(hash).then(data => {
@@ -234,6 +234,7 @@ function showTransaction(hash) {
 
             $("table#transactions-table tbody").empty().append(
                 "<tr><th>Hash</th><td data-toggle=\"tooltip\" data-tx='" + hash + "' title='" + hash + "' class='transaction exonum-clickable'>" + hash + "</td></tr>" +
+                "<tr><th style='width: 180px;'>Sender public key</th><td>" + data.pub_key + "</td></tr>" +
                 "<tr><th>Status</th><td>" + data.result + "</td></tr>" +
                 "<tr><th>Content</th><td>" + data.queries + "</td></tr>" +
                 "<tr><th>Error</th><td>" + data.error_msg + "</td></tr>"

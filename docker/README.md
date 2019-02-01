@@ -1,28 +1,86 @@
-install docker
+# Docker Demo Build
 
-Move to the folder where Dockerfile resides
+With the dockerfile a fully functional node running our solution can be created. The created image includes:
+- A local Neo4j database
+- The exonum service
+- Webserver running the Neo4j Movie example 
 
-docker build --tag exonum_neo4j .
+## Requirements
+-  Docker
 
-That makes an image. It takes a while.
+## Installation and run
+
+1. Open the docker directory inside the repository.
+
+2. Run the following command to generate the docker image.
+
+    ``` bash
+    docker build --tag exonum_neo4j .
+    ```
+
+3. Create a shared volume to store the config files which are used by the docker containers. 
+
+    ```bash
+    docker volume create --name ExonumConfVolume
+    ```
+
+    Each docker container needs to have the public config of every other container to know their exonum public keys as 
+    well as the common config file for exonum. For simplicity, we created a shared volume to only generate and store these files
+    in one place.
+    
+4. If you are on a Unix machine, run the unix_startup script
+    ```bash
+    ./unix_startup.sh
+    ```` 
+   Similarly, execute the windows_startup.bat script on Windows.
+   ```bash
+   .\windows_startup.bat
+   ````
+    
+    Possibly, you first have to make the script executable
+    ```bash
+    chmod +x unix_startup.sh
+    ```
+
+    The script will start 4 nodes. For each node it will
+    - generate public / private keys
+    - finalize the configs
+    - generate common configs
+    
+    These configs will be copied to  the previous created 'ExonumConfVolume'.
+    
+5.  For each node, you can access:
+    - neo4j : 747[1]
+    - exonum : 820[1]
+    - frontend : 300[1]
+    on localhost with [1], the number of the node.
+    
+    For example, [localhost:3001](http://localhost:3001) will open the frontend of Node 1.
 
 
-docker images .... list images
-docker rmi <image_name> ... <image_name_n> ... delete image(s)
-docker ps -a ... shows all running containers
-docker rm <container_name> ...<container_name_n>... deletes container(s)
+## Regenerate docker image
+To regenerate the created docker image, simply open the docker directory in the repository and execute
+```bash
+docker build --tag exonum_neo4j . --no-cache
+``` 
+The __--no-cache__ parameter will ensure that a clean image will be created, such that the lasted version of the repository will be cloned.
 
-To make a shared directory:
 
-docker volume create --name ExonumConfVolume
 
-If you use different name for volume or image, then you need to change the values also in <OP>_startup script.
+## Delete created images
+To delete the created docker image:
 
-For windows execute windows_startup.bat
-For linux execute linux_startup.sh
+```bash
+docker rmi exonum_neo4j
+```
 
-To access the frontends for all the nodes, use:
-Windows:
-192.168.99.100:3001-3004
-Linux:
-localhost:3001-3004 (depending on the node)
+To delete the created docker, first stop the containers:
+```bash
+docker stop node1 node2 node3 node4
+```
+
+and subsequently delete the containers:
+
+```bash
+docker rm node1 node2 node3 node4
+```

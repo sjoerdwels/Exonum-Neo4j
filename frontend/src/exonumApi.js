@@ -17,6 +17,7 @@ const insertQueries = Exonum.newMessage({
     fields: [
         {name: 'queries', type: Exonum.String},
         {name: 'datetime', type: Exonum.String},
+        {name: 'pub_key', type: Exonum.PublicKey},
     ]
 });
 
@@ -29,7 +30,8 @@ function sendTransaction(query) {
 
     const data = {
         queries: query,
-        datetime: Date.now().toString()
+        datetime: Date.now().toString(),
+        pub_key : process.env.EXONUM_PUBLIC_KEY
     };
 
     const signature = insertQueries.sign(keyPair.secretKey, data);

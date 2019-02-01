@@ -6,6 +6,8 @@ SET neo4j_front_port=7470
 SET bolt_port=7680
 SET frontend_port=3000
 
+::docker run -t -d -i --name node1 -p 8201:8200 -p 7471:7474 -p 7681:7687 -p 3001:3005 -v TestVolume:/shared-config exonum_neo4j
+
 for /l %%i in (1, 1, %node_count%) do (
     docker run -t -d -i --name node%%i -p 820%%i:8200 -p 747%%i:7474 -p 768%%i:7687 -p 300%%i:3005 -v %volume_name%:/shared-config %image_name%
     docker exec -w /Exonum-Neo4j/ node%%i git pull
@@ -30,13 +32,3 @@ for /l %%i in (1, 1, %node_count%) do (
 for /l %%i in (1, 1, %node_count%) do (
     docker exec -d -w /Exonum-Neo4j/backend/ node%%i ./runTestNode.sh %%i
 )
-
-::Setup frontend
-for /l %%i in (1, 1, %node_count%) do (
-    docker exec -w /Exonum-Neo4j/frontend/ node%%i ./genEnv.sh %%i 192.168.99.100
-    docker exec -d -w /Exonum-Neo4j/frontend/ node%%i npm start
-)
-
-echo "Setup finisehd"
-echo "Navigate to 198.168.99.100:3001 to access the demo application"
-pause
