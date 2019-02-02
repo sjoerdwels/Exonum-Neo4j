@@ -7,7 +7,7 @@ api_port=8200
 neo4j_front_port=7470
 bolt_port=7680
 frontend_port=3000
-target="debug"
+target="release"
 
 
 #Starting nodes and neo4j

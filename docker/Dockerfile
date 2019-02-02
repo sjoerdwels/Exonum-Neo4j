@@ -1,6 +1,6 @@
 FROM ubuntu
 
-ARG branch=development
+ARG branch=master
 
 #Install Git and pull project
 RUN apt-get update && \
@@ -31,7 +31,7 @@ RUN curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.6.
 #Start Exonum service
 RUN cd Exonum-Neo4j/backend &&\
 		. ~/.cargo/env &&\
-		cargo build
+		cargo build --release
 		
 #Install Neo4j
 RUN apt-get install software-properties-common -y
@@ -68,5 +68,5 @@ RUN apt-get install nano
 EXPOSE 8200 8080 7474 7473
 
 #Remove from final Dockerfile
-RUN cd Exonum-Neo4j/backend && git pull &&\
-    . ~/.cargo/env && cargo build
+#RUN cd Exonum-Neo4j/backend && git pull &&\
+#    . ~/.cargo/env && cargo build
