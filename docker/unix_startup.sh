@@ -7,6 +7,7 @@ api_port=8200
 neo4j_front_port=7470
 bolt_port=7680
 frontend_port=3000
+target="release"
 
 
 #Starting nodes and neo4j
@@ -20,24 +21,24 @@ do
 done
 
 #cleaning shared_config folder and making common conf
-docker exec -w /Exonum-Neo4j/backend/ node1 ./genCommonConfigTesting.sh $node_count
+docker exec -w /Exonum-Neo4j/backend/ node1 ./genCommonConfigTesting.sh $node_count $target
 
 #Generating conf for each node
 for i in $(seq 1 $((node_count)))
 do
-    docker exec -w /Exonum-Neo4j/backend/ node$i ./reConfTestNode.sh $i
+    docker exec -w /Exonum-Neo4j/backend/ node$i ./reConfTestNode.sh $i $target
 done
 
 #Finalizing conf for each node
 for i in $(seq 1 $((node_count)))
 do
-    docker exec -w /Exonum-Neo4j/backend/ node$i ./finalizeTesting.sh $i $node_count
+    docker exec -w /Exonum-Neo4j/backend/ node$i ./finalizeTesting.sh $i $node_count $target
 done
 
 #Run all the nodes
 for i in $(seq 1 $((node_count)))
 do
-    docker exec -d -w /Exonum-Neo4j/backend/ node$i ./runTestNode.sh $i
+    docker exec -d -w /Exonum-Neo4j/backend/ node$i ./runTestNode.sh $i $target
 done
 
 #Wait so that neo4j has properly started
