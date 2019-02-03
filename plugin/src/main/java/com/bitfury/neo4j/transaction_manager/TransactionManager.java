@@ -79,7 +79,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
         // Create gRPC server
         gRPCServer = ServerBuilder.forPort(port).addService(this).build();
 
-        // todo
+        // Reset transaction state machine to initial state
         TransactionData.set(new TransactionStateMachine(null));
 
         userLog.info("method=constructor gRPCPort=" + port);
@@ -275,10 +275,7 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
 
         } catch (Exception ex) {
 
-            // todo remove
-            System.out.println(ex.getClass() + " - " + ex.getMessage() + "  - " + ex.getCause());
-
-            TransactionData.get().failure(
+           TransactionData.get().failure(
                     new EError(EError.ErrorType.RUNTIME_EXCEPTION, "Runtime exception:  " + ex.getMessage())
             );
         }
@@ -382,9 +379,8 @@ public class TransactionManager extends TransactionManagerGrpc.TransactionManage
      * a node/relationship id, a lambda function is used that first  check if the UUID property was deleted.
      * Otherwise, the node/relationship still exists and it is retrieved from the graph database.
      *
-     * @param transactionData
+     * @param transactionData       The TransactionData that needs to be stored in the state  machine
      */
-    // todo
     private void storeTransactionModifications(TransactionData transactionData) {
 
         TransactionStateMachine tsm = TransactionData.get();

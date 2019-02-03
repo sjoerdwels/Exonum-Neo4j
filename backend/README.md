@@ -9,7 +9,7 @@ In here we go through the setup of this service in ubuntu-linux system.
 Exonum service installation:
 
 ``` bash
-apt-get install
+    apt-get install
 	cargo
 	build-essential
 	pkg-config
