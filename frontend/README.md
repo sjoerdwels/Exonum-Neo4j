@@ -7,10 +7,20 @@
 * [Neo4j Bolt JavaScript Driver](https://github.com/neo4j/neo4j-javascript-driver)
 * Neo4j
 * Exonum
-* Frontend: ES6, jquery, bootstrap, [d3.js](http://d3js.org/)
+* Frontend: ES6, jQuery, bootstrap, [d3.js](http://d3js.org/)
 * Webpack for building web assets
+* [Exonum Light Client](https://github.com/exonum/exonum-client)
 
 ## Quickstart
+
+### Notes
+
+The frontend works in the following browsers:
+* Firefox
+* Safari
+* Edge
+
+Unfortunately, it does not work in Google Chrome as the Exonum Light Client v0.13.0 does not work in in Chrome. To update the light-client, the Exonum service needs to be updated to v0.10.*.
 
 ### Setup
 Install NodeJS and run the following command:
