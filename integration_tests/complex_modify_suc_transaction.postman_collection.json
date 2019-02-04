@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "dd17f30d-41ba-4261-8641-97a91bfd01c3",
-		"name": "simple_suc_transaction",
+		"_postman_id": "c3e8b40e-e8b5-405c-8449-d5e8104e19a5",
+		"name": "complex_modify_suc_transaction",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -51,7 +51,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"body\": {\n    \"queries\": \"CREATE (n:{{label}} {{{prop1}}:'{{prop1val1}}'})\",\n    \"datetime\": \"{{current_timestamp}}\",\n    \"pub_key\": \"89ee16f86330960a09cd224242e7c4627e33751b2949f2cfb2f5b1008340d1f0\"\n  },\n  \"protocol_version\": 0,\n  \"service_id\": 144,\n  \"message_id\": 0,\n  \"signature\":\"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b\"\n}"
+					"raw": "{\n  \"body\": {\n    \"queries\": \"CREATE (p:{{label}} {{{prop1}}:'{{prop1val1}}'}-[r:{{type}} {{{relprop}}:'{{relpropval}}'}]->(g:{{label}} {{{prop1}}:'{{prop1val2}}'})\",\n    \"datetime\": \"{{current_timestamp}}\",\n    \"pub_key\": \"89ee16f86330960a09cd224242e7c4627e33751b2949f2cfb2f5b1008340d1f0\"\n  },\n  \"protocol_version\": 0,\n  \"service_id\": 144,\n  \"message_id\": 0,\n  \"signature\":\"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b\"\n}\n\n"
 				},
 				"url": {
 					"raw": "192.168.99.101:8201/api/services/neo4j_blockchain/v1/insert_transaction",
@@ -81,7 +81,65 @@
 			"response": []
 		},
 		{
-			"name": "history_lookup_validator1",
+			"name": "modify_validator2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4d6b4893-4ee8-45d2-829f-69971b41c4f1",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"var jsonData = pm.response.json();",
+							"",
+							"tests[\"has tx_hash\"] = jsonData.tx_hash !== \"\" ;",
+							"",
+							"pm.environment.set(\"tx_hash2\", jsonData.tx_hash2);",
+							"",
+							"setTimeout(function(){}, [3000]);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"body\": {\n        \"queries\": \"MATCH (n) WHERE n.{{prop1}} = '{{prop1val1}}' SET n.{{prop1}} = '{{prop1val3}}'\",\n        \"datetime\": \"{{current_timestamp}}\",\n        \"pub_key\": \"89ee16f86330960a09cd224242e7c4627e33751b2949f2cfb2f5b1008340d1f0\"\n    },\n    \"protocol_version\": 0,\n    \"service_id\": 144,\n    \"message_id\": 0,\n    \"signature\": \"9f684227f1de663775848b3db656bca685e085391e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b\"\n}"
+				},
+				"url": {
+					"raw": "192.168.99.101:8202/api/services/neo4j_blockchain/v1/insert_transaction",
+					"host": [
+						"192",
+						"168",
+						"99",
+						"101"
+					],
+					"port": "8202",
+					"path": [
+						"api",
+						"services",
+						"neo4j_blockchain",
+						"v1",
+						"insert_transaction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "history_lookup_modify_validator1",
 			"event": [
 				{
 					"listen": "test",
@@ -96,7 +154,8 @@
 							"tests[\"has UUID\"] = jsonData[0].description.includes(pm.environment.get(\"tx_hash\") + \"_0\");",
 							"tests[\"has label\"] = jsonData[1].description.includes(pm.environment.get(\"label\"));",
 							"tests[\"has property\"] = jsonData[2].description.includes(pm.environment.get(\"prop1\"));",
-							"tests[\"has property value\"] = jsonData[2].description.includes(pm.environment.get(\"prop1val1\"));",
+							"tests[\"has property value\"] = jsonData[2].description.includes(pm.environment.get(\"prop1val3\"));",
+							"",
 							"",
 							""
 						],
@@ -141,12 +200,12 @@
 			"response": []
 		},
 		{
-			"name": "history_lookup_validator2",
+			"name": "history_lookup_modify_validator2",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "ad0671d7-d9e2-4e54-838a-438503cbe37b",
+						"id": "fab3f1be-4bc1-4d9b-8b05-a2962592794d",
 						"exec": [
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -156,7 +215,7 @@
 							"tests[\"has UUID\"] = jsonData[0].description.includes(pm.environment.get(\"tx_hash\") + \"_0\");",
 							"tests[\"has label\"] = jsonData[1].description.includes(pm.environment.get(\"label\"));",
 							"tests[\"has property\"] = jsonData[2].description.includes(pm.environment.get(\"prop1\"));",
-							"tests[\"has property value\"] = jsonData[2].description.includes(pm.environment.get(\"prop1val1\"));"
+							"tests[\"has property value\"] = jsonData[2].description.includes(pm.environment.get(\"prop1val3\"));"
 						],
 						"type": "text/javascript"
 					}
@@ -199,12 +258,12 @@
 			"response": []
 		},
 		{
-			"name": "history_lookup_validator3",
+			"name": "history_lookup_modify_validator3",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "ad0671d7-d9e2-4e54-838a-438503cbe37b",
+						"id": "fab3f1be-4bc1-4d9b-8b05-a2962592794d",
 						"exec": [
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -214,7 +273,7 @@
 							"tests[\"has UUID\"] = jsonData[0].description.includes(pm.environment.get(\"tx_hash\") + \"_0\");",
 							"tests[\"has label\"] = jsonData[1].description.includes(pm.environment.get(\"label\"));",
 							"tests[\"has property\"] = jsonData[2].description.includes(pm.environment.get(\"prop1\"));",
-							"tests[\"has property value\"] = jsonData[2].description.includes(pm.environment.get(\"prop1val1\"));"
+							"tests[\"has property value\"] = jsonData[2].description.includes(pm.environment.get(\"prop1val3\"));"
 						],
 						"type": "text/javascript"
 					}
@@ -257,12 +316,12 @@
 			"response": []
 		},
 		{
-			"name": "history_lookup_validator4",
+			"name": "history_lookup_modify_validator4",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "ad0671d7-d9e2-4e54-838a-438503cbe37b",
+						"id": "fab3f1be-4bc1-4d9b-8b05-a2962592794d",
 						"exec": [
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -272,7 +331,7 @@
 							"tests[\"has UUID\"] = jsonData[0].description.includes(pm.environment.get(\"tx_hash\") + \"_0\");",
 							"tests[\"has label\"] = jsonData[1].description.includes(pm.environment.get(\"label\"));",
 							"tests[\"has property\"] = jsonData[2].description.includes(pm.environment.get(\"prop1\"));",
-							"tests[\"has property value\"] = jsonData[2].description.includes(pm.environment.get(\"prop1val1\"));"
+							"tests[\"has property value\"] = jsonData[2].description.includes(pm.environment.get(\"prop1val3\"));"
 						],
 						"type": "text/javascript"
 					}
@@ -315,7 +374,7 @@
 			"response": []
 		},
 		{
-			"name": "neo4j_lookup_validator1",
+			"name": "neo4j_lookup_modify_validator1",
 			"event": [
 				{
 					"listen": "prerequest",
@@ -332,11 +391,10 @@
 					"script": {
 						"id": "78e5d4ac-773c-4103-ae3a-20e34cbf56e2",
 						"exec": [
-							"pm.test(\"UUID check\", function () {\r",
+							"pm.test(\"Property value check\", function () {\r",
 							"    var jsonData = pm.response.json();\r",
-							"    pm.expect(jsonData.results[0].data[0].row[0]).to.eql(pm.environment.get(\"tx_hash\") + '_0');\r",
+							"    pm.expect(jsonData.results[0].data[0].row[0]).to.eql(pm.environment.get(\"prop1val3\"));\r",
 							"});\r",
-							"\r",
 							""
 						],
 						"type": "text/javascript"
@@ -370,7 +428,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"statements\": [\n        {\n            \"statement\": \"MATCH (n:{{label}} {{{prop1}}:'{{prop1val1}}'}) RETURN n.uuid\"\n        }\n    ]\n}"
+					"raw": "{\n    \"statements\": [\n        {\n            \"statement\": \"MATCH (n:{{label}} uuid:'{{tx_hash}}_0'}) RETURN n.{{prop1}}\"\n        }\n    ]\n}"
 				},
 				"url": {
 					"raw": "http://192.168.99.101:7471/db/data/transaction/commit",
@@ -393,7 +451,7 @@
 			"response": []
 		},
 		{
-			"name": "neo4j_lookup_validator2",
+			"name": "neo4j_lookup_modify_validator2",
 			"event": [
 				{
 					"listen": "prerequest",
@@ -410,11 +468,10 @@
 					"script": {
 						"id": "78e5d4ac-773c-4103-ae3a-20e34cbf56e2",
 						"exec": [
-							"pm.test(\"UUID check\", function () {\r",
+							"pm.test(\"Property value check\", function () {\r",
 							"    var jsonData = pm.response.json();\r",
-							"    pm.expect(jsonData.results[0].data[0].row[0]).to.eql(pm.environment.get(\"tx_hash\") + '_0');\r",
+							"    pm.expect(jsonData.results[0].data[0].row[0]).to.eql(pm.environment.get(\"prop1val3\"));\r",
 							"});\r",
-							"\r",
 							""
 						],
 						"type": "text/javascript"
@@ -448,7 +505,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"statements\": [\n        {\n            \"statement\": \"MATCH (n:{{label}} {{{prop1}}:'{{prop1val1}}'}) RETURN n.uuid\"\n        }\n    ]\n}"
+					"raw": "{\n    \"statements\": [\n        {\n            \"statement\": \"MATCH (n:{{label}} uuid:'{{tx_hash}}_0'}) RETURN n.{{prop1}}\"\n        }\n    ]\n}"
 				},
 				"url": {
 					"raw": "http://192.168.99.101:7472/db/data/transaction/commit",
@@ -471,7 +528,7 @@
 			"response": []
 		},
 		{
-			"name": "neo4j_lookup_validator3",
+			"name": "neo4j_lookup_modify_validator3",
 			"event": [
 				{
 					"listen": "prerequest",
@@ -488,11 +545,10 @@
 					"script": {
 						"id": "78e5d4ac-773c-4103-ae3a-20e34cbf56e2",
 						"exec": [
-							"pm.test(\"UUID check\", function () {\r",
+							"pm.test(\"Property value check\", function () {\r",
 							"    var jsonData = pm.response.json();\r",
-							"    pm.expect(jsonData.results[0].data[0].row[0]).to.eql(pm.environment.get(\"tx_hash\") + '_0');\r",
+							"    pm.expect(jsonData.results[0].data[0].row[0]).to.eql(pm.environment.get(\"prop1val3\"));\r",
 							"});\r",
-							"\r",
 							""
 						],
 						"type": "text/javascript"
@@ -526,7 +582,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"statements\": [\n        {\n            \"statement\": \"MATCH (n:{{label}} {{{prop1}}:'{{prop1val1}}'}) RETURN n.uuid\"\n        }\n    ]\n}"
+					"raw": "{\n    \"statements\": [\n        {\n            \"statement\": \"MATCH (n:{{label}} uuid:'{{tx_hash}}_0'}) RETURN n.{{prop1}}\"\n        }\n    ]\n}"
 				},
 				"url": {
 					"raw": "http://192.168.99.101:7473/db/data/transaction/commit",
@@ -549,7 +605,7 @@
 			"response": []
 		},
 		{
-			"name": "neo4j_lookup_validator4",
+			"name": "neo4j_lookup_modify_validator4",
 			"event": [
 				{
 					"listen": "prerequest",
@@ -566,9 +622,9 @@
 					"script": {
 						"id": "78e5d4ac-773c-4103-ae3a-20e34cbf56e2",
 						"exec": [
-							"pm.test(\"UUID check\", function () {\r",
+							"pm.test(\"Property value check\", function () {\r",
 							"    var jsonData = pm.response.json();\r",
-							"    pm.expect(jsonData.results[0].data[0].row[0]).to.eql(pm.environment.get(\"tx_hash\") + '_0');\r",
+							"    pm.expect(jsonData.results[0].data[0].row[0]).to.eql(pm.environment.get(\"prop1val3\"));\r",
 							"});\r",
 							"\r",
 							""
@@ -604,7 +660,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"statements\": [\n        {\n            \"statement\": \"MATCH (n:{{label}} {{{prop1}}:'{{prop1val1}}'}) RETURN n.uuid\"\n        }\n    ]\n}"
+					"raw": "{\n    \"statements\": [\n        {\n            \"statement\": \"MATCH (n:{{label}} uuid:'{{tx_hash}}_0'}) RETURN n.{{prop1}}\"\n        }\n    ]\n}"
 				},
 				"url": {
 					"raw": "http://192.168.99.101:7474/db/data/transaction/commit",
@@ -635,7 +691,7 @@
 						"id": "9cac9ebc-aa10-40f0-97f8-19dce0df6467",
 						"exec": [
 							"var jsonData = pm.response.json();",
-							"tests[\"has query\"] = jsonData.queries.includes(pm.environment.get(\"CREATE (n:{{label}} {{{prop1}}:'{{prop1val1}}'})\"));"
+							"tests[\"has query\"] = jsonData.queries.includes(\"MATCH (n) WHERE n.{{prop1}} = '{{prop1val1}}' SET n.{{prop1}} = '{{prop1val3}}'\");"
 						],
 						"type": "text/javascript"
 					}
@@ -649,7 +705,7 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "192.168.99.101:8201/api/services/neo4j_blockchain/v1/transaction?hash_string={{tx_hash}}",
+					"raw": "192.168.99.101:8201/api/services/neo4j_blockchain/v1/transaction?hash_string={{tx_hash2}}",
 					"host": [
 						"192",
 						"168",
@@ -667,7 +723,7 @@
 					"query": [
 						{
 							"key": "hash_string",
-							"value": "{{tx_hash}}"
+							"value": "{{tx_hash2}}"
 						}
 					]
 				}
@@ -683,7 +739,7 @@
 						"id": "9cac9ebc-aa10-40f0-97f8-19dce0df6467",
 						"exec": [
 							"var jsonData = pm.response.json();",
-							"tests[\"has query\"] = jsonData.queries.includes(pm.environment.get(\"CREATE (n:{{label}} {{{prop1}}:'{{prop1val1}}'})\"));"
+							"tests[\"has query\"] = jsonData.queries.includes(\"MATCH (n) WHERE n.{{prop1}} = '{{prop1val1}}' SET n.{{prop1}} = '{{prop1val3}}'\");"
 						],
 						"type": "text/javascript"
 					}
@@ -697,7 +753,7 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "192.168.99.101:8202/api/services/neo4j_blockchain/v1/transaction?hash_string={{tx_hash}}",
+					"raw": "192.168.99.101:8202/api/services/neo4j_blockchain/v1/transaction?hash_string={{tx_hash2}}",
 					"host": [
 						"192",
 						"168",
@@ -715,7 +771,7 @@
 					"query": [
 						{
 							"key": "hash_string",
-							"value": "{{tx_hash}}"
+							"value": "{{tx_hash2}}"
 						}
 					]
 				}
@@ -731,7 +787,7 @@
 						"id": "9cac9ebc-aa10-40f0-97f8-19dce0df6467",
 						"exec": [
 							"var jsonData = pm.response.json();",
-							"tests[\"has query\"] = jsonData.queries.includes(pm.environment.get(\"CREATE (n:{{label}} {{{prop1}}:'{{prop1val1}}'})\"));"
+							"tests[\"has query\"] = jsonData.queries.includes(\"MATCH (n) WHERE n.{{prop1}} = '{{prop1val1}}' SET n.{{prop1}} = '{{prop1val3}}'\");"
 						],
 						"type": "text/javascript"
 					}
@@ -745,7 +801,7 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "192.168.99.101:8203/api/services/neo4j_blockchain/v1/transaction?hash_string={{tx_hash}}",
+					"raw": "192.168.99.101:8203/api/services/neo4j_blockchain/v1/transaction?hash_string={{tx_hash2}}",
 					"host": [
 						"192",
 						"168",
@@ -763,7 +819,7 @@
 					"query": [
 						{
 							"key": "hash_string",
-							"value": "{{tx_hash}}"
+							"value": "{{tx_hash2}}"
 						}
 					]
 				}
@@ -779,7 +835,7 @@
 						"id": "9cac9ebc-aa10-40f0-97f8-19dce0df6467",
 						"exec": [
 							"var jsonData = pm.response.json();",
-							"tests[\"has query\"] = jsonData.queries.includes(pm.environment.get(\"CREATE (n:{{label}} {{{prop1}}:'{{prop1val1}}'})\"));"
+							"tests[\"has query\"] = jsonData.queries.includes(\"MATCH (n) WHERE n.{{prop1}} = '{{prop1val1}}' SET n.{{prop1}} = '{{prop1val3}}'\");"
 						],
 						"type": "text/javascript"
 					}
@@ -793,7 +849,7 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "192.168.99.101:8204/api/services/neo4j_blockchain/v1/transaction?hash_string={{tx_hash}}",
+					"raw": "192.168.99.101:8204/api/services/neo4j_blockchain/v1/transaction?hash_string={{tx_hash2}}",
 					"host": [
 						"192",
 						"168",
@@ -811,7 +867,7 @@
 					"query": [
 						{
 							"key": "hash_string",
-							"value": "{{tx_hash}}"
+							"value": "{{tx_hash2}}"
 						}
 					]
 				}
@@ -826,8 +882,12 @@
 					"script": {
 						"id": "30abc7af-b3e1-4427-a778-0d36e298ed4f",
 						"exec": [
-							"pm.test(\"Transactions inlcude query\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"CREATE (n:{{label}} {{{prop1}}:'{{prop1val1}}'})\");",
+							"pm.test(\"Find inital query\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"CREATE (p:{{label}} {{{prop1}}:'{{prop1val1}}'}-[r:{{type}} {{{relprop}}:'{{relpropval}}'}]->(g:{{label}} {{{prop1}}:'{{prop1val2}}'})\");",
+							"});",
+							"",
+							"pm.test(\"Find modifing query\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"MATCH (n) WHERE n.{{prop1}} = '{{prop1val1}}' SET n.{{prop1}} = '{{prop1val3}}'\");",
 							"});",
 							"   "
 						],
@@ -870,8 +930,12 @@
 					"script": {
 						"id": "30abc7af-b3e1-4427-a778-0d36e298ed4f",
 						"exec": [
-							"pm.test(\"Transactions inlcude query\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"CREATE (n:{{label}} {{{prop1}}:'{{prop1val1}}'})\");",
+							"pm.test(\"Find inital query\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"CREATE (p:{{label}} {{{prop1}}:'{{prop1val1}}'}-[r:{{type}} {{{relprop}}:'{{relpropval}}'}]->(g:{{label}} {{{prop1}}:'{{prop1val2}}'})\");",
+							"});",
+							"",
+							"pm.test(\"Find modifing query\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"MATCH (n) WHERE n.{{prop1}} = '{{prop1val1}}' SET n.{{prop1}} = '{{prop1val3}}'\");",
 							"});"
 						],
 						"type": "text/javascript"
@@ -913,8 +977,12 @@
 					"script": {
 						"id": "30abc7af-b3e1-4427-a778-0d36e298ed4f",
 						"exec": [
-							"pm.test(\"Transactions inlcude query\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"CREATE (n:{{label}} {{{prop1}}:'{{prop1val1}}'})\");",
+							"pm.test(\"Find inital query\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"CREATE (p:{{label}} {{{prop1}}:'{{prop1val1}}'}-[r:{{type}} {{{relprop}}:'{{relpropval}}'}]->(g:{{label}} {{{prop1}}:'{{prop1val2}}'})\");",
+							"});",
+							"",
+							"pm.test(\"Find modifing query\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"MATCH (n) WHERE n.{{prop1}} = '{{prop1val1}}' SET n.{{prop1}} = '{{prop1val3}}'\");",
 							"});"
 						],
 						"type": "text/javascript"
@@ -956,8 +1024,12 @@
 					"script": {
 						"id": "30abc7af-b3e1-4427-a778-0d36e298ed4f",
 						"exec": [
-							"pm.test(\"Transactions inlcude query\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"CREATE (n:{{label}} {{{prop1}}:'{{prop1val1}}'})\");",
+							"pm.test(\"Find inital query\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"CREATE (p:{{label}} {{{prop1}}:'{{prop1val1}}'}-[r:{{type}} {{{relprop}}:'{{relpropval}}'}]->(g:{{label}} {{{prop1}}:'{{prop1val2}}'})\");",
+							"});",
+							"",
+							"pm.test(\"Find modifing query\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"MATCH (n) WHERE n.{{prop1}} = '{{prop1val1}}' SET n.{{prop1}} = '{{prop1val3}}'\");",
 							"});"
 						],
 						"type": "text/javascript"

@@ -4,7 +4,13 @@ for /l %%i in (1, 1, %node_count%) do (
 	docker exec node%%i neo4j restart
 )
 
-::cleaning shared_config folder and making common conf
+::kill all running exonum processes and remove configuration files
+for /l %%i in (1, 1, %node_count%) do (
+    docker exec node%%i pkill exonum-neo4j
+	docker exec node%%i rm -rf /Exonum-Neo4j/backend/db%%i
+	docker exec node%%i rm -f /Exonum-Neo4j/backend/node_%%i_cfg.toml
+	docker exec node%%i rm -f /Exonum-Neo4j/backend/sec_%%i.toml
+)
 docker exec -w /Exonum-Neo4j/backend/ node1 ./genCommonConfigTesting.sh %node_count%
 
 ::Generating conf for each node

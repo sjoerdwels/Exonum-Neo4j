@@ -1,0 +1,271 @@
+{
+	"info": {
+		"_postman_id": "18304119-51ac-4118-93a9-097e0e5e0453",
+		"name": "simple_fail_transaction",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "insert_bad_validator1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "076bf82a-0856-48a6-8a47-67fd8ee1672a",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"var jsonData = pm.response.json();",
+							"",
+							"tests[\"has tx_hash\"] = jsonData.tx_hash !== \"\" ;",
+							"tests[\"has error\"] = jsonData.error_msg === \"\" ;",
+							"",
+							"pm.environment.set(\"tx_hash\", jsonData.tx_hash);",
+							"",
+							"setTimeout(function(){}, [3000]);"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "b2afa889-c01f-440c-8b36-dc2d409a100c",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"body\": {\n    \"queries\": \"{{query_bad}}\",\n    \"datetime\": \"00:00:01 10-JAN-2019\",\n    \"pub_key\": \"89ee16f86330960a09cd224242e7c4627e33751b2949f2cfb2f5b1008340d1f0\"\n  },\n  \"protocol_version\": 0,\n  \"service_id\": 144,\n  \"message_id\": 0,\n  \"signature\":\"9f684227f1de663774548b3db656bca685e085321e2b00b0e115679fd45443ef58a5abeb555ab3d5f7a3cd27955a2079e5fd486743f36515c8e5bea07992100b\"\n}"
+				},
+				"url": {
+					"raw": "192.168.99.101:8201/api/services/neo4j_blockchain/v1/insert_transaction",
+					"host": [
+						"192",
+						"168",
+						"99",
+						"101"
+					],
+					"port": "8201",
+					"path": [
+						"api",
+						"services",
+						"neo4j_blockchain",
+						"v1",
+						"insert_transaction"
+					],
+					"query": [
+						{
+							"key": "body",
+							"value": "",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "history_lookup_empty_validator1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "fab3f1be-4bc1-4d9b-8b05-a2962592794d",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"var jsonData = pm.response.json();",
+							"",
+							"pm.test(\"Response is empty list\", function () {",
+							"    jsonData.length===0;",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "192.168.99.101:8201/api/services/neo4j_blockchain/v1/node_history?node_uuid={{tx_hash}}_0",
+					"host": [
+						"192",
+						"168",
+						"99",
+						"101"
+					],
+					"port": "8201",
+					"path": [
+						"api",
+						"services",
+						"neo4j_blockchain",
+						"v1",
+						"node_history"
+					],
+					"query": [
+						{
+							"key": "node_uuid",
+							"value": "{{tx_hash}}_0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "neo4j_lookup_db_empty_validator1",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "b30790ae-67ee-4b32-bc1b-978549547034",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "78e5d4ac-773c-4103-ae3a-20e34cbf56e2",
+						"exec": [
+							"pm.test(\"Check if database empty\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData.results[0].data).to.eql([]);\r",
+							"});\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "exonumNeo4j",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "neo4j",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"statements\": [\n        {\n            \"statement\": \"MATCH (n) RETURN n\"\n        }\n    ]\n}"
+				},
+				"url": {
+					"raw": "http://192.168.99.101:7471/db/data/transaction/commit",
+					"protocol": "http",
+					"host": [
+						"192",
+						"168",
+						"99",
+						"101"
+					],
+					"port": "7471",
+					"path": [
+						"db",
+						"data",
+						"transaction",
+						"commit"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "transaction_by_hash_includes_error",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "9cac9ebc-aa10-40f0-97f8-19dce0df6467",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"tests[\"has query\"] = jsonData.queries.includes(pm.environment.get(\"query_bad\"));",
+							"tests[\"has error result\"] = jsonData.result.includes(\"ERROR\");"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "192.168.99.101:8201/api/services/neo4j_blockchain/v1/transaction?hash_string={{tx_hash}}",
+					"host": [
+						"192",
+						"168",
+						"99",
+						"101"
+					],
+					"port": "8201",
+					"path": [
+						"api",
+						"services",
+						"neo4j_blockchain",
+						"v1",
+						"transaction"
+					],
+					"query": [
+						{
+							"key": "hash_string",
+							"value": "{{tx_hash}}"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
