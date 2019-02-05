@@ -8,6 +8,7 @@ In here we go through the setup of this service in ubuntu-linux system.
 
 Exonum service installation:
 
+``` bash
 apt-get install
 	cargo
 	build-essential
@@ -15,9 +16,12 @@ apt-get install
 	libssl-dev
 	curl
 	protoc
+```
 Go to backend folder:
+``` bash
 cargo build
 cargo install
+```
 
 #### Setup overview
 
