@@ -4,7 +4,6 @@ pub mod proto;
 pub use neo4j::proto::transaction_manager::*;
 pub use neo4j::proto::transaction_manager_grpc::*;
 
-// todo: fix imports
 use exonum::{
     blockchain::{Block, Schema as CoreSchema},
     crypto::Hash,

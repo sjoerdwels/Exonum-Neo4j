@@ -102,7 +102,7 @@ impl AuditBlocks {
 
                     match neo4j_rpc.retrieve_block_changes(block_hash) {
                         ChangeResponse(changes) => returnVector.push(changes),
-                        DBError(e) => println!("{:?}", e.msg()), //TODO error handling
+                        DBError(e) => println!("{:?}", e.msg()), //TODO error handling, this is obviously going to fail in consensus, but do we want to do something before that.
                         _ => {}
                     }
                 }
